@@ -18,17 +18,20 @@ const categories = [...new Set(posts.map(p => p.data.category))];
     <p data-reveal>מה שלמדנו מ-250+ קמפיינים. הדאטה, הניסיון, והטעויות — בלי לייפות.</p>
 
     <div class="cat-pills" data-reveal>
-      <span class="cp active">הכל</span>
-      {categories.map(cat => (<span class="cp">{cat}</span>))}
+      <button type="button" class="cp active" data-cat="all">הכל <span class="cp-count">{posts.length}</span></button>
+      {categories.map(cat => {
+        const count = posts.filter(p => p.data.category === cat).length;
+        return (<button type="button" class="cp" data-cat={cat}>{cat} <span class="cp-count">{count}</span></button>);
+      })}
     </div>
   </div>
 </section>
 
 <section class="blog-list">
   <div class="container">
-    <div class="bp-grid">
+    <div class="bp-grid" id="blogGrid">
       {posts.map((post: any) => (
-        <a href={`/blog/${post.id}`} class="bp-card" data-tilt data-cursor="link">
+        <a href={`/blog/${post.id}`} class="bp-card" data-tilt data-cursor="link" data-cat={post.data.category}>
           <span class="bp-tag">{post.data.category}</span>
           <h4>{post.data.title}</h4>
           <p>{post.data.description}</p>
@@ -36,20 +39,115 @@ const categories = [...new Set(posts.map(p => p.data.category))];
         </a>
       ))}
     </div>
+    <div class="bp-empty" id="blogEmpty" hidden>
+      <p>אין פוסטים בקטגוריה הזו עדיין.</p>
+    </div>
   </div>
 </section>
 
 </Layout>
 
 <style is:global>
-  .page-hero { padding: 160px 0 60px; text-align: center; position: relative; z-index: 2; }
-  .page-hero h1 { font-family: 'Rubik'; font-size: clamp(2.4rem, 5vw, 4rem); font-weight: 900; line-height: 1.1; letter-spacing: -0.02em; margin: 18px auto; max-width: 900px; }
-  .page-hero h1 em { font-style: normal; background: linear-gradient(135deg, var(--red), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .page-hero > .container > p { color: var(--ink-dim); font-size: 1.15rem; max-width: 640px; margin: 0 auto; }
-
-  .cat-pills { display: flex; gap: 10px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
-  .cp { padding: 8px 18px; border: 1px solid var(--line-2); border-radius: 999px; font-size: 0.9rem; font-weight: 600; color: var(--ink-dim); cursor: pointer; transition: 200ms; }
-  .cp:hover, .cp.active { background: rgba(255,42,60,0.1); border-color: var(--red); color: var(--ink); }
+  .cat-pills {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+  .cp {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    border: 1px solid var(--line-2);
+    border-radius: 999px;
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--ink-dim);
+    background: transparent;
+    cursor: pointer;
+    transition: 200ms cubic-bezier(.4,0,.2,1);
+  }
+  .cp:hover { color: var(--ink); border-color: var(--gold); }
+  .cp.active {
+    background: linear-gradient(135deg, var(--red), var(--red-deep));
+    border-color: var(--red);
+    color: #fff;
+    box-shadow: 0 6px 18px var(--red-glow);
+  }
+  .cp-count {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 999px;
+    min-width: 22px;
+    text-align: center;
+  }
+  .cp.active .cp-count {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+  }
 
   .blog-list { padding: 60px 0 110px; }
+
+  /* Filter animation */
+  .bp-card {
+    transition: opacity 280ms ease, transform 280ms cubic-bezier(.4,0,.2,1);
+  }
+  .bp-card.cp-hidden {
+    opacity: 0;
+    transform: scale(0.96);
+    pointer-events: none;
+    position: absolute;
+    visibility: hidden;
+  }
+
+  .bp-empty {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--ink-dim);
+    font-size: 1.05rem;
+  }
 </style>
+
+<script is:inline>
+  (() => {
+    const pills = document.querySelectorAll('.cat-pills .cp');
+    const cards = document.querySelectorAll('#blogGrid .bp-card');
+    const empty = document.getElementById('blogEmpty');
+
+    pills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        const cat = pill.dataset.cat;
+
+        pills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+
+        let visibleCount = 0;
+        cards.forEach(card => {
+          const match = cat === 'all' || card.dataset.cat === cat;
+          if (match) {
+            card.classList.remove('cp-hidden');
+            visibleCount++;
+          } else {
+            card.classList.add('cp-hidden');
+          }
+        });
+
+        if (empty) empty.hidden = visibleCount > 0;
+
+        // Smooth scroll to top of blog list if user filtered far down
+        const list = document.getElementById('blogGrid');
+        if (list) {
+          const top = list.getBoundingClientRect().top + window.scrollY - 100;
+          if (window.scrollY > top + 100) {
+            window.scrollTo({ top, behavior: 'smooth' });
+          }
+        }
+      });
+    });
+  })();
+</script>
