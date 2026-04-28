@@ -89,7 +89,7 @@ document.querySelectorAll('[data-tilt]').forEach(card => {
 const form = document.getElementById('leadForm');
 const status = document.getElementById('formStatus');
 
-form.addEventListener('submit', (e) => {
+form.addEventListener('submit', async (e) => {
   e.preventDefault();
   status.className = 'form-status';
   status.textContent = '';
@@ -110,19 +110,34 @@ form.addEventListener('submit', (e) => {
     return;
   }
 
-  // הדמיית שליחה — חבר כאן את השרת/Webhook שלך
   const btn = form.querySelector('button[type="submit"]');
   const original = btn.textContent;
   btn.textContent = 'שולח...';
   btn.disabled = true;
 
-  setTimeout(() => {
-    status.classList.add('ok');
-    status.textContent = '✓ קיבלנו! נחזור אליך תוך 24 שעות.';
+  try {
+    const res = await fetch(form.action, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' },
+      body: new FormData(form)
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && (data.success === 'true' || data.success === true)) {
+      status.classList.add('ok');
+      status.textContent = '✓ קיבלנו! נחזור אליך תוך 24 שעות.';
+      form.reset();
+    } else {
+      status.classList.add('err');
+      status.textContent = 'שליחה נכשלה. נסה שוב או חייג 054-582-2451.';
+    }
+  } catch (err) {
+    status.classList.add('err');
+    status.textContent = 'שליחה נכשלה. בדוק חיבור אינטרנט.';
+  } finally {
     btn.textContent = original;
     btn.disabled = false;
-    form.reset();
-  }, 800);
+  }
 });
 
 // === Smooth scroll for in-page anchors (RTL safe) ===
