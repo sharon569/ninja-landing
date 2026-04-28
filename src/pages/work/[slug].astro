@@ -1,0 +1,90 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { cases } from '../../data/cases';
+import { services } from '../../data/services';
+
+export function getStaticPaths() {
+  return Object.values(cases).map((c) => ({
+    params: { slug: c.slug },
+    props: { caseStudy: c },
+  }));
+}
+
+const { caseStudy } = Astro.props;
+const linkedServices = caseStudy.services.map((s: string) => (services as any)[s]).filter(Boolean);
+---
+
+<Layout title={`${caseStudy.headline} | NINJA Digital`}>
+
+<section class="page-hero">
+  <div class="container">
+    <a href="/work" class="post-back" data-cursor="link">← כל העבודות</a>
+    <span class="eyebrow" data-reveal>{caseStudy.industry}</span>
+    <h1 data-reveal>{caseStudy.headline}</h1>
+    <p data-reveal>{caseStudy.summary}</p>
+  </div>
+</section>
+
+<section class="results" style="padding-top:40px">
+  <div class="container">
+    <div class="stats-grid">
+      {caseStudy.results.map((r: any) => (
+        <div class="stat-card" data-reveal>
+          <div class="stat-num">{r.metric}</div>
+          <div class="stat-label">{r.label}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="why">
+  <div class="container">
+    <div style="max-width:760px;margin:0 auto">
+      <div data-reveal style="margin-bottom:48px">
+        <span class="eyebrow">האתגר</span>
+        <h2 style="font-size:1.6rem;margin:14px 0">מה הביא אותם אלינו</h2>
+        <p style="color:var(--ink-dim);font-size:1.08rem;line-height:1.8">{caseStudy.challenge}</p>
+      </div>
+
+      <div data-reveal style="margin-bottom:48px">
+        <span class="eyebrow">הגישה שלנו</span>
+        <h2 style="font-size:1.6rem;margin:14px 0">מה עשינו</h2>
+        <p style="color:var(--ink-dim);font-size:1.08rem;line-height:1.8">{caseStudy.approach}</p>
+      </div>
+
+      <blockquote class="testi" data-reveal style="background:rgba(255,42,60,0.04);border-color:rgba(255,42,60,0.2);margin-bottom:32px">
+        <div class="stars">★★★★★</div>
+        <p style="font-size:1.15rem;margin-bottom:14px">{caseStudy.testimonial}</p>
+        <footer style="border-top:1px solid var(--line);padding-top:14px">
+          <div><b>{caseStudy.testimonialAuthor}</b></div>
+        </footer>
+      </blockquote>
+    </div>
+
+    {linkedServices.length > 0 && (
+      <div style="max-width:760px;margin:60px auto 0">
+        <span class="eyebrow" data-reveal>השירותים בקייס הזה</span>
+        <h3 data-reveal style="font-family:'Rubik';font-size:1.4rem;font-weight:800;margin:14px 0 24px">בנינו את זה איתך</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+          {linkedServices.map((svc: any) => (
+            <a href={`/services/${svc.slug}`} class="service-card" style="padding:20px;display:block" data-cursor="link">
+              <div style="font-size:0.85rem;color:var(--gold);margin-bottom:6px">{svc.subtitle}</div>
+              <h4 style="font-family:'Rubik';font-size:1.1rem;font-weight:800">{svc.title} →</h4>
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+</section>
+
+<section class="cta-band">
+  <div class="container cta-inner">
+    <h2 data-reveal>רוצים <em>תוצאות כאלה גם אצלכם?</em></h2>
+    <p data-reveal>פגישת אסטרטגיה אישית — חינם, ללא התחייבות.</p>
+    <a href="/contact" class="btn btn-primary lg" data-magnetic data-cursor="link">לתיאום פגישה</a>
+  </div>
+</section>
+
+</Layout>

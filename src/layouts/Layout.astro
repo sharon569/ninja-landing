@@ -1,0 +1,103 @@
+---
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  hideFloatWA?: boolean;
+}
+
+const {
+  title = 'NINJA Digital — שיווק שמכה בדיוק במטרה',
+  description = 'סוכנות הביצועים #1 בישראל. גוגל אדס, SEO, בניית אתרים, פלאשי, מועדוני לקוחות.',
+  hideFloatWA = false,
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>{title}</title>
+<meta name="description" content={description} />
+<meta name="theme-color" content="#08090c" />
+
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://www.samp.ninja" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Rubik:wght@400;500;600;700;800;900&family=Noto+Serif+JP:wght@900&display=swap" rel="stylesheet">
+
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z' fill='%23ff2a3c' stroke='%23ffd166' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%23000'/%3E%3C/svg%3E">
+
+<!-- Skip loader on subsequent pages within the session -->
+<script is:inline>
+  try {
+    if (sessionStorage.getItem('ninjaLoaderShown')) {
+      document.documentElement.classList.add('skip-loader');
+    }
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<!-- LOADER -->
+<div class="loader" id="loader">
+  <div class="loader-inner">
+    <svg class="loader-shuriken" viewBox="0 0 200 200" aria-hidden="true">
+      <defs>
+        <linearGradient id="loaderGrad" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0" stop-color="#ff2a3c"/>
+          <stop offset="1" stop-color="#8b0000"/>
+        </linearGradient>
+      </defs>
+      <g style="transform-origin: 100px 100px;" class="loader-spin">
+        <path d="M100 10 L115 80 L190 100 L115 120 L100 190 L85 120 L10 100 L85 80 Z"
+              fill="url(#loaderGrad)" stroke="#ffd166" stroke-width="2"/>
+        <circle cx="100" cy="100" r="10" fill="#0a0a0a" stroke="#ffd166" stroke-width="1.5"/>
+      </g>
+    </svg>
+    <div class="loader-text">N<span>I</span>NJA</div>
+    <div class="loader-bar"><span></span></div>
+  </div>
+</div>
+
+<!-- CURSOR -->
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- SCROLL PROGRESS -->
+<div class="scroll-progress" id="scrollProgress"></div>
+
+<!-- DECOR -->
+<div class="noise"></div>
+<div class="grid-bg"></div>
+<div class="kanji-bg" aria-hidden="true">忍</div>
+<div class="floating-shuriken s1"></div>
+<div class="floating-shuriken s2"></div>
+<div class="floating-shuriken s3"></div>
+
+<Nav />
+
+<main>
+  <slot />
+</main>
+
+<Footer />
+
+{!hideFloatWA && (
+  <a href="https://wa.me/972545822451" class="float-wa" aria-label="WhatsApp" data-cursor="link">
+    <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.95.5 3.84 1.46 5.51L2 22l4.74-1.55a9.9 9.9 0 005.3 1.45h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7-1.86-1.87-4.34-2.9-7-2.9zm5.86 14.13c-.25.7-1.45 1.34-2 1.42-.51.07-1.16.1-1.86-.12a16 16 0 01-1.7-.63c-3-1.3-4.94-4.31-5.09-4.5-.15-.2-1.21-1.6-1.21-3.05 0-1.45.76-2.16 1.03-2.46.27-.3.59-.37.78-.37l.57.01c.18.01.43-.07.67.51l.94 2.27c.07.16.13.34.02.54l-.27.42-.4.46c-.13.13-.27.28-.12.55.16.27.7 1.16 1.5 1.87 1.03.93 1.9 1.21 2.17 1.35.27.13.43.11.6-.07.16-.18.69-.8.88-1.07.18-.27.36-.22.6-.13l1.65.78c.28.13.46.2.53.31.07.1.07.6-.18 1.3z"/></svg>
+    <span class="fw-pulse"></span>
+  </a>
+)}
+
+<script src="/site.js" is:inline></script>
+</body>
+</html>

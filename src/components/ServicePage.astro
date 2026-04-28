@@ -1,0 +1,119 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+interface Service {
+  title: string;
+  subtitle: string;
+  tagline: string;
+  description: string;
+  features: { title: string; desc: string }[];
+  results: { metric: string; label: string }[];
+  process: { num: string; title: string; desc: string }[];
+  pricing: string;
+  faq: { q: string; a: string }[];
+}
+
+interface Props {
+  service: Service;
+  pageTitle?: string;
+}
+
+const { service, pageTitle } = Astro.props;
+---
+
+<Layout title={pageTitle || `${service.title} — NINJA Digital`}>
+
+<section class="page-hero">
+  <div class="container">
+    <a href="/services" class="post-back" data-cursor="link">← כל השירותים</a>
+    <span class="eyebrow" data-reveal>{service.subtitle}</span>
+    <h1 data-reveal>{service.title}<br/><em>{service.tagline}</em></h1>
+    <p data-reveal>{service.description}</p>
+    <div class="hero-actions" style="justify-content:center;margin-top:32px" data-reveal>
+      <a href="/contact" class="btn btn-primary lg" data-magnetic data-cursor="link">קבלו אסטרטגיה חינם</a>
+    </div>
+  </div>
+</section>
+
+<section class="why">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow" data-reveal>מה אתם מקבלים</span>
+      <h2 data-reveal>הכל בחבילה. <em>בלי תוספות.</em></h2>
+    </div>
+    <div class="why-grid">
+      {service.features.map((f, i) => (
+        <div class="why-item" data-reveal>
+          <div class="why-num">{String(i + 1).padStart(2, '0')}</div>
+          <h4>{f.title}</h4>
+          <p>{f.desc}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="results">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow" data-reveal>תוצאות אמת</span>
+      <h2 data-reveal>מה שעשינו ללקוחות. <em>בשטח.</em></h2>
+    </div>
+    <div class="stats-grid">
+      {service.results.map((r) => (
+        <div class="stat-card" data-reveal>
+          <div class="stat-num">{r.metric}</div>
+          <div class="stat-label">{r.label}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="process">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow" data-reveal>איך אנחנו עובדים</span>
+      <h2 data-reveal>תהליך של נינג'ה. <em>מהיר. מדויק.</em></h2>
+    </div>
+    <div class="vtimeline">
+      <div class="vt-line"><span class="vt-line-fill" id="vtFill"></span></div>
+      {service.process.map((step) => (
+        <div class="vt-step" data-reveal>
+          <div class="vt-num">{step.num}</div>
+          <div class="vt-content">
+            <h4>{step.title}</h4>
+            <p>{step.desc}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="faq">
+  <div class="container faq-inner">
+    <div class="section-head">
+      <span class="eyebrow" data-reveal>שאלות נפוצות</span>
+      <h2 data-reveal>השאלות שלקוחות שואלים <em>הכי הרבה.</em></h2>
+    </div>
+    <div class="faq-list">
+      {service.faq.map((item) => (
+        <details class="faq-item" data-reveal>
+          <summary>{item.q}</summary>
+          <div class="faq-body"><p>{item.a}</p></div>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="cta-band">
+  <div class="container cta-inner">
+    <h2 data-reveal>מוכנים <em>להתחיל?</em></h2>
+    <p data-reveal>פגישת אסטרטגיה אישית — חינם, ללא התחייבות.</p>
+    <a href="/contact" class="btn btn-primary lg" data-magnetic data-cursor="link">לתיאום פגישה — עכשיו</a>
+  </div>
+</section>
+
+</Layout>

@@ -1,0 +1,571 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+let recentPosts: any[] = [];
+try {
+  const allPosts = await getCollection('blog');
+  recentPosts = allPosts
+    .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime())
+    .slice(0, 3);
+} catch (e) {
+  recentPosts = [];
+}
+---
+
+<Layout title="NINJA Digital — שיווק שמכה בדיוק במטרה">
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="hero-particles" id="heroParticles"></div>
+  <div class="container hero-inner">
+    <div class="hero-text">
+      <div class="badge" data-reveal>
+        <span class="dot"></span> סוכנות הביצועים #1 בישראל · 2026
+      </div>
+      <div class="hero-trust-pills" data-reveal>
+        <span class="trust-pill"><span class="tp-g"><span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC04">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span></span>&nbsp;Partner ✓</span>
+        <span class="trust-pill flashy-pill">⚡ Flashy Partner ✓</span>
+      </div>
+      <h1 class="hero-title">
+        <span class="line" data-reveal>שיווק שמכה</span>
+        <span class="line glitch" data-text="בדיוק במטרה." data-reveal>
+          בדיוק <em>במטרה.</em>
+        </span>
+      </h1>
+      <p class="hero-sub" data-reveal>
+        אנחנו לא מבטיחים — אנחנו מבצעים.
+        קמפיינים ב-<strong>גוגל אדס</strong>, <strong>SEO אורגני</strong>,
+        <strong>בניית אתרים</strong> והתממשקויות API,
+        ניהול לקוחות ב-<strong>פלאשי</strong> ו-<strong>מועדוני לקוחות</strong>.
+      </p>
+      <div class="hero-actions" data-reveal>
+        <a href="/contact" class="btn btn-primary" data-magnetic data-cursor="link">
+          <span>קבלו אסטרטגיה חינם</span>
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M14 4l-1.4 1.4L17.2 10H4v4h13.2l-4.6 4.6L14 20l8-8z" transform="scale(-1,1) translate(-24,0)"/></svg>
+        </a>
+        <a href="#services" class="btn btn-ghost" data-cursor="link">איך זה עובד? <span class="arrow-down">↓</span></a>
+      </div>
+      <div class="trust" data-reveal>
+        <div class="trust-item"><b data-count="250">0</b><span>עסקים שצמחו איתנו</span></div>
+        <div class="trust-divider"></div>
+        <div class="trust-item"><b><span class="post">×</span>8.4</b><span>ROAS ממוצע</span></div>
+        <div class="trust-divider"></div>
+        <div class="trust-item"><b data-count="97" data-suffix="%">0</b><span>שימור לקוחות</span></div>
+      </div>
+    </div>
+
+    <div class="hero-visual" id="heroVisual">
+      <div class="orb"></div>
+      <div class="orb orb-2"></div>
+      <svg class="hero-shuriken" viewBox="0 0 400 400" aria-hidden="true">
+        <defs>
+          <radialGradient id="rg1" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ff2a3c"/>
+            <stop offset="60%" stop-color="#8b0000"/>
+            <stop offset="100%" stop-color="#1a0000"/>
+          </radialGradient>
+          <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fff1aa"/>
+            <stop offset="50%" stop-color="#ffd166"/>
+            <stop offset="100%" stop-color="#a07b00"/>
+          </linearGradient>
+        </defs>
+        <g class="big-rotate" style="transform-origin: 200px 200px;">
+          <path d="M200 20 L222 160 L380 200 L222 240 L200 380 L178 240 L20 200 L178 160 Z" fill="url(#rg1)" stroke="url(#gold)" stroke-width="3"/>
+          <circle cx="200" cy="200" r="22" fill="#0a0a0a" stroke="url(#gold)" stroke-width="2"/>
+          <circle cx="200" cy="200" r="6" fill="url(#gold)"/>
+        </g>
+      </svg>
+      <div class="metric-card m1" data-parallax="0.04">
+        <span class="m-label">CTR</span><span class="m-val">12.7%</span><span class="m-trend up">▲ 184%</span>
+        <svg class="m-spark" viewBox="0 0 80 24"><polyline points="0,18 12,16 24,14 36,8 48,10 60,4 72,6 80,2" fill="none" stroke="#2ee685" stroke-width="2"/></svg>
+      </div>
+      <div class="metric-card m2" data-parallax="0.07">
+        <span class="m-label">CPA</span><span class="m-val">₪41</span><span class="m-trend up">▼ 62%</span>
+        <svg class="m-spark" viewBox="0 0 80 24"><polyline points="0,4 12,8 24,6 36,12 48,14 60,16 72,20 80,22" fill="none" stroke="#2ee685" stroke-width="2"/></svg>
+      </div>
+      <div class="metric-card m3" data-parallax="0.05">
+        <span class="m-label">דירוג ארגוני</span><span class="m-val">#1</span><span class="m-trend up">▲ Top 3</span>
+        <svg class="m-spark" viewBox="0 0 80 24"><polyline points="0,22 12,20 24,16 36,14 48,8 60,6 72,4 80,2" fill="none" stroke="#2ee685" stroke-width="2"/></svg>
+      </div>
+      <div class="orbit-ring"></div>
+      <div class="orbit-ring orbit-ring-2"></div>
+    </div>
+  </div>
+  <a href="#strip" class="scroll-indicator" aria-label="גלול למטה"><span></span></a>
+</section>
+
+<!-- LOGO STRIP -->
+<section class="strip" id="strip">
+  <div class="container">
+    <div class="strip-track">
+      <span>Google Ads Premier Partner</span><span>◆</span>
+      <span>Meta Business Pro</span><span>◆</span>
+      <span>פלאשי Certified</span><span>◆</span>
+      <span>SEO Specialist</span><span>◆</span>
+      <span>Shopify Plus Expert</span><span>◆</span>
+      <span>WooCommerce Master</span><span>◆</span>
+      <span>Klaviyo Certified</span><span>◆</span>
+      <span>Google Ads Premier Partner</span><span>◆</span>
+      <span>Meta Business Pro</span><span>◆</span>
+      <span>פלאשי Certified</span><span>◆</span>
+      <span>SEO Specialist</span><span>◆</span>
+      <span>Shopify Plus Expert</span><span>◆</span>
+      <span>WooCommerce Master</span><span>◆</span>
+      <span>Klaviyo Certified</span><span>◆</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============= CERTIFIED PARTNERS ============= -->
+<section class="partners">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow" data-reveal>אישורים רשמיים</span>
+      <h2 data-reveal>סוכנות עם <em>חותמת רשמית.</em></h2>
+      <p data-reveal>אנחנו לא רק טוענים. גוגל ופלאשי הסמיכו אותנו רשמית. זה אומר יותר תמיכה, גישה לפיצ׳רים מוקדם, וקופונים בלעדיים — שעוברים ישירות אליך.</p>
+    </div>
+
+    <div class="partners-grid">
+      <!-- Google Ads Partner -->
+      <article class="partner-card google" data-tilt>
+        <div class="pc-badge-zone">
+          <div class="goog-badge" aria-label="Google Partner">
+            <span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC04">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span>
+            <strong>Partner</strong>
+          </div>
+          <span class="pc-verified">✓ מאומת 2026</span>
+        </div>
+        <h3>Google Ads <em>Partner רשמי</em></h3>
+        <p>אנחנו ברשימת הסוכנויות המאושרות של גוגל בישראל. עומדים בתקני ביצועים, הסמכות, וניהול תקציב.</p>
+        <ul class="pc-benefits">
+          <li><b>גישה ישירה לתמיכת גוגל</b><span>פתרונות עוקפים פניות רגילות</span></li>
+          <li><b>Beta Features מוקדם</b><span>פיצ׳רים חדשים לפני המתחרים</span></li>
+          <li><b>קופונים ל-לקוחות חדשים</b><span>עד ₪2,000 קרדיט פרסום מתנה</span></li>
+          <li><b>צוות מוסמך</b><span>כל מנהל קמפיינים אצלנו עם הסמכת Google Ads</span></li>
+          <li><b>הסמכה שנתית מחודשת</b><span>אנחנו עומדים ביעדים שנה אחר שנה</span></li>
+        </ul>
+        <a href="https://www.google.com/partners/agency?id=5503016301" target="_blank" rel="noopener" class="pc-link" data-cursor="link">
+          צפה בפרופיל הרשמי בגוגל
+          <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M14 4l-1.4 1.4L17.2 10H4v4h13.2l-4.6 4.6L14 20l8-8z" transform="scale(-1,1) translate(-24,0)"/></svg>
+        </a>
+        <span class="card-glow"></span>
+      </article>
+
+      <!-- Flashy Partner -->
+      <article class="partner-card flashy" data-tilt>
+        <div class="pc-badge-zone">
+          <div class="flashy-badge" aria-label="Flashy Partner">
+            <span class="fb-mark">⚡</span>
+            <strong>Flashy <em>Partner</em></strong>
+          </div>
+          <span class="pc-verified">✓ מאומת 2026</span>
+        </div>
+        <h3>Flashy <em>Partner מוסמך</em></h3>
+        <p>פלאשי בחרה בנו כסוכנות שותפה רשמית. אנחנו בין הראשונים שמטמיעים אצל לקוחותיהם — ומקבלים על זה הטבות ייחודיות.</p>
+        <ul class="pc-benefits">
+          <li><b>ערוץ תמיכה ייעודי</b><span>שלוחה בלעדית לפרטנרים בלבד</span></li>
+          <li><b>גישה מוקדמת לפיצ׳רים</b><span>אנחנו בודקים לפני שהשוק רואה</span></li>
+          <li><b>הנחות בלעדיות ללקוחותינו</b><span>תעריפים שלא תקבל בכניסה ישירה</span></li>
+          <li><b>הכשרה מתקדמת לצוות</b><span>שני אנשי צוות מוסמכים לפלאשי Pro</span></li>
+          <li><b>אינטגרציות API מתקדמות</b><span>אוטומציות שלא קיימות במצב Self-Service</span></li>
+        </ul>
+        <a href="https://flashy.app/" target="_blank" rel="noopener" class="pc-link" data-cursor="link">
+          קרא על תוכנית הפרטנרס של פלאשי
+          <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M14 4l-1.4 1.4L17.2 10H4v4h13.2l-4.6 4.6L14 20l8-8z" transform="scale(-1,1) translate(-24,0)"/></svg>
+        </a>
+        <span class="card-glow"></span>
+      </article>
+    </div>
+
+    <div class="partners-bottom" data-reveal>
+      <p>פירוש המעשי: <b>תקבל את הטבות הפרטנר דרכנו.</b> קופונים, תמיכה ישירה, פיצ׳רים מוקדם, וסטנדרט עבודה מוסמך — בלי לשלם תוספת.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HUGE MARQUEE -->
+<section class="huge-marquee">
+  <div class="hm-track" aria-hidden="true">
+    <span>NINJA · DIGITAL · PERFORMANCE · NINJA · DIGITAL · PERFORMANCE ·</span>
+    <span>NINJA · DIGITAL · PERFORMANCE · NINJA · DIGITAL · PERFORMANCE ·</span>
+  </div>
+  <div class="hm-track reverse" aria-hidden="true">
+    <span>תוצאות · דיוק · עוצמה · תוצאות · דיוק · עוצמה · תוצאות · דיוק · עוצמה ·</span>
+    <span>תוצאות · דיוק · עוצמה · תוצאות · דיוק · עוצמה · תוצאות · דיוק · עוצמה ·</span>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="services" id="services">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow" data-reveal>השירותים שלנו</span>
+      <h2 data-reveal>תשעה להבים. <em>מטרה אחת — צמיחה.</em></h2>
+      <p data-reveal>כל שירות נחתך לפי המטרות שלך. בלי תבניות, בלי בלה־בלה.</p>
+    </div>
+    <div class="services-grid">
+      <a href="/services/web-build" class="service-card featured" data-tilt data-cursor="link">
+        <div class="featured-tag">חדש · Featured</div>
+        <div class="featured-grid">
+          <div class="featured-content">
+            <div class="svc-icon">
+              <svg viewBox="0 0 48 48" width="34" height="34"><path fill="currentColor" d="M4 6h40v6H4zm0 10h26v26H4zm30 0h10v6H34zm0 10h10v6H34zm0 10h10v6H34zM10 22h14v14H10z"/></svg>
+            </div>
+            <h3>בניית אתרים והתממשקויות <span>· Build & Connect</span></h3>
+            <p>אתרים מהירים, מומרים, מחוברים. אתרי תדמית, חנויות איקומרס ודפי נחיתה — בנויים ב-Code נקי או על Shopify/WordPress, עם API integrations לכל מערכת שצריך לחבר.</p>
+            <ul class="svc-pillars">
+              <li><b>Page Speed 95+</b><span>הקוד הכי מהיר בשוק</span></li>
+              <li><b>UX מבוסס המרה</b><span>כל פיקסל מטפס ב-CRO</span></li>
+              <li><b>API Integrations</b><span>פלאשי · CRM · ERP · מלאי</span></li>
+              <li><b>RTL Native</b><span>בנוי מהיסוד לעברית</span></li>
+            </ul>
+          </div>
+          <div class="featured-visual">
+            <div class="code-window">
+              <div class="cw-bar">
+                <span class="cw-dot"></span><span class="cw-dot"></span><span class="cw-dot"></span>
+                <span class="cw-title">api.ninja.dev</span>
+              </div>
+              <pre class="cw-code"><code><span class="t-c">// קבלת ליד מהאתר</span>
+<span class="t-k">const</span> lead = <span class="t-k">await</span> <span class="t-f">fetch</span>(<span class="t-s">'/api/leads'</span>);
+
+<span class="t-c">// שליחה אוטומטית לפלאשי</span>
+<span class="t-k">await</span> plashi.<span class="t-f">syncLead</span>(lead);
+
+<span class="t-c">// טריגר WhatsApp ללקוח</span>
+<span class="t-k">await</span> twilio.<span class="t-f">notify</span>(lead);
+
+<span class="t-r">→ Lead synced in 0.3s</span></code></pre>
+            </div>
+          </div>
+        </div>
+        <span class="card-glow"></span>
+      </a>
+
+      <a href="/services/google-ads" class="service-card" data-tilt data-cursor="link">
+        <div class="svc-icon">
+          <svg viewBox="0 0 48 48" width="34" height="34"><path fill="currentColor" d="M14 4h4v40h-4zM30 14h4v30h-4zM22 22h4v22h-4zM6 30h4v14H6z"/></svg>
+        </div>
+        <h3>גוגל אדס <span>· Performance</span></h3>
+        <p>קמפיינים ממוקדי המרות עם בידינג חכם, מבני קמפיין מתקדמים (PMax, Search, YouTube) ומעקב המרות מדויק עד רמת המוצר.</p>
+        <ul>
+          <li>ניהול תקציב אגרסיבי לתשואה מקסימלית</li>
+          <li>מחקר מילים עמוק + שלילה דינמית</li>
+          <li>דוחות שבועיים בעברית פשוטה</li>
+        </ul>
+        <span class="card-glow"></span>
+      </a>
+
+      <a href="/services/seo" class="service-card" data-tilt data-cursor="link">
+        <div class="svc-icon">
+          <svg viewBox="0 0 48 48" width="34" height="34"><path fill="currentColor" d="M24 4a20 20 0 100 40 20 20 0 000-40zm0 4c2.7 3 4.5 7.4 4.9 12H19.1C19.5 15.4 21.3 11 24 8zm-7.6 4.6c-.7 2.3-1.2 5-1.3 7.4H8.4a16 16 0 018-7.4zM8 24h7.1c.1 2.4.6 5.1 1.3 7.4-3.6-1.4-6.6-4-8.4-7.4zm12 0h8c-.4 4.6-2.2 9-4 12-1.8-3-3.6-7.4-4-12zm12.6 7.4c.7-2.3 1.2-5 1.3-7.4H40c-1.8 3.4-4.8 6-7.4 7.4zM39.6 20h-7c-.1-2.4-.6-5.1-1.3-7.4 3.6 1.4 6.6 4 8.3 7.4z"/></svg>
+        </div>
+        <h3>SEO אורגני <span>· Authority</span></h3>
+        <p>מהמילה הראשונה ועד הקישור האחרון — אסטרטגיית SEO שמרימה את האתר שלך לעמוד הראשון, ושומרת אותו שם.</p>
+        <ul>
+          <li>אופטימיזציה טכנית + Core Web Vitals</li>
+          <li>תוכן שמדורג ומוכר</li>
+          <li>בניית סמכות + קישורים נקיים</li>
+        </ul>
+        <span class="card-glow"></span>
+      </a>
+
+      <a href="/services/plashi" class="service-card" data-tilt data-cursor="link">
+        <div class="svc-icon">
+          <svg viewBox="0 0 48 48" width="34" height="34"><path fill="currentColor" d="M24 4a8 8 0 100 16 8 8 0 000-16zm-12 22c-4.4 0-8 3.6-8 8v6h40v-6c0-4.4-3.6-8-8-8H12zm26-12a6 6 0 100 12 6 6 0 000-12zm-30 0a6 6 0 100 12 6 6 0 000-12z"/></svg>
+        </div>
+        <h3>ניהול לקוחות <span>· פלאשי</span></h3>
+        <p>אנחנו מתפעלים את מערכת פלאשי שלך מקצה לקצה — אוטומציות, סגמנטציה, מסעות לקוח, ופניה ממוקדת שמכפילה Lifetime Value.</p>
+        <ul>
+          <li>הקמת מערכת + אינטגרציות</li>
+          <li>אוטומציות SMS / WhatsApp / מייל</li>
+          <li>סגמנטציה חכמה לפי התנהגות</li>
+        </ul>
+        <span class="card-glow"></span>
+      </a>
+
+      <a href="/services/loyalty" class="service-card" data-tilt data-cursor="link">
+        <div class="svc-icon">
+          <svg viewBox="0 0 48 48" width="34" height="34"><path fill="currentColor" d="M24 2l5.5 11.6L42 15.4l-9 8.7 2.2 12.4L24 30.7l-11.2 5.8L15 24.1 6 15.4l12.5-1.8L24 2z"/></svg>
+        </div>
+        <h3>מועדוני לקוחות <span>· Loyalty</span></h3>
+        <p>בונים מועדון שמייצר חזרה. מערכת נקודות, הטבות אישיות, אירועי VIP, וטריגרים שמחזירים את הלקוח לקנות שוב — וגם להביא חבר.</p>
+        <ul>
+          <li>אסטרטגיית הטבות מבוססת דאטה</li>
+          <li>אונבורדינג חוויתי לחבר חדש</li>
+          <li>הגדלת תדירות רכישה ב-40%+</li>
+        </ul>
+        <span class="card-glow"></span>
+      </a>
+    </div>
+
+    <!-- More services tease -->
+    <div class="more-services" data-reveal>
+      <div class="ms-head">
+        <span class="ms-eyebrow">+ ועוד 4 שירותים תחת קורת גג אחת</span>
+      </div>
+      <div class="ms-grid">
+        <a href="/services/design-studio" class="ms-card" data-cursor="link">
+          <span class="ms-icon">🎨</span>
+          <div>
+            <b>סטודיו עיצוב</b>
+            <span>מיתוג, גרפיקה, אריזה</span>
+          </div>
+        </a>
+        <a href="/services/content-writing" class="ms-card" data-cursor="link">
+          <span class="ms-icon">✍️</span>
+          <div>
+            <b>כתיבת תוכן ומאמרים</b>
+            <span>מילים שמדורגות ומוכרות</span>
+          </div>
+        </a>
+        <a href="/services/social-media" class="ms-card" data-cursor="link">
+          <span class="ms-icon">📱</span>
+          <div>
+            <b>ניהול רשתות חברתיות</b>
+            <span>נוכחות יומיומית שעובדת</span>
+          </div>
+        </a>
+        <a href="/services/photography" class="ms-card" data-cursor="link">
+          <span class="ms-icon">📸</span>
+          <div>
+            <b>צילומים וימי צילום</b>
+            <span>תמונות שמוכרות, לא רק יפות</span>
+          </div>
+        </a>
+      </div>
+      <div style="text-align:center;margin-top:24px">
+        <a href="/services" class="link-arrow" data-cursor="link">לכל השירותים בפירוט ←</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MANIFESTO -->
+<section class="manifesto">
+  <div class="container">
+    <div class="manifesto-block" data-reveal>
+      <span class="ms-quote-mark">״</span>
+      <p>
+        סוכנויות מדברות. <em>אנחנו מבצעים.</em><br>
+        אחרים מציגים סלייד. <em>אנחנו מציגים מספר.</em><br>
+        כולם מבטיחים. <em>אנחנו מספקים.</em>
+      </p>
+      <span class="ms-sign">— צוות NINJA</span>
+    </div>
+  </div>
+</section>
+
+<!-- WORK PREVIEW -->
+<section class="work" id="work">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow" data-reveal>תוצאות בשטח</span>
+      <h2 data-reveal>כמה עבודות אחרונות. <em>מדברות בעצמן.</em></h2>
+      <p data-reveal><a href="/work" class="link-arrow" data-cursor="link">לכל העבודות ←</a></p>
+    </div>
+    <div class="bento">
+      <a href="/work/fashion-roas" class="bento-card big" data-tilt>
+        <div class="bento-tag">איקומרס · אופנה</div>
+        <h4>×11 ROAS תוך 90 יום</h4>
+        <p>חנות אופנה הגיעה אלינו עם CPA 180₪. אחרי בנייה מחדש של מבנה הקמפיינים → CPA ירד ל-31₪, ROAS עלה מ-2.4 ל-11.7.</p>
+        <div class="bento-stats">
+          <div><b>₪31</b><span>CPA</span></div>
+          <div><b>×11.7</b><span>ROAS</span></div>
+          <div><b>+340%</b><span>הכנסות</span></div>
+        </div>
+        <div class="bento-glow"></div>
+      </a>
+      <a href="/work/seo-services" class="bento-card" data-tilt>
+        <div class="bento-tag">SEO · שירותים</div>
+        <h4>#1 ב-12 מילות מפתח תחרותיות</h4>
+        <p>מ-עמוד 4 לעמוד 1 תוך 5 חודשים. תנועה אורגנית גדלה ×6.</p>
+        <div class="bento-stats">
+          <div><b>×6</b><span>תנועה</span></div>
+          <div><b>12</b><span>מילים #1</span></div>
+        </div>
+        <div class="bento-glow"></div>
+      </a>
+      <a href="/work/plashi-restaurants" class="bento-card" data-tilt>
+        <div class="bento-tag">פלאשי · רשת מסעדות</div>
+        <h4>הכנסות חוזרות ×3.2</h4>
+        <p>מועדון לקוחות + אוטומציות SMS לפי התנהגות.</p>
+        <div class="bento-stats">
+          <div><b>×3.2</b><span>חזרה</span></div>
+          <div><b>+58%</b><span>תדירות</span></div>
+        </div>
+        <div class="bento-glow"></div>
+      </a>
+      <a href="/work/b2b-website" class="bento-card" data-tilt>
+        <div class="bento-tag">בניית אתר · B2B</div>
+        <h4>אתר חדש → 5x לידים</h4>
+        <p>אתר B2B ישן ואיטי → אתר חדש מהיר עם CRO. לידים ×5.</p>
+        <div class="bento-stats">
+          <div><b>×5</b><span>לידים</span></div>
+          <div><b>1.2s</b><span>LCP</span></div>
+        </div>
+        <div class="bento-glow"></div>
+      </a>
+      <a href="/work/retail-empire" class="bento-card big" data-tilt>
+        <div class="bento-tag">חבילה משולבת · קמעונאות</div>
+        <h4>מ-5 חנויות פיזיות לאימפריה דיגיטלית</h4>
+        <p>בנינו אתר איקומרס מאפס, חיברנו אותו למערכת ה-ERP, השקנו קמפיינים וכן מועדון לקוחות שמסנכרן בין הפיזי לדיגיטלי.</p>
+        <div class="bento-stats">
+          <div><b>32%</b><span>מקוון</span></div>
+          <div><b>+₪4.2M</b><span>הכנסות שנה</span></div>
+          <div><b>180K</b><span>חברי מועדון</span></div>
+        </div>
+        <div class="bento-glow"></div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="results">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow" data-reveal>תוצאות אמת</span>
+      <h2 data-reveal>המספרים <em>מדברים בשפת הסכינים.</em></h2>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card" data-reveal>
+        <svg class="stat-spark" viewBox="0 0 100 30"><polyline points="0,28 14,24 28,20 42,16 56,10 70,8 84,4 100,2" fill="none" stroke="url(#gold)" stroke-width="2"/></svg>
+        <div class="stat-num" data-count="250">0</div>
+        <div class="stat-label">לקוחות פעילים</div>
+      </div>
+      <div class="stat-card" data-reveal>
+        <svg class="stat-spark" viewBox="0 0 100 30"><polyline points="0,26 14,22 28,18 42,14 56,16 70,10 84,6 100,4" fill="none" stroke="url(#gold)" stroke-width="2"/></svg>
+        <div class="stat-num" data-count="48" data-suffix="M₪">0</div>
+        <div class="stat-label">תקציב מנוהל בשנה</div>
+      </div>
+      <div class="stat-card" data-reveal>
+        <svg class="stat-spark" viewBox="0 0 100 30"><polyline points="0,28 14,26 28,22 42,18 56,14 70,8 84,5 100,2" fill="none" stroke="url(#gold)" stroke-width="2"/></svg>
+        <div class="stat-num" data-count="840" data-suffix="%">0</div>
+        <div class="stat-label">ROAS ממוצע</div>
+      </div>
+      <div class="stat-card" data-reveal>
+        <svg class="stat-spark" viewBox="0 0 100 30"><polyline points="0,28 14,22 28,20 42,14 56,12 70,8 84,5 100,3" fill="none" stroke="url(#gold)" stroke-width="2"/></svg>
+        <div class="stat-num" data-count="12" data-suffix="K+">0</div>
+        <div class="stat-label">לידים בחודש</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY -->
+<section class="why" id="why">
+  <div class="container why-inner">
+    <div class="why-text">
+      <span class="eyebrow" data-reveal>למה NINJA?</span>
+      <h2 data-reveal>שקטים. מדויקים. <em>קטלניים.</em></h2>
+      <p class="lead" data-reveal>סוכנויות מדברות. אנחנו מביאים מספרים. לכל לקוח אצלנו צוות ייעודי, דשבורד שקוף 24/7, וגישה ישירה למנהל הקמפיינים.</p>
+      <div class="why-grid">
+        <div class="why-item" data-reveal><div class="why-num">01</div><h4>שקיפות מוחלטת</h4><p>רואים כל שקל, כל קליק, כל המרה. בלי מסכים, בלי דוחות מצוחצחים.</p></div>
+        <div class="why-item" data-reveal><div class="why-num">02</div><h4>נתונים = החלטות</h4><p>אין החלטה בלי דאטה. בודקים, מודדים, ומשתפרים כל שבוע.</p></div>
+        <div class="why-item" data-reveal><div class="why-num">03</div><h4>ביצוע מהיר</h4><p>קמפיין באוויר תוך 72 שעות מאישור. בלי תירוצים.</p></div>
+        <div class="why-item" data-reveal><div class="why-num">04</div><h4>שותף, לא ספק</h4><p>הצלחה שלך = הצלחה שלנו. אנחנו ב-WhatsApp שלך, לא במייל.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BLOG PREVIEW -->
+{recentPosts.length > 0 && (
+<section class="blog-preview">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow" data-reveal>תובנות</span>
+      <h2 data-reveal>מה שאנחנו <em>למדנו השבוע.</em></h2>
+      <p data-reveal><a href="/blog" class="link-arrow" data-cursor="link">לכל הפוסטים ←</a></p>
+    </div>
+    <div class="bp-grid">
+      {recentPosts.map((post: any) => (
+        <a href={`/blog/${post.id}`} class="bp-card" data-tilt data-cursor="link">
+          <span class="bp-tag">{post.data.category}</span>
+          <h4>{post.data.title}</h4>
+          <p>{post.data.description}</p>
+          <span class="bp-meta">{new Date(post.data.date).toLocaleDateString('he-IL')} · {post.data.readTime} דק׳ קריאה</span>
+        </a>
+      ))}
+    </div>
+  </div>
+</section>
+)}
+
+<!-- TESTIMONIALS -->
+<section class="testimonials">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow" data-reveal>לקוחות מספרים</span>
+      <h2 data-reveal>אנחנו לא צריכים להגיד — <em>הם אומרים בשבילנו.</em></h2>
+    </div>
+    <div class="testi-grid">
+      <blockquote class="testi" data-tilt>
+        <div class="stars">★★★★★</div>
+        <p>"תוך חודשיים החלפנו את כל מודל הקידום שלנו. ה-ROAS עלה פי 4. הצוות מקצועי, נגיש, ובאמת איתנו 24/7."</p>
+        <footer><div class="t-avatar" style="background:linear-gradient(135deg,#ff2a3c,#8b0000)">ר</div><div><b>רן ל׳</b><span>בעלי רשת מסעדות</span></div></footer>
+      </blockquote>
+      <blockquote class="testi" data-tilt>
+        <div class="stars">★★★★★</div>
+        <p>"מועדון הלקוחות שהקימו לנו הפך לערוץ ההכנסה השני בחשיבותו. לקוחות חוזרים יותר, קונים יותר, ומדברים עלינו."</p>
+        <footer><div class="t-avatar" style="background:linear-gradient(135deg,#ffd166,#a07b00)">ש</div><div><b>שירה כ׳</b><span>מנכ״לית מותג קוסמטיקה</span></div></footer>
+      </blockquote>
+      <blockquote class="testi" data-tilt>
+        <div class="stars">★★★★★</div>
+        <p>"עברנו 4 סוכנויות לפני שהגענו ל-NINJA. סוף-סוף מישהו שמדבר במספרים, לא בסיסמאות. רואים תוצאה כל שבוע."</p>
+        <footer><div class="t-avatar" style="background:linear-gradient(135deg,#8b0000,#ff2a3c)">א</div><div><b>אורי מ׳</b><span>בעל חנות איקומרס</span></div></footer>
+      </blockquote>
+      <blockquote class="testi" data-tilt>
+        <div class="stars">★★★★★</div>
+        <p>"בנו לנו אתר חדש עם התממשקויות לכל המערכות שלנו. תוך חודש המכירות זינקו ב-180%. שירות מטורף, צוות מטורף."</p>
+        <footer><div class="t-avatar" style="background:linear-gradient(135deg,#a07b00,#ffd166)">ד</div><div><b>דנה ב׳</b><span>מנכ"לית רשת קמעונאית</span></div></footer>
+      </blockquote>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BAND -->
+<section class="cta-band">
+  <div class="container cta-inner">
+    <h2 data-reveal>מוכנים <em>להפיל את המתחרים בשקט?</em></h2>
+    <p data-reveal>פגישת אסטרטגיה אישית — חינם, ללא התחייבות. נקבל גישה לדאטה שלכם, ונחזור עם תוכנית.</p>
+    <a href="/contact" class="btn btn-primary lg" data-magnetic data-cursor="link">לתיאום פגישה — עכשיו</a>
+  </div>
+</section>
+
+</Layout>
+
+<style is:global>
+  .link-arrow { color: var(--gold); font-weight: 700; transition: 200ms; }
+  .link-arrow:hover { color: var(--red); padding-right: 4px; }
+
+  .blog-preview { padding: 110px 0; }
+  .bp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .bp-card {
+    padding: 28px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, rgba(20,22,28,0.7), rgba(15,17,22,0.5));
+    transition: var(--t-base);
+    display: flex; flex-direction: column;
+    color: var(--ink);
+  }
+  .bp-card:hover { transform: translateY(-6px); border-color: var(--red); }
+  .bp-tag {
+    display: inline-block;
+    font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--gold);
+    padding: 4px 10px; margin-bottom: 14px;
+    border: 1px solid rgba(255,209,102,0.25);
+    border-radius: 999px;
+    align-self: flex-start;
+  }
+  .bp-card h4 { font-family: 'Rubik'; font-weight: 800; font-size: 1.2rem; margin-bottom: 10px; line-height: 1.3; }
+  .bp-card p { color: var(--ink-dim); font-size: 0.95rem; line-height: 1.6; flex: 1; margin-bottom: 16px; }
+  .bp-meta { font-size: 0.82rem; color: var(--ink-mute); padding-top: 12px; border-top: 1px solid var(--line); }
+  @media (max-width: 1024px) { .bp-grid { grid-template-columns: 1fr; } }
+</style>

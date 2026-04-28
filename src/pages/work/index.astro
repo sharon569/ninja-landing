@@ -1,0 +1,46 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { cases } from '../../data/cases';
+
+const list = Object.values(cases);
+---
+
+<Layout title="עבודות שלנו | NINJA Digital">
+
+<section class="page-hero">
+  <div class="container">
+    <span class="eyebrow" data-reveal>עבודות</span>
+    <h1 data-reveal>תוצאות. <em>בלי לייפות.</em></h1>
+    <p data-reveal>קייסים אמיתיים. מספרים אמיתיים. לחץ על כל אחד לסיפור המלא.</p>
+  </div>
+</section>
+
+<section class="work" style="padding-top:40px">
+  <div class="container">
+    <div class="bento">
+      {list.map((c, i) => (
+        <a href={`/work/${c.slug}`} class={`bento-card ${i === 0 || i === list.length - 1 ? 'big' : ''}`} data-tilt data-cursor="link">
+          <div class="bento-tag">{c.industry}</div>
+          <h4>{c.headline}</h4>
+          <p>{c.summary}</p>
+          <div class="bento-stats">
+            {c.results.slice(0, 3).map(r => (
+              <div><b>{r.metric}</b><span>{r.label}</span></div>
+            ))}
+          </div>
+          <div class="bento-glow"></div>
+        </a>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="cta-band">
+  <div class="container cta-inner">
+    <h2 data-reveal>מוכנים <em>להיות הקייס הבא?</em></h2>
+    <p data-reveal>פגישת אסטרטגיה אישית — חינם, ללא התחייבות.</p>
+    <a href="/contact" class="btn btn-primary lg" data-magnetic data-cursor="link">לתיאום פגישה</a>
+  </div>
+</section>
+
+</Layout>

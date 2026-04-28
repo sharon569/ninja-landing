@@ -1,0 +1,55 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog')).sort(
+  (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+);
+
+const categories = [...new Set(posts.map(p => p.data.category))];
+---
+
+<Layout title="בלוג — תובנות שיווק דיגיטלי | NINJA Digital">
+
+<section class="page-hero">
+  <div class="container">
+    <span class="eyebrow" data-reveal>הבלוג</span>
+    <h1 data-reveal>תובנות מהשטח. <em>בלי קלישאות.</em></h1>
+    <p data-reveal>מה שלמדנו מ-250+ קמפיינים. הדאטה, הניסיון, והטעויות — בלי לייפות.</p>
+
+    <div class="cat-pills" data-reveal>
+      <span class="cp active">הכל</span>
+      {categories.map(cat => (<span class="cp">{cat}</span>))}
+    </div>
+  </div>
+</section>
+
+<section class="blog-list">
+  <div class="container">
+    <div class="bp-grid">
+      {posts.map((post: any) => (
+        <a href={`/blog/${post.id}`} class="bp-card" data-tilt data-cursor="link">
+          <span class="bp-tag">{post.data.category}</span>
+          <h4>{post.data.title}</h4>
+          <p>{post.data.description}</p>
+          <span class="bp-meta">{new Date(post.data.date).toLocaleDateString('he-IL')} · {post.data.readTime} דק׳ קריאה</span>
+        </a>
+      ))}
+    </div>
+  </div>
+</section>
+
+</Layout>
+
+<style is:global>
+  .page-hero { padding: 160px 0 60px; text-align: center; position: relative; z-index: 2; }
+  .page-hero h1 { font-family: 'Rubik'; font-size: clamp(2.4rem, 5vw, 4rem); font-weight: 900; line-height: 1.1; letter-spacing: -0.02em; margin: 18px auto; max-width: 900px; }
+  .page-hero h1 em { font-style: normal; background: linear-gradient(135deg, var(--red), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .page-hero > .container > p { color: var(--ink-dim); font-size: 1.15rem; max-width: 640px; margin: 0 auto; }
+
+  .cat-pills { display: flex; gap: 10px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
+  .cp { padding: 8px 18px; border: 1px solid var(--line-2); border-radius: 999px; font-size: 0.9rem; font-weight: 600; color: var(--ink-dim); cursor: pointer; transition: 200ms; }
+  .cp:hover, .cp.active { background: rgba(255,42,60,0.1); border-color: var(--red); color: var(--ink); }
+
+  .blog-list { padding: 60px 0 110px; }
+</style>

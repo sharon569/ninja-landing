@@ -2,19 +2,26 @@
 // NINJA DIGITAL — INTERACTIONS
 // ============================================================
 
-document.getElementById('year').textContent = new Date().getFullYear();
+const yearEl = document.getElementById('year');
+if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-// ---------- LOADER ----------
-window.addEventListener('load', () => {
+// ---------- LOADER (only on first visit per session) ----------
+const _loaderEl = document.getElementById('loader');
+const _loaderShown = (() => { try { return sessionStorage.getItem('ninjaLoaderShown'); } catch { return null; } })();
+if (_loaderShown && _loaderEl) {
+  _loaderEl.classList.add('done');
+} else {
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      if (_loaderEl) _loaderEl.classList.add('done');
+      try { sessionStorage.setItem('ninjaLoaderShown', '1'); } catch {}
+    }, 1100);
+  });
   setTimeout(() => {
-    document.getElementById('loader').classList.add('done');
-  }, 1100);
-});
-// Fallback in case load already fired
-setTimeout(() => {
-  const l = document.getElementById('loader');
-  if (l) l.classList.add('done');
-}, 2400);
+    if (_loaderEl) _loaderEl.classList.add('done');
+    try { sessionStorage.setItem('ninjaLoaderShown', '1'); } catch {}
+  }, 2400);
+}
 
 // ---------- CUSTOM CURSOR ----------
 const cursorDot = document.getElementById('cursorDot');
@@ -267,7 +274,7 @@ document.querySelectorAll('.faq-item').forEach(item => {
 const form = document.getElementById('leadForm');
 const status = document.getElementById('formStatus');
 
-form.addEventListener('submit', async (e) => {
+if (form) form.addEventListener('submit', async (e) => {
   e.preventDefault();
   status.className = 'form-status';
   status.textContent = '';
@@ -331,3 +338,261 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     }
   });
 });
+
+// ============================================================
+// NINJA SPLIT EFFECT — click a heading, it slices in 2 halves
+// ============================================================
+(() => {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reducedMotion) return;
+
+  function splitHeading(e) {
+    const el = e.currentTarget;
+    if (el.classList.contains('ninja-cutting')) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    el.classList.add('ninja-cutting');
+
+    // Make container positioned for absolute children
+    const cs = getComputedStyle(el);
+    if (cs.position === 'static') el.style.position = 'relative';
+
+    // Cards (multi-element + background) need a different cloning strategy
+    const isCard = el.classList.contains('metric-card') || el.hasAttribute('data-ninja-cut-card');
+
+    let top, bot;
+    const line = document.createElement('span');
+    line.className = 'ninja-slice-line';
+
+    if (isCard) {
+      // Deep-clone the whole card so background, layout & sparklines are preserved
+      top = el.cloneNode(true);
+      bot = el.cloneNode(true);
+      top.className = 'ninja-card-clone ninja-card-clone-top';
+      bot.className = 'ninja-card-clone ninja-card-clone-bot';
+      // Remove any leftover nested clone artefacts
+      top.querySelectorAll('.ninja-card-clone, .ninja-half, .ninja-slice-line').forEach(n => n.remove());
+      bot.querySelectorAll('.ninja-card-clone, .ninja-half, .ninja-slice-line').forEach(n => n.remove());
+    } else {
+      const inner = el.innerHTML;
+      top = document.createElement('span');
+      bot = document.createElement('span');
+      top.className = 'ninja-half ninja-half-top';
+      bot.className = 'ninja-half ninja-half-bot';
+      top.innerHTML = inner;
+      bot.innerHTML = inner;
+    }
+
+    el.appendChild(top);
+    el.appendChild(bot);
+    el.appendChild(line);
+
+    // Hide original content but keep dimensions
+    el.classList.add('ninja-hide-text');
+
+    setTimeout(() => {
+      top.remove();
+      bot.remove();
+      line.remove();
+      el.classList.remove('ninja-cutting', 'ninja-hide-text');
+    }, 700);
+  }
+
+  function bind() {
+    const selector = '.page-hero h1, .section-head h2, .hero-title, .metric-card, [data-ninja-cut]';
+    document.querySelectorAll(selector).forEach(el => {
+      if (el.dataset.ninjaBound) return;
+      el.dataset.ninjaBound = '1';
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', splitHeading);
+    });
+  }
+
+  bind();
+})();
+
+// ============================================================
+// KATANA SECTION DIVIDERS — draws once when section enters view
+// ============================================================
+(() => {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reducedMotion) return;
+
+  const skip = ['hero', 'strip'];
+
+  document.querySelectorAll('main > section, body > section').forEach((sec, i) => {
+    if (i === 0) return;
+    if (sec.id && skip.includes(sec.id)) return;
+
+    // Ensure section is positioned (so absolute child anchors correctly)
+    const cs = getComputedStyle(sec);
+    if (cs.position === 'static') sec.style.position = 'relative';
+
+    // Insert real div at top of section (NOT a pseudo-element — avoids conflicts)
+    const line = document.createElement('div');
+    line.className = 'katana-line';
+    sec.insertBefore(line, sec.firstChild);
+  });
+
+  const katanaIO = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('slashed');
+        katanaIO.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.5, rootMargin: '-80px 0px -20% 0px' });
+
+  document.querySelectorAll('.katana-line').forEach(l => katanaIO.observe(l));
+})();
+
+// ============================================================
+// SHURIKEN STORM EASTER EGG — click logo 5x
+// ============================================================
+(() => {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reducedMotion) return;
+
+  const logo = document.querySelector('.nav .logo');
+  if (!logo) return;
+
+  // === Persist click count across page navigations via sessionStorage ===
+  const KEY = 'ninjaLogoClicks';
+  const TIMEKEY = 'ninjaLogoLastClick';
+  const TRIGGER = 'ninjaTriggerStorm';
+  const WINDOW_MS = 1500;
+
+  // Check if storm should fire on this page load
+  if (sessionStorage.getItem(TRIGGER) === '1') {
+    sessionStorage.removeItem(TRIGGER);
+    setTimeout(() => triggerShurikenStorm(), 250);
+  }
+
+  // ========== Friendly first-visit hint ==========
+  const HINT_SHOWN = 'ninjaHintShown';
+  const HINT_DISMISSED = 'ninjaHintDismissed';
+
+  function showHint() {
+    if (sessionStorage.getItem(HINT_DISMISSED) === '1') return;
+    if (sessionStorage.getItem(HINT_SHOWN) === '1') return;
+    sessionStorage.setItem(HINT_SHOWN, '1');
+
+    const hint = document.createElement('div');
+    hint.className = 'egg-hint';
+    hint.innerHTML = `
+      <span class="eg-icon">🥷</span>
+      <span class="eg-text">טיפ: לחץ <b>5 פעמים על הלוגו</b> וגלה משהו מגניב</span>
+      <span class="eg-close" aria-label="סגור">×</span>
+    `;
+    document.body.appendChild(hint);
+    requestAnimationFrame(() => hint.classList.add('show'));
+
+    function dismiss() {
+      hint.classList.remove('show');
+      sessionStorage.setItem(HINT_DISMISSED, '1');
+      setTimeout(() => hint.remove(), 320);
+    }
+
+    hint.querySelector('.eg-close').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      dismiss();
+    });
+    hint.addEventListener('click', () => {
+      // Clicking the bubble itself counts as a logo click trigger toward storm
+      logo.click();
+    });
+    setTimeout(dismiss, 9000);
+
+    // Also dismiss when user clicks the logo anywhere
+    logo.addEventListener('click', dismiss, { once: true });
+  }
+
+  // Show after 3.5 seconds (only on first visit per session, only on home page to avoid spam)
+  setTimeout(showHint, 3500);
+
+  logo.addEventListener('click', () => {
+    const now = Date.now();
+    const last = parseInt(sessionStorage.getItem(TIMEKEY) || '0', 10);
+    let count = parseInt(sessionStorage.getItem(KEY) || '0', 10);
+
+    // If too long since last click, reset
+    if (now - last > WINDOW_MS) count = 0;
+    count++;
+
+    sessionStorage.setItem(KEY, String(count));
+    sessionStorage.setItem(TIMEKEY, String(now));
+
+    if (count >= 5) {
+      sessionStorage.setItem(TRIGGER, '1');
+      sessionStorage.setItem(KEY, '0');
+    }
+    // Don't preventDefault — let navigation happen normally.
+    // The storm will fire on the next page load if triggered.
+  });
+
+  const SHURIKEN_SVG = `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+    <defs>
+      <linearGradient id="es-r" x1="0" x2="1" y1="0" y2="1">
+        <stop offset="0" stop-color="#ff2a3c"/>
+        <stop offset="1" stop-color="#8b0000"/>
+      </linearGradient>
+    </defs>
+    <path d="M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z" fill="url(#es-r)" stroke="#ffd166" stroke-width="2"/>
+    <circle cx="32" cy="32" r="4" fill="#0a0a0a" stroke="#ffd166" stroke-width="1"/>
+  </svg>`;
+
+  function triggerShurikenStorm() {
+    // Vignette
+    const vignette = document.createElement('div');
+    vignette.className = 'shuriken-vignette';
+    document.body.appendChild(vignette);
+    setTimeout(() => vignette.remove(), 2500);
+
+    // Toast
+    const toast = document.createElement('div');
+    toast.className = 'ninja-toast';
+    toast.textContent = '🥷 NINJA MODE ACTIVATED';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+
+    // 35 flying shurikens
+    for (let i = 0; i < 35; i++) {
+      setTimeout(() => spawnFlyingShuriken(), i * 25);
+    }
+
+    // Console message for the curious
+    console.log('%c🥷 NINJA MODE — you found the secret!',
+      'background: #ff2a3c; color: #ffd166; font-weight: 900; padding: 8px 16px; border-radius: 6px; font-size: 14px;');
+  }
+
+  function spawnFlyingShuriken() {
+    const s = document.createElement('div');
+    s.className = 'flying-shuriken-projectile';
+    s.innerHTML = SHURIKEN_SVG;
+
+    const fromLeft = Math.random() > 0.5;
+    const startY = Math.random() * 90;
+    const endY = Math.random() * 90;
+    const size = 24 + Math.random() * 28;
+    const dur = 900 + Math.random() * 700;
+    const spins = (Math.random() > 0.5 ? 1 : -1) * (3 + Math.random() * 4);
+
+    s.style.width = size + 'px';
+    s.style.height = size + 'px';
+    s.style.top = startY + 'vh';
+    s.style[fromLeft ? 'left' : 'right'] = '-15%';
+
+    document.body.appendChild(s);
+
+    s.animate(
+      [
+        { transform: `translate(0, 0) rotate(0deg)`, opacity: 1 },
+        { transform: `translate(${fromLeft ? '120vw' : '-120vw'}, ${endY - startY}vh) rotate(${spins * 360}deg)`, opacity: 0.85 }
+      ],
+      { duration: dur, easing: 'cubic-bezier(.4,0,.65,1)', fill: 'forwards' }
+    );
+
+    setTimeout(() => s.remove(), dur + 100);
+  }
+})();

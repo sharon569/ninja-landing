@@ -1,0 +1,51 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { services } from '../../data/services';
+
+const list = Object.values(services);
+---
+
+<Layout title="השירותים שלנו | NINJA Digital">
+
+<section class="page-hero">
+  <div class="container">
+    <span class="eyebrow" data-reveal>השירותים שלנו</span>
+    <h1 data-reveal>חמישה להבים. <em>מטרה אחת — צמיחה.</em></h1>
+    <p data-reveal>כל שירות נחתך לפי המטרות שלך. בלי תבניות, בלי בלה־בלה.</p>
+  </div>
+</section>
+
+<section class="services" style="padding-top:40px">
+  <div class="container">
+    <div class="services-grid">
+      {list.map((svc, i) => (
+        <a href={`/services/${svc.slug}`} class={`service-card ${i === 0 ? 'featured' : ''}`} data-tilt data-cursor="link">
+          {i === 0 && <div class="featured-tag">חדש · Featured</div>}
+          <div class="svc-icon" style="font-size:34px;display:grid;place-items:center">
+            {svc.cardIcon}
+          </div>
+          <h3>{svc.title} <span>· {svc.subtitle}</span></h3>
+          <p>{svc.description}</p>
+          <div style="margin-top:18px;color:var(--gold);font-weight:700;font-size:0.95rem">למידע מלא ←</div>
+          <span class="card-glow"></span>
+        </a>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="cta-band">
+  <div class="container cta-inner">
+    <h2 data-reveal>לא בטוח מה מתאים לך?</h2>
+    <p data-reveal>בפגישת אסטרטגיה (חינם) נמפה את הצרכים ונמליץ לך על המסלול הנכון.</p>
+    <a href="/contact" class="btn btn-primary lg" data-magnetic data-cursor="link">לתיאום פגישה</a>
+  </div>
+</section>
+
+</Layout>
+
+<style is:global>
+  .services-grid .service-card { display: flex; flex-direction: column; }
+  .services-grid .service-card.featured { padding: 36px; }
+  .services-grid .service-card.featured > .svc-icon { margin-bottom: 24px; }
+</style>

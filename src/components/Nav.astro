@@ -1,0 +1,141 @@
+---
+import { services } from '../data/services';
+
+const path = Astro.url.pathname;
+const isActive = (p: string) => path === p || path.startsWith(p + '/') ? 'active' : '';
+
+const serviceList = Object.values(services);
+---
+
+<header class="nav" id="nav">
+  <div class="container nav-inner">
+    <a href="/" class="logo" data-cursor="link">
+      <svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <linearGradient id="lg1" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0" stop-color="#ff2a3c"/>
+            <stop offset="1" stop-color="#8b0000"/>
+          </linearGradient>
+        </defs>
+        <g class="shuriken-rotate">
+          <path d="M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z" fill="url(#lg1)" stroke="#ffd166" stroke-width="1.2"/>
+          <circle cx="32" cy="32" r="4" fill="#0a0a0a" stroke="#ffd166" stroke-width="1"/>
+        </g>
+      </svg>
+      <span class="logo-text"><b>NINJA</b><i>digital</i></span>
+    </a>
+
+    <nav class="nav-links" id="navLinks">
+      <!-- Services with hover dropdown (click also navigates to /services) -->
+      <div class="nav-dd">
+        <a href="/services" class={isActive('/services')} data-cursor="link">שירותים</a>
+        <div class="dd-panel">
+          {serviceList.map((svc) => (
+            <a href={`/services/${svc.slug}`} class="dd-item" data-cursor="link">{svc.title}</a>
+          ))}
+        </div>
+      </div>
+
+      <a href="/work" class={isActive('/work')} data-cursor="link">עבודות</a>
+      <a href="/about" class={isActive('/about')} data-cursor="link">אודות</a>
+      <a href="/blog" class={isActive('/blog')} data-cursor="link">בלוג</a>
+      <a href="/contact" class={`cta-mini ${isActive('/contact')}`} data-cursor="link" data-magnetic>דברו איתנו</a>
+    </nav>
+
+    <button class="burger" aria-label="פתח תפריט" id="burger">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<style is:global>
+  .nav-links a.active:not(.cta-mini) { color: var(--ink); }
+  .nav-links a.active:not(.cta-mini)::after { width: 100%; }
+
+  .nav-dd { position: relative; }
+
+  /* Invisible hover bridge */
+  .nav-dd::after {
+    content: '';
+    position: absolute;
+    top: 100%; right: 0; left: 0;
+    height: 18px;
+  }
+
+  .dd-panel {
+    position: absolute;
+    top: calc(100% + 18px);
+    right: 50%;
+    transform: translateX(50%) translateY(8px);
+    min-width: 220px;
+    background: linear-gradient(135deg, rgba(15,17,22,0.96), rgba(8,9,12,0.96));
+    backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid var(--line-2);
+    border-radius: 14px;
+    padding: 8px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(255,42,60,0.08);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 220ms cubic-bezier(.16,1,.3,1), transform 220ms cubic-bezier(.16,1,.3,1), visibility 220ms;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+  }
+  .nav-dd:hover .dd-panel,
+  .nav-dd:focus-within .dd-panel {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(50%) translateY(0);
+  }
+
+  /* Decorative arrow on top */
+  .dd-panel::before {
+    content: '';
+    position: absolute;
+    top: -5px; right: 50%;
+    transform: translateX(50%) rotate(45deg);
+    width: 10px; height: 10px;
+    background: rgba(15,17,22,0.96);
+    border-top: 1px solid var(--line-2);
+    border-right: 1px solid var(--line-2);
+  }
+
+  .dd-item {
+    display: block;
+    padding: 10px 14px;
+    border-radius: 8px;
+    color: var(--ink-dim);
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: 180ms cubic-bezier(.4,0,.2,1);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .dd-item:hover {
+    background: rgba(255,42,60,0.08);
+    color: var(--ink);
+    padding-right: 18px;
+  }
+  .dd-item::after { display: none !important; }
+
+  /* Mobile — collapse to inline list */
+  @media (max-width: 1024px) {
+    .dd-panel {
+      display: none;
+      position: static;
+      transform: none;
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      min-width: 0;
+      width: 100%;
+      margin-top: 10px;
+      box-shadow: none;
+      background: rgba(255,255,255,0.03);
+    }
+    .dd-panel::before { display: none; }
+    .nav-links.open .nav-dd .dd-panel { display: flex; }
+  }
+</style>

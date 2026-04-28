@@ -1,0 +1,175 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const allPosts = (await getCollection('blog')).sort(
+  (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+);
+const related = allPosts.filter(p => p.id !== post.id && p.data.category === post.data.category).slice(0, 2);
+---
+
+<Layout title={`${post.data.title} | NINJA Digital`} description={post.data.description}>
+
+<article class="post">
+  <div class="container post-narrow">
+    <a href="/blog" class="post-back" data-cursor="link">← חזרה לבלוג</a>
+
+    <div class="post-meta">
+      <span class="bp-tag">{post.data.category}</span>
+      <span>{new Date(post.data.date).toLocaleDateString('he-IL')}</span>
+      <span>·</span>
+      <span>{post.data.readTime} דק׳ קריאה</span>
+      <span>·</span>
+      <span>{post.data.author}</span>
+    </div>
+
+    <h1>{post.data.title}</h1>
+    <p class="post-lead">{post.data.description}</p>
+
+    <div class="post-body">
+      <Content />
+    </div>
+
+    <div class="post-cta">
+      <h3>רוצה שנעזור לעסק שלך?</h3>
+      <p>פגישת אסטרטגיה אישית — חינם, ללא התחייבות.</p>
+      <a href="/contact" class="btn btn-primary lg" data-magnetic data-cursor="link">בואו נדבר</a>
+    </div>
+
+    {related.length > 0 && (
+      <div class="post-related">
+        <h4>פוסטים נוספים מאותה קטגוריה</h4>
+        <div class="bp-grid related-grid">
+          {related.map((p: any) => (
+            <a href={`/blog/${p.id}`} class="bp-card" data-tilt data-cursor="link">
+              <span class="bp-tag">{p.data.category}</span>
+              <h4>{p.data.title}</h4>
+              <p>{p.data.description}</p>
+              <span class="bp-meta">{new Date(p.data.date).toLocaleDateString('he-IL')} · {p.data.readTime} דק׳ קריאה</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+</article>
+
+</Layout>
+
+<style is:global>
+  .post { padding: 140px 0 80px; position: relative; z-index: 2; }
+  .post-narrow { max-width: 760px; }
+  .post-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--ink-dim); font-size: 0.9rem; margin-bottom: 24px;
+    transition: 200ms;
+  }
+  .post-back:hover { color: var(--gold); }
+
+  .post-meta {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--ink-mute); font-size: 0.85rem; margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .post-meta .bp-tag { margin: 0; }
+
+  .post h1 {
+    font-family: 'Rubik';
+    font-size: clamp(2rem, 4.4vw, 3.4rem);
+    font-weight: 900; line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 18px;
+  }
+  .post-lead {
+    font-size: 1.18rem;
+    color: var(--ink-dim);
+    line-height: 1.7;
+    padding-bottom: 32px;
+    margin-bottom: 32px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .post-body { font-size: 1.05rem; line-height: 1.8; color: var(--ink); }
+  .post-body h2 { font-family: 'Rubik'; font-size: 1.8rem; font-weight: 900; margin: 48px 0 16px; letter-spacing: -0.01em; }
+  .post-body h3 { font-family: 'Rubik'; font-size: 1.35rem; font-weight: 800; margin: 36px 0 12px; color: var(--gold); }
+  .post-body h4 { font-family: 'Rubik'; font-size: 1.15rem; font-weight: 800; margin: 28px 0 10px; }
+  .post-body p { margin-bottom: 16px; color: var(--ink-dim); }
+  .post-body p strong { color: var(--ink); font-weight: 700; }
+  .post-body ul, .post-body ol { margin: 16px 0 24px; padding-right: 24px; color: var(--ink-dim); }
+  .post-body li { margin-bottom: 8px; }
+  .post-body li strong { color: var(--ink); }
+  .post-body a { color: var(--red); text-decoration: underline; text-underline-offset: 4px; }
+  .post-body a:hover { color: var(--gold); }
+  .post-body blockquote {
+    border-right: 4px solid var(--red);
+    padding: 16px 24px;
+    margin: 24px 0;
+    background: rgba(255,42,60,0.04);
+    font-size: 1.1rem;
+    color: var(--ink);
+    font-style: italic;
+  }
+  .post-body code {
+    background: rgba(255,255,255,0.06);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+    color: var(--gold);
+  }
+  .post-body pre {
+    background: #050608;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px;
+    overflow-x: auto;
+    margin: 20px 0;
+    direction: ltr;
+    text-align: left;
+  }
+  .post-body pre code { background: none; padding: 0; color: #d4d4d4; }
+  .post-body table {
+    width: 100%; border-collapse: collapse; margin: 24px 0;
+    font-size: 0.95rem;
+  }
+  .post-body th, .post-body td {
+    padding: 10px 14px; border-bottom: 1px solid var(--line);
+    text-align: right;
+  }
+  .post-body th {
+    background: rgba(255,255,255,0.04);
+    font-family: 'Rubik';
+    font-size: 0.82rem; font-weight: 800;
+    letter-spacing: 0.05em;
+  }
+  .post-body hr { border: 0; height: 1px; background: var(--line); margin: 36px 0; }
+
+  .post-cta {
+    text-align: center;
+    margin: 60px 0 40px;
+    padding: 48px 32px;
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background:
+      radial-gradient(ellipse at center, rgba(255,42,60,0.1), transparent 70%),
+      linear-gradient(135deg, rgba(20,22,28,0.7), rgba(15,17,22,0.5));
+  }
+  .post-cta h3 { font-family: 'Rubik'; font-size: 1.5rem; font-weight: 900; margin-bottom: 8px; }
+  .post-cta p { color: var(--ink-dim); margin-bottom: 24px; }
+
+  .post-related { margin-top: 60px; padding-top: 40px; border-top: 1px solid var(--line); }
+  .post-related h4 { font-family: 'Rubik'; font-size: 1.2rem; font-weight: 800; margin-bottom: 20px; }
+  .related-grid { grid-template-columns: 1fr 1fr !important; }
+  @media (max-width: 720px) { .related-grid { grid-template-columns: 1fr !important; } }
+</style>
