@@ -42,7 +42,13 @@ const clientName = (caseStudy as any).client || caseStudy.testimonialAuthor;
 </section>
 
 {clientUrl && (
-  <CaseShowcase url={clientUrl} client={clientName} services={caseStudy.services} />
+  <CaseShowcase
+    url={clientUrl}
+    client={clientName}
+    services={caseStudy.services}
+    screenshot={(caseStudy as any).screenshot}
+    screenshotMobile={(caseStudy as any).screenshotMobile}
+  />
 )}
 
 <section class="why">

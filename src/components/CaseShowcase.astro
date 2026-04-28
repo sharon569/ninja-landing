@@ -3,9 +3,11 @@ interface Props {
   url?: string;
   client: string;
   services: string[];
+  screenshot?: string;
+  screenshotMobile?: string;
 }
 
-const { url, client, services } = Astro.props;
+const { url, client, services, screenshot, screenshotMobile } = Astro.props;
 
 const hasGoogleAds = services.includes('google-ads');
 const hasPlashi = services.includes('plashi');
@@ -45,12 +47,12 @@ const newsletter = isCoffee ? {
   cta: 'גלה את הוויטמינים',
 } : null;
 
-const screenshotUrl = url
-  ? `https://s.wordpress.com/mshots/v1/${encodeURIComponent(url)}?w=1280&h=820`
-  : null;
-const mobileScreenshotUrl = url
-  ? `https://s.wordpress.com/mshots/v1/${encodeURIComponent(url)}?w=375&h=720`
-  : null;
+// Prefer local screenshot file (downloaded once, never breaks).
+// Fallback to WordPress mShots if local missing.
+const screenshotUrl = screenshot
+  || (url ? `https://s.wordpress.com/mshots/v1/${encodeURIComponent(url)}?w=1280&h=820` : null);
+const mobileScreenshotUrl = screenshotMobile
+  || (url ? `https://s.wordpress.com/mshots/v1/${encodeURIComponent(url)}?w=375&h=720` : null);
 ---
 
 {screenshotUrl && (
