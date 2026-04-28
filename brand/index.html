@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NINJA Digital — Brand Book</title>
+<meta name="robots" content="noindex" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800;900&family=Rubik:wght@400;500;700;800;900&family=Noto+Serif+JP:wght@900&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z' fill='%23ff2a3c' stroke='%23ffd166' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%23000'/%3E%3C/svg%3E">
+
+<style>
+:root {
+  --bg-0: #08090c;
+  --bg-1: #0c0e13;
+  --bg-2: #11141b;
+  --line: rgba(255,255,255,0.08);
+  --line-2: rgba(255,255,255,0.14);
+  --ink: #f5f5f7;
+  --ink-dim: #a8acb6;
+  --ink-mute: #6a6f7c;
+  --red: #ff2a3c;
+  --red-deep: #b3001b;
+  --gold: #ffd166;
+  --gold-deep: #a07b00;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Heebo', sans-serif;
+  background: var(--bg-0);
+  color: var(--ink);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  background-image:
+    radial-gradient(ellipse at top, rgba(255,42,60,0.1), transparent 60%),
+    radial-gradient(ellipse at bottom, rgba(255,209,102,0.05), transparent 60%);
+  min-height: 100vh;
+}
+.container { width: min(1200px, 92%); margin: 0 auto; padding: 60px 0; }
+a { color: var(--red); text-decoration: none; }
+a:hover { color: var(--gold); }
+button { font-family: inherit; cursor: pointer; }
+
+/* HEADER */
+.bb-header {
+  text-align: center;
+  padding: 40px 0 60px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 60px;
+}
+.bb-logo {
+  display: inline-flex; align-items: center; gap: 14px;
+  font-family: 'Rubik', sans-serif;
+  margin-bottom: 24px;
+}
+.bb-logo svg { width: 56px; height: 56px; filter: drop-shadow(0 0 16px rgba(255,42,60,0.4)); }
+.bb-logo b { font-size: 1.8rem; font-weight: 900; letter-spacing: 0.12em; background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.bb-header h1 { font-family: 'Rubik', sans-serif; font-size: clamp(2.2rem, 5vw, 3.6rem); font-weight: 900; line-height: 1.1; margin-bottom: 12px; letter-spacing: -0.02em; }
+.bb-header h1 em { font-style: normal; background: linear-gradient(135deg, var(--red), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.bb-header p { color: var(--ink-dim); font-size: 1.15rem; max-width: 640px; margin: 0 auto; }
+.bb-back { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1px solid var(--line-2); border-radius: 999px; font-size: 0.85rem; color: var(--ink-dim); margin-bottom: 24px; }
+.bb-back:hover { border-color: var(--red); color: var(--ink); }
+
+/* SECTION */
+.bb-section { margin-bottom: 80px; }
+.bb-eyebrow {
+  display: inline-block;
+  font-size: 0.78rem; font-weight: 700;
+  color: var(--red);
+  letter-spacing: 0.2em; text-transform: uppercase;
+  padding: 6px 14px;
+  border: 1px solid rgba(255,42,60,0.3);
+  border-radius: 999px;
+  background: rgba(255,42,60,0.08);
+  margin-bottom: 14px;
+}
+.bb-section h2 { font-family: 'Rubik', sans-serif; font-size: 2rem; font-weight: 900; margin-bottom: 8px; letter-spacing: -0.02em; }
+.bb-section > p { color: var(--ink-dim); margin-bottom: 32px; }
+
+/* CARDS */
+.card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(20,22,28,0.85), rgba(15,17,22,0.6));
+  padding: 28px;
+  position: relative;
+}
+
+/* LOGO GRID */
+.logo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.logo-display {
+  height: 220px;
+  border-radius: 14px;
+  display: grid; place-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.logo-display.dark { background: linear-gradient(135deg, #08090c, #11141b); border: 1px solid var(--line); }
+.logo-display.light { background: #f5f5f7; }
+.logo-display svg { max-width: 70%; max-height: 70%; }
+.logo-tag {
+  position: absolute; top: 12px; right: 12px;
+  font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.5); color: var(--ink);
+}
+.logo-display.light .logo-tag { background: rgba(255,255,255,0.85); color: #000; }
+
+.logo-meta { padding: 20px 24px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+.logo-meta h4 { font-family: 'Rubik', sans-serif; font-weight: 800; font-size: 1rem; }
+.logo-meta span { font-size: 0.85rem; color: var(--ink-mute); }
+.dl-group { display: flex; gap: 8px; }
+
+.btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: all 200ms ease;
+}
+.btn-primary { background: linear-gradient(135deg, var(--red), var(--red-deep)); color: #fff; box-shadow: 0 6px 16px rgba(255,42,60,0.3); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(255,42,60,0.4); }
+.btn-ghost { background: rgba(255,255,255,0.04); border: 1px solid var(--line-2); color: var(--ink); }
+.btn-ghost:hover { background: rgba(255,255,255,0.08); border-color: var(--gold); }
+
+/* COLORS */
+.color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.color-card {
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  transition: all 200ms ease;
+}
+.color-card:hover { transform: translateY(-4px); border-color: var(--gold); }
+.color-swatch { height: 120px; position: relative; display: grid; place-items: center; font-family: 'Rubik', sans-serif; font-weight: 900; font-size: 1.2rem; }
+.color-swatch::after { content: '📋 העתק'; position: absolute; bottom: 10px; right: 10px; font-size: 0.7rem; opacity: 0; transition: opacity 200ms; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 4px; backdrop-filter: blur(6px); }
+.color-card:hover .color-swatch::after { opacity: 1; }
+.color-card.copied .color-swatch::after { content: '✓ הועתק!'; opacity: 1; background: rgba(46,230,133,0.85); }
+.color-info { padding: 14px 16px; background: rgba(20,22,28,0.6); }
+.color-info h5 { font-family: 'Rubik', sans-serif; font-weight: 800; font-size: 0.95rem; margin-bottom: 4px; }
+.color-info code { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--gold); }
+.color-info span { display: block; font-size: 0.75rem; color: var(--ink-mute); margin-top: 4px; }
+
+/* TYPOGRAPHY */
+.type-card { padding: 28px; border: 1px solid var(--line); border-radius: 14px; background: rgba(15,17,22,0.5); margin-bottom: 16px; }
+.type-card h6 { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red); margin-bottom: 10px; }
+.type-card .specimen { font-family: 'Rubik', sans-serif; font-size: 3rem; font-weight: 900; margin-bottom: 12px; line-height: 1; }
+.type-card.body .specimen { font-family: 'Heebo', sans-serif; font-size: 1.6rem; font-weight: 400; }
+.type-card .meta { display: flex; gap: 24px; flex-wrap: wrap; font-size: 0.85rem; color: var(--ink-dim); }
+.type-card .meta b { color: var(--ink); }
+
+/* VOICE */
+.voice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.voice-do, .voice-dont { padding: 24px; border-radius: 14px; border: 1px solid; }
+.voice-do { border-color: rgba(46,230,133,0.3); background: rgba(46,230,133,0.05); }
+.voice-dont { border-color: rgba(255,42,60,0.3); background: rgba(255,42,60,0.05); }
+.voice-do h4, .voice-dont h4 { font-family: 'Rubik', sans-serif; font-weight: 800; margin-bottom: 14px; }
+.voice-do h4 { color: #2ee685; }
+.voice-dont h4 { color: var(--red); }
+.voice-do ul, .voice-dont ul { list-style: none; }
+.voice-do li, .voice-dont li { padding-right: 24px; position: relative; margin-bottom: 8px; color: var(--ink-dim); font-size: 0.95rem; }
+.voice-do li::before { content: '✓'; position: absolute; right: 0; color: #2ee685; font-weight: 900; }
+.voice-dont li::before { content: '✗'; position: absolute; right: 0; color: var(--red); font-weight: 900; }
+
+/* EMAIL SIGNATURE */
+.sig-preview {
+  background: #fff;
+  color: #1a1a1a;
+  padding: 30px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  position: relative;
+}
+.sig-preview-label {
+  position: absolute; top: -10px; right: 20px;
+  background: var(--red); color: #fff;
+  font-size: 0.72rem; font-weight: 700;
+  padding: 4px 12px; border-radius: 999px;
+  letter-spacing: 0.1em;
+}
+.code-block {
+  background: #050608;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  color: #d4d4d4;
+  overflow-x: auto;
+  direction: ltr;
+  text-align: left;
+  white-space: pre;
+  max-height: 400px;
+  overflow-y: auto;
+  position: relative;
+}
+.copy-btn { position: absolute; top: 12px; left: 12px; }
+
+/* INVOICE */
+.invoice-preview {
+  background: #fff;
+  color: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+  font-family: 'Heebo', sans-serif;
+  margin-bottom: 16px;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+}
+.inv-header {
+  background: linear-gradient(135deg, #08090c 0%, #1a1d24 100%);
+  color: #fff;
+  padding: 32px 40px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 4px solid var(--red);
+}
+.inv-header svg { width: 48px; height: 48px; }
+.inv-header-logo { display: flex; align-items: center; gap: 14px; }
+.inv-header-logo b { font-family: 'Rubik', sans-serif; font-size: 1.4rem; font-weight: 900; letter-spacing: 0.1em; }
+.inv-header-logo i { font-style: normal; font-size: 0.7rem; color: var(--ink-mute); letter-spacing: 0.3em; text-transform: uppercase; display: block; margin-top: 2px; }
+.inv-header-meta { text-align: left; }
+.inv-header-meta div { font-size: 0.75rem; color: var(--ink-mute); letter-spacing: 0.1em; text-transform: uppercase; }
+.inv-header-meta strong { font-family: 'Rubik', sans-serif; font-size: 1.4rem; color: var(--gold); display: block; margin-top: 4px; }
+
+.inv-body { padding: 32px 40px; }
+.inv-section { margin-bottom: 28px; }
+.inv-section h5 { font-family: 'Rubik', sans-serif; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: #1a1a1a; margin-bottom: 8px; }
+.inv-section p { color: #555; font-size: 0.9rem; }
+.inv-table { width: 100%; border-collapse: collapse; }
+.inv-table th, .inv-table td { padding: 12px; text-align: right; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+.inv-table th { background: #f5f5f7; font-weight: 700; color: #1a1a1a; font-size: 0.78rem; letter-spacing: 0.05em; }
+.inv-table tfoot td { font-weight: 700; color: #1a1a1a; }
+.inv-table tfoot tr:last-child td { color: #ff2a3c; font-size: 1.1rem; padding-top: 16px; border-top: 2px solid #1a1a1a; }
+.inv-footer {
+  padding: 20px 40px;
+  background: #f5f5f7;
+  border-top: 1px solid #e5e5e5;
+  font-size: 0.78rem;
+  color: #777;
+  display: flex; justify-content: space-between;
+}
+
+/* SOCIAL ASSETS */
+.social-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.social-card {
+  aspect-ratio: 1;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--bg-1), var(--bg-0));
+  display: grid; place-items: center;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.social-card.story { aspect-ratio: 9/16; }
+.social-card .ninja-mark {
+  position: absolute; opacity: 0.06;
+  width: 90%; height: 90%;
+  filter: blur(2px);
+}
+.social-content { position: relative; text-align: center; padding: 24px; }
+.social-content h3 { font-family: 'Rubik', sans-serif; font-size: 2rem; font-weight: 900; line-height: 1.1; margin-bottom: 12px; }
+.social-content h3 em { font-style: normal; background: linear-gradient(135deg, var(--red), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.social-content p { color: var(--ink-dim); font-size: 0.9rem; }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: linear-gradient(135deg, var(--red), var(--red-deep));
+  color: #fff;
+  padding: 14px 22px;
+  border-radius: 12px;
+  font-weight: 700;
+  box-shadow: 0 12px 30px rgba(255,42,60,0.4);
+  transform: translateY(120px);
+  opacity: 0;
+  transition: all 300ms cubic-bezier(.16,1,.3,1);
+  z-index: 1000;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* RESPONSIVE */
+@media (max-width: 720px) {
+  .logo-grid, .voice-grid, .social-preview { grid-template-columns: 1fr; }
+  .color-grid { grid-template-columns: repeat(2, 1fr); }
+  .inv-header { flex-direction: column; gap: 16px; align-items: flex-start; }
+  .inv-header-meta { text-align: right; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <header class="bb-header">
+    <a href="/" class="bb-back">→ חזרה לאתר</a>
+    <div class="bb-logo">
+      <svg viewBox="0 0 64 64">
+        <defs>
+          <linearGradient id="lg1" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0" stop-color="#ff2a3c"/>
+            <stop offset="1" stop-color="#8b0000"/>
+          </linearGradient>
+        </defs>
+        <path d="M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z" fill="url(#lg1)" stroke="#ffd166" stroke-width="1.5"/>
+        <circle cx="32" cy="32" r="4" fill="#0a0a0a" stroke="#ffd166" stroke-width="1"/>
+      </svg>
+      <b>NINJA</b>
+    </div>
+    <h1>ספר <em>מיתוג</em></h1>
+    <p>כל הצבעים, הלוגואים, הפונטים, וטמפלטים מוכנים לחתימת מייל וחשבוניות.</p>
+  </header>
+
+  <!-- LOGO -->
+  <section class="bb-section">
+    <span class="bb-eyebrow">לוגו</span>
+    <h2>הלוגו <em style="font-style:normal;background:linear-gradient(135deg,var(--red),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent">בכל הוורסיות</em></h2>
+    <p>הורד את הלוגו בפורמט שאתה צריך — SVG (וקטורי, לאתרים) או PNG (ראסטר, לחשבוניות וטפסים).</p>
+
+    <div class="logo-grid">
+      <!-- Logo full dark -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="logo-display dark">
+          <span class="logo-tag">לרקע כהה</span>
+          <svg id="logo-full-dark" viewBox="0 0 280 80" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="ld-red" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#ff2a3c"/><stop offset="1" stop-color="#8b0000"/></linearGradient>
+              <linearGradient id="ld-text" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#ffd166"/></linearGradient>
+            </defs>
+            <g transform="translate(20,20)">
+              <path d="M20 0 L24 14 L40 20 L24 26 L20 40 L16 26 L0 20 L16 14 Z" fill="url(#ld-red)" stroke="#ffd166" stroke-width="1"/>
+              <circle cx="20" cy="20" r="3" fill="#0a0a0a"/>
+            </g>
+            <text x="80" y="38" font-family="Rubik, sans-serif" font-weight="900" font-size="28" letter-spacing="3" fill="url(#ld-text)">NINJA</text>
+            <text x="80" y="56" font-family="Rubik, sans-serif" font-weight="500" font-size="9" letter-spacing="6" fill="#6a6f7c">DIGITAL</text>
+          </svg>
+        </div>
+        <div class="logo-meta">
+          <div>
+            <h4>לוגו מלא · רקע כהה</h4>
+            <span>לאתר, סושיאל, מצגות</span>
+          </div>
+          <div class="dl-group">
+            <button class="btn btn-ghost" data-dl-svg="logo-full-dark" data-fname="ninja-logo-dark.svg">SVG</button>
+            <button class="btn btn-primary" data-dl-png="logo-full-dark" data-fname="ninja-logo-dark.png">PNG</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Logo full light -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="logo-display light">
+          <span class="logo-tag">לרקע בהיר</span>
+          <svg id="logo-full-light" viewBox="0 0 280 80" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="ll-red" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#ff2a3c"/><stop offset="1" stop-color="#8b0000"/></linearGradient>
+            </defs>
+            <g transform="translate(20,20)">
+              <path d="M20 0 L24 14 L40 20 L24 26 L20 40 L16 26 L0 20 L16 14 Z" fill="url(#ll-red)" stroke="#a07b00" stroke-width="1"/>
+              <circle cx="20" cy="20" r="3" fill="#0a0a0a"/>
+            </g>
+            <text x="80" y="38" font-family="Rubik, sans-serif" font-weight="900" font-size="28" letter-spacing="3" fill="#0a0a0a">NINJA</text>
+            <text x="80" y="56" font-family="Rubik, sans-serif" font-weight="500" font-size="9" letter-spacing="6" fill="#6a6f7c">DIGITAL</text>
+          </svg>
+        </div>
+        <div class="logo-meta">
+          <div>
+            <h4>לוגו מלא · רקע בהיר</h4>
+            <span>לחשבוניות, מסמכים, נייר מכתבים</span>
+          </div>
+          <div class="dl-group">
+            <button class="btn btn-ghost" data-dl-svg="logo-full-light" data-fname="ninja-logo-light.svg">SVG</button>
+            <button class="btn btn-primary" data-dl-png="logo-full-light" data-fname="ninja-logo-light.png">PNG</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mark only dark -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="logo-display dark">
+          <span class="logo-tag">סימן בלבד · כהה</span>
+          <svg id="logo-mark-dark" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="md-red" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#ff2a3c"/><stop offset="1" stop-color="#8b0000"/></linearGradient>
+            </defs>
+            <g transform="translate(50,50)">
+              <path d="M0 -42 L8 -16 L42 0 L8 16 L0 42 L-8 16 L-42 0 L-8 -16 Z" fill="url(#md-red)" stroke="#ffd166" stroke-width="1.5"/>
+              <circle cx="0" cy="0" r="6" fill="#0a0a0a" stroke="#ffd166" stroke-width="1"/>
+              <circle cx="0" cy="0" r="2" fill="#ffd166"/>
+            </g>
+          </svg>
+        </div>
+        <div class="logo-meta">
+          <div>
+            <h4>שוריקן · רקע כהה</h4>
+            <span>פאביקון, אווטאר, ווטרמרק</span>
+          </div>
+          <div class="dl-group">
+            <button class="btn btn-ghost" data-dl-svg="logo-mark-dark" data-fname="ninja-mark-dark.svg">SVG</button>
+            <button class="btn btn-primary" data-dl-png="logo-mark-dark" data-fname="ninja-mark-dark.png">PNG</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mark only light -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="logo-display light">
+          <span class="logo-tag">סימן בלבד · בהיר</span>
+          <svg id="logo-mark-light" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="ml-red" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#ff2a3c"/><stop offset="1" stop-color="#8b0000"/></linearGradient>
+            </defs>
+            <g transform="translate(50,50)">
+              <path d="M0 -42 L8 -16 L42 0 L8 16 L0 42 L-8 16 L-42 0 L-8 -16 Z" fill="url(#ml-red)" stroke="#a07b00" stroke-width="1.5"/>
+              <circle cx="0" cy="0" r="6" fill="#fff" stroke="#a07b00" stroke-width="1"/>
+              <circle cx="0" cy="0" r="2" fill="#a07b00"/>
+            </g>
+          </svg>
+        </div>
+        <div class="logo-meta">
+          <div>
+            <h4>שוריקן · רקע בהיר</h4>
+            <span>חתימת מייל, מסמכים מודפסים</span>
+          </div>
+          <div class="dl-group">
+            <button class="btn btn-ghost" data-dl-svg="logo-mark-light" data-fname="ninja-mark-light.svg">SVG</button>
+            <button class="btn btn-primary" data-dl-png="logo-mark-light" data-fname="ninja-mark-light.png">PNG</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COLORS -->
+  <section class="bb-section">
+    <span class="bb-eyebrow">צבעים</span>
+    <h2>הפלטה <em style="font-style:normal;background:linear-gradient(135deg,var(--red),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent">הרשמית</em></h2>
+    <p>לחץ על כל צבע כדי להעתיק את ה-HEX. אלה הצבעים שתשתמש בהם בכל מסמך/חשבונית/חתימה.</p>
+
+    <div class="color-grid">
+      <div class="color-card" data-color="#08090c">
+        <div class="color-swatch" style="background:#08090c;color:#fff">Aa</div>
+        <div class="color-info"><h5>Ninja Black</h5><code>#08090c</code><span>רקע ראשי</span></div>
+      </div>
+      <div class="color-card" data-color="#ff2a3c">
+        <div class="color-swatch" style="background:#ff2a3c;color:#fff">Aa</div>
+        <div class="color-info"><h5>Blade Red</h5><code>#ff2a3c</code><span>צבע פעולה ראשי</span></div>
+      </div>
+      <div class="color-card" data-color="#b3001b">
+        <div class="color-swatch" style="background:#b3001b;color:#fff">Aa</div>
+        <div class="color-info"><h5>Deep Red</h5><code>#b3001b</code><span>גרדיאנט לאדום</span></div>
+      </div>
+      <div class="color-card" data-color="#ffd166">
+        <div class="color-swatch" style="background:#ffd166;color:#000">Aa</div>
+        <div class="color-info"><h5>Shogun Gold</h5><code>#ffd166</code><span>אקסנט פרימיום</span></div>
+      </div>
+      <div class="color-card" data-color="#a07b00">
+        <div class="color-swatch" style="background:#a07b00;color:#fff">Aa</div>
+        <div class="color-info"><h5>Deep Gold</h5><code>#a07b00</code><span>גרדיאנט לזהב</span></div>
+      </div>
+      <div class="color-card" data-color="#f5f5f7">
+        <div class="color-swatch" style="background:#f5f5f7;color:#000">Aa</div>
+        <div class="color-info"><h5>Paper White</h5><code>#f5f5f7</code><span>טקסט לבן/רקע בהיר</span></div>
+      </div>
+      <div class="color-card" data-color="#a8acb6">
+        <div class="color-swatch" style="background:#a8acb6;color:#000">Aa</div>
+        <div class="color-info"><h5>Mist Gray</h5><code>#a8acb6</code><span>טקסט משני</span></div>
+      </div>
+      <div class="color-card" data-color="#2ee685">
+        <div class="color-swatch" style="background:#2ee685;color:#000">Aa</div>
+        <div class="color-info"><h5>Success Green</h5><code>#2ee685</code><span>חיווי הצלחה</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TYPOGRAPHY -->
+  <section class="bb-section">
+    <span class="bb-eyebrow">טיפוגרפיה</span>
+    <h2>הפונטים <em style="font-style:normal;background:linear-gradient(135deg,var(--red),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent">הרשמיים</em></h2>
+    <p>שני פונטים בלבד. אחד לכותרות, אחד לטקסט. שניהם חינמיים ב-Google Fonts.</p>
+
+    <div class="type-card">
+      <h6>כותרות · Display</h6>
+      <div class="specimen">Rubik 900 — שיווק שמכה</div>
+      <div class="meta">
+        <span><b>שם:</b> Rubik</span>
+        <span><b>משקלים:</b> 700, 800, 900</span>
+        <span><b>שימוש:</b> כותרות H1-H4, מספרים, לוגו</span>
+        <span><b>הורד:</b> <a href="https://fonts.google.com/specimen/Rubik" target="_blank">Google Fonts</a></span>
+      </div>
+    </div>
+
+    <div class="type-card body">
+      <h6>טקסט גוף · Body</h6>
+      <div class="specimen">Heebo 400 — אנחנו לא מבטיחים. אנחנו מבצעים.</div>
+      <div class="meta">
+        <span><b>שם:</b> Heebo</span>
+        <span><b>משקלים:</b> 300, 400, 500, 700</span>
+        <span><b>שימוש:</b> פסקאות, תוויות, כפתורים</span>
+        <span><b>הורד:</b> <a href="https://fonts.google.com/specimen/Heebo" target="_blank">Google Fonts</a></span>
+      </div>
+    </div>
+
+    <div class="type-card" style="background:linear-gradient(135deg,rgba(255,42,60,0.04),rgba(255,209,102,0.02))">
+      <h6>פונט גיבוי · אם אין Web Fonts</h6>
+      <div class="specimen" style="font-family:Tahoma,Arial,sans-serif;font-size:1.6rem">Tahoma · Arial — לחתימת מייל ומסמכי וורד</div>
+      <div class="meta">
+        <span><b>שימוש:</b> חתימות מייל, מסמכי PDF/Word</span>
+        <span><b>למה:</b> פונטים מערכת, נטענים בכל מחשב</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- VOICE -->
+  <section class="bb-section">
+    <span class="bb-eyebrow">טון ושפה</span>
+    <h2>איך אנחנו <em style="font-style:normal;background:linear-gradient(135deg,var(--red),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent">מדברים</em></h2>
+    <p>הקול של NINJA: שקט, חד, ביטחון עצמי. בלי קלישאות שיווקיות. בלי "מהפכני". בלי "פורץ דרך".</p>
+
+    <div class="voice-grid">
+      <div class="voice-do">
+        <h4>✓ כן — תעשה</h4>
+        <ul>
+          <li>"ה-ROAS עלה ב-340% תוך 60 יום."</li>
+          <li>"בנינו. השקנו. הביצועים עלו."</li>
+          <li>"שקטים בעבודה. קולניים בתוצאות."</li>
+          <li>קצר וחותך</li>
+          <li>מספרים אמיתיים</li>
+          <li>פעלים בזמן הווה</li>
+        </ul>
+      </div>
+      <div class="voice-dont">
+        <h4>✗ לא — תימנע</h4>
+        <ul>
+          <li>"חברה דינמית ופורצת דרך"</li>
+          <li>"פתרונות 360 מעלות"</li>
+          <li>"מובילים בשוק כבר 10 שנים"</li>
+          <li>סיסמאות חלולות</li>
+          <li>הגזמות בלי גיבוי</li>
+          <li>פסיביות ("נעשה מאמץ")</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- EMAIL SIGNATURE -->
+  <section class="bb-section">
+    <span class="bb-eyebrow">חתימת מייל</span>
+    <h2>חתימה <em style="font-style:normal;background:linear-gradient(135deg,var(--red),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent">מוכנה להעתקה</em></h2>
+    <p>תצוגה מקדימה למטה. תלחץ "העתק חתימה" → תדביק ב-Gmail (Settings → General → Signature) או ב-Outlook.</p>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="sig-preview" id="sigPreview">
+        <span class="sig-preview-label">תצוגה מקדימה</span>
+        <table cellpadding="0" cellspacing="0" border="0" style="font-family:Tahoma,Arial,sans-serif;color:#1a1a1a;font-size:14px;line-height:1.5">
+          <tr>
+            <td style="padding:0 0 0 20px;border-left:3px solid #ff2a3c;vertical-align:top">
+              <table cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding-bottom:8px">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="vertical-align:middle;padding-left:10px">
+                          <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sg-r" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#ff2a3c"/><stop offset="1" stop-color="#8b0000"/></linearGradient></defs><g transform="translate(50,50)"><path d="M0 -42 L8 -16 L42 0 L8 16 L0 42 L-8 16 L-42 0 L-8 -16 Z" fill="url(#sg-r)" stroke="#a07b00" stroke-width="1.5"/><circle cx="0" cy="0" r="6" fill="#1a1a1a"/></g></svg>
+                        </td>
+                        <td style="vertical-align:middle">
+                          <div style="font-family:Tahoma,Arial,sans-serif;font-size:20px;font-weight:900;color:#1a1a1a;letter-spacing:2px;line-height:1">NINJA</div>
+                          <div style="font-family:Tahoma,Arial,sans-serif;font-size:9px;color:#777;letter-spacing:4px;text-transform:uppercase;margin-top:2px">DIGITAL</div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0 4px;border-top:1px solid #eee">
+                    <strong style="font-size:15px;color:#1a1a1a">Sharon</strong>
+                    <span style="color:#777;font-size:13px"> · Founder & CEO</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-top:4px;color:#555;font-size:13px;line-height:1.7">
+                    <span style="color:#ff2a3c">📧</span> <a href="mailto:sharon@samp.ninja" style="color:#1a1a1a;text-decoration:none">sharon@samp.ninja</a><br>
+                    <span style="color:#ff2a3c">📱</span> <a href="tel:+972545822451" style="color:#1a1a1a;text-decoration:none">054-582-2451</a><br>
+                    <span style="color:#ff2a3c">🌐</span> <a href="https://samp.ninja" style="color:#1a1a1a;text-decoration:none">samp.ninja</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-top:10px;font-size:11px;color:#a07b00;font-style:italic;letter-spacing:0.5px">
+                    שקטים בעבודה. קולניים בתוצאות.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="padding:20px;background:rgba(255,255,255,0.02);border-top:1px solid var(--line);display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="copySignature()">📋 העתק חתימה (HTML)</button>
+        <button class="btn btn-ghost" onclick="copySignatureRich()">📋 העתק עיצוב (Gmail)</button>
+        <a href="signature.html" target="_blank" class="btn btn-ghost">פתח בעמוד נפרד</a>
+      </div>
+
+      <details style="border-top:1px solid var(--line);padding:0">
+        <summary style="padding:16px 20px;cursor:pointer;font-weight:700;color:var(--ink-dim)">▾ הצג קוד HTML</summary>
+        <pre class="code-block" id="sigCode" style="border-radius:0;border:0;border-top:1px solid var(--line);margin:0"></pre>
+      </details>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <h4 style="font-family:'Rubik';font-weight:800;margin-bottom:14px;color:var(--gold)">📌 איך מתקינים ב-Gmail:</h4>
+      <ol style="padding-right:24px;color:var(--ink-dim);line-height:1.9">
+        <li>פתח Gmail → Settings (גלגל שיניים) → <b>See all settings</b></li>
+        <li>גלול לחלק <b>Signature</b> → <b>Create new</b></li>
+        <li>בחר את החתימה לחיצה ימנית → לחץ <b>"העתק עיצוב (Gmail)"</b> למעלה</li>
+        <li>שים לב שהוא ב-default sending mode</li>
+        <li>לחץ <b>Save Changes</b> בתחתית</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- INVOICE -->
+  <section class="bb-section">
+    <span class="bb-eyebrow">חשבוניות</span>
+    <h2>תבנית <em style="font-style:normal;background:linear-gradient(135deg,var(--red),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent">חשבונית</em></h2>
+    <p>איך לעצב חשבונית במערכת שלך (iCount, Greeninvoice, Hashavshevet, Morning, Cardcom, וכו').</p>
+
+    <div class="invoice-preview">
+      <div class="inv-header">
+        <div class="inv-header-logo">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="inv-r" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#ff2a3c"/><stop offset="1" stop-color="#8b0000"/></linearGradient></defs><g transform="translate(50,50)"><path d="M0 -42 L8 -16 L42 0 L8 16 L0 42 L-8 16 L-42 0 L-8 -16 Z" fill="url(#inv-r)" stroke="#ffd166" stroke-width="1.5"/><circle cx="0" cy="0" r="6" fill="#0a0a0a"/></g></svg>
+          <div>
+            <b>NINJA</b>
+            <i>Digital Marketing</i>
+          </div>
+        </div>
+        <div class="inv-header-meta">
+          <div>חשבונית מס</div>
+          <strong>#2026-001</strong>
+        </div>
+      </div>
+
+      <div class="inv-body">
+        <div class="inv-section">
+          <h5>לכבוד:</h5>
+          <p><b style="color:#1a1a1a">חברת לקוח בע״מ</b><br>ח.פ. 515123456<br>רחוב הרצל 1, תל אביב</p>
+        </div>
+
+        <table class="inv-table">
+          <thead>
+            <tr><th>תיאור</th><th>כמות</th><th>מחיר</th><th>סה״כ</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>ניהול קמפיינים גוגל אדס · ינואר 2026</td><td>1</td><td>₪5,500</td><td>₪5,500</td></tr>
+            <tr><td>בניית אתר עם התממשקויות</td><td>1</td><td>₪18,000</td><td>₪18,000</td></tr>
+            <tr><td>הקמת מועדון לקוחות בפלאשי</td><td>1</td><td>₪3,200</td><td>₪3,200</td></tr>
+          </tbody>
+          <tfoot>
+            <tr><td colspan="3">סה״כ ביניים</td><td>₪26,700</td></tr>
+            <tr><td colspan="3">מע״מ 17%</td><td>₪4,539</td></tr>
+            <tr><td colspan="3">סה״כ לתשלום</td><td>₪31,239</td></tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="inv-footer">
+        <span>NINJA Digital · samp.ninja · sharon@samp.ninja · 054-582-2451</span>
+        <span>תודה על האמון!</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4 style="font-family:'Rubik';font-weight:800;margin-bottom:14px;color:var(--gold)">🎨 הגדרות לעדכן במערכת חשבוניות:</h4>
+      <table style="width:100%;border-collapse:collapse">
+        <tr style="border-bottom:1px solid var(--line)"><td style="padding:12px 0;color:var(--ink-dim);width:35%">לוגו:</td><td style="padding:12px 0"><b>הורד למעלה (PNG · רקע שקוף)</b></td></tr>
+        <tr style="border-bottom:1px solid var(--line)"><td style="padding:12px 0;color:var(--ink-dim)">צבע ראשי:</td><td style="padding:12px 0"><code style="background:#ff2a3c;color:#fff;padding:4px 10px;border-radius:4px;font-family:monospace">#ff2a3c</code></td></tr>
+        <tr style="border-bottom:1px solid var(--line)"><td style="padding:12px 0;color:var(--ink-dim)">צבע משני:</td><td style="padding:12px 0"><code style="background:#08090c;color:#fff;padding:4px 10px;border-radius:4px;font-family:monospace">#08090c</code></td></tr>
+        <tr style="border-bottom:1px solid var(--line)"><td style="padding:12px 0;color:var(--ink-dim)">פונט:</td><td style="padding:12px 0"><b>Heebo / Rubik</b> (אם זמין) או <b>Tahoma / Arial</b></td></tr>
+        <tr style="border-bottom:1px solid var(--line)"><td style="padding:12px 0;color:var(--ink-dim)">סלוגן בתחתית:</td><td style="padding:12px 0"><b>"שקטים בעבודה. קולניים בתוצאות."</b></td></tr>
+        <tr><td style="padding:12px 0;color:var(--ink-dim)">פרטי קשר:</td><td style="padding:12px 0">samp.ninja · sharon@samp.ninja · 054-582-2451</td></tr>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast">✓ הועתק ללוח</div>
+
+<script>
+// ===== Toast =====
+const toast = document.getElementById('toast');
+let toastTimer;
+function showToast(msg = '✓ הועתק ללוח') {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// ===== Copy color =====
+document.querySelectorAll('.color-card').forEach(card => {
+  card.addEventListener('click', () => {
+    const color = card.dataset.color;
+    navigator.clipboard.writeText(color).then(() => {
+      card.classList.add('copied');
+      showToast(`✓ ${color} הועתק`);
+      setTimeout(() => card.classList.remove('copied'), 1500);
+    });
+  });
+});
+
+// ===== Download SVG =====
+document.querySelectorAll('[data-dl-svg]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.dataset.dlSvg;
+    const fname = btn.dataset.fname;
+    const svg = document.getElementById(id);
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const blob = new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n' + svgData], { type: 'image/svg+xml' });
+    triggerDownload(blob, fname);
+    showToast('✓ SVG הורד');
+  });
+});
+
+// ===== Download PNG (via canvas) =====
+document.querySelectorAll('[data-dl-png]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.dataset.dlPng;
+    const fname = btn.dataset.fname;
+    const svg = document.getElementById(id);
+    svgToPng(svg, fname, 1024);
+  });
+});
+
+function svgToPng(svgEl, fname, width = 1024) {
+  const svgData = new XMLSerializer().serializeToString(svgEl);
+  const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(svgBlob);
+  const img = new Image();
+  img.onload = () => {
+    const vbox = svgEl.viewBox.baseVal;
+    const ratio = vbox.height / vbox.width;
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = Math.round(width * ratio);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      triggerDownload(blob, fname);
+      showToast('✓ PNG הורד · 1024px');
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  };
+  img.src = url;
+}
+
+function triggerDownload(blob, fname) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fname;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 200);
+}
+
+// ===== Email Signature Copy =====
+const sigPreview = document.getElementById('sigPreview');
+const sigTable = sigPreview.querySelector('table');
+
+// Display HTML in code block
+const sigCode = document.getElementById('sigCode');
+sigCode.textContent = formatHTML(sigTable.outerHTML);
+
+function formatHTML(html) {
+  // Simple indenting
+  return html.replace(/></g, '>\n<').replace(/(<\/?(table|tr|td)[^>]*>)/g, '\n$1');
+}
+
+function copySignature() {
+  navigator.clipboard.writeText(sigTable.outerHTML).then(() => {
+    showToast('✓ קוד HTML הועתק');
+  });
+}
+
+function copySignatureRich() {
+  // Copy as rich HTML so Gmail interprets it as styled
+  const range = document.createRange();
+  range.selectNode(sigTable);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  try {
+    document.execCommand('copy');
+    showToast('✓ עיצוב הועתק · הדבק ב-Gmail');
+  } catch (e) {
+    showToast('שגיאה בהעתקה');
+  }
+  sel.removeAllRanges();
+}
+window.copySignature = copySignature;
+window.copySignatureRich = copySignatureRich;
+</script>
+
+</body>
+</html>
