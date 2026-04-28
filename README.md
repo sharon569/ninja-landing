@@ -20,4 +20,3 @@ python -m http.server 8088
 
 ## TODO
 - חיבור הטופס ל-webhook אמיתי (`script.js`, חיפוש `הדמיית שליחה`)
-- עדכון מספר טלפון/WhatsApp (חיפוש `972500000000` ב-`index.html`)
