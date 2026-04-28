@@ -28,7 +28,10 @@ const serviceList = Object.values(services);
     <nav class="nav-links" id="navLinks">
       <!-- Services with hover dropdown (click also navigates to /services) -->
       <div class="nav-dd">
-        <a href="/services" class={isActive('/services')} data-cursor="link">שירותים</a>
+        <a href="/services" class={`nav-trigger ${isActive('/services')}`} data-cursor="link">
+          שירותים
+          <svg class="nav-caret" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+        </a>
         <div class="dd-panel">
           {serviceList.map((svc) => (
             <a href={`/services/${svc.slug}`} class="dd-item" data-cursor="link">{svc.title}</a>
@@ -120,22 +123,15 @@ const serviceList = Object.values(services);
   }
   .dd-item::after { display: none !important; }
 
-  /* Mobile — collapse to inline list */
-  @media (max-width: 1024px) {
-    .dd-panel {
-      display: none;
-      position: static;
-      transform: none;
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-      min-width: 0;
-      width: 100%;
-      margin-top: 10px;
-      box-shadow: none;
-      background: rgba(255,255,255,0.03);
-    }
-    .dd-panel::before { display: none; }
-    .nav-links.open .nav-dd .dd-panel { display: flex; }
+  /* Caret icon (next to "שירותים" trigger) */
+  .nav-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
   }
+  .nav-caret {
+    transition: transform 220ms ease;
+    opacity: 0.6;
+  }
+  .nav-dd:hover .nav-caret { transform: rotate(180deg); opacity: 1; color: var(--red); }
 </style>

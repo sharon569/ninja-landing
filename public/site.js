@@ -86,11 +86,53 @@ const onScroll = () => {
 window.addEventListener('scroll', onScroll, { passive: true });
 onScroll();
 
-// ---------- BURGER MENU ----------
+// ---------- BURGER MENU + MOBILE DROPDOWN ----------
 const burger = document.getElementById('burger');
 const navLinks = document.getElementById('navLinks');
-burger.addEventListener('click', () => navLinks.classList.toggle('open'));
-navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => navLinks.classList.remove('open')));
+const MOBILE_BREAKPOINT = 900;
+
+const closeMobileMenu = () => {
+  navLinks.classList.remove('open');
+  burger.classList.remove('open');
+  document.body.style.overflow = '';
+  document.querySelectorAll('.nav-dd').forEach(dd => dd.classList.remove('dd-open'));
+};
+
+burger.addEventListener('click', () => {
+  const opening = !navLinks.classList.contains('open');
+  navLinks.classList.toggle('open');
+  burger.classList.toggle('open');
+  document.body.style.overflow = opening ? 'hidden' : '';
+});
+
+// On mobile, tapping the dropdown trigger toggles accordion
+document.querySelectorAll('.nav-dd .nav-trigger').forEach(trigger => {
+  trigger.addEventListener('click', (e) => {
+    if (window.innerWidth <= MOBILE_BREAKPOINT) {
+      const dd = trigger.closest('.nav-dd');
+      if (!dd.classList.contains('dd-open')) {
+        e.preventDefault();
+        document.querySelectorAll('.nav-dd.dd-open').forEach(other => {
+          if (other !== dd) other.classList.remove('dd-open');
+        });
+        dd.classList.add('dd-open');
+      }
+      // If already open: let the link navigate (menu closes via link handler below)
+    }
+  });
+});
+
+// Close mobile menu when clicking any actual destination link (NOT the dropdown trigger itself)
+navLinks.querySelectorAll('a:not(.nav-trigger)').forEach(a => {
+  a.addEventListener('click', () => {
+    if (window.innerWidth <= MOBILE_BREAKPOINT) closeMobileMenu();
+  });
+});
+
+// Reset state when resizing back to desktop
+window.addEventListener('resize', () => {
+  if (window.innerWidth > MOBILE_BREAKPOINT) closeMobileMenu();
+});
 
 // ---------- REVEAL ON SCROLL ----------
 const revealEls = document.querySelectorAll('[data-reveal]');
