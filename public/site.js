@@ -638,3 +638,214 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     setTimeout(() => s.remove(), dur + 100);
   }
 })();
+
+// ============================================================
+// SHURIKEN TARGET GAME
+// ============================================================
+(function shurikenGame() {
+  const arena = document.getElementById('gameArena');
+  if (!arena) return;
+
+  const hudHits = document.getElementById('hudHits');
+  const hudAcc = document.getElementById('hudAcc');
+  const hudBest = document.getElementById('hudBest');
+  const hint = document.getElementById('gameHint');
+  const reset = document.getElementById('hudReset');
+  const targets = [...arena.querySelectorAll('.target')];
+
+  const SHURIKEN_HTML = `<svg viewBox="0 0 64 64" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="gtsh" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#ff2a3c"/><stop offset="1" stop-color="#8b0000"/>
+    </linearGradient></defs>
+    <path d="M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z" fill="url(#gtsh)" stroke="#ffd166" stroke-width="2.5"/>
+    <circle cx="32" cy="32" r="5" fill="#0a0a0a" stroke="#ffd166" stroke-width="1.5"/>
+    <circle cx="32" cy="32" r="2" fill="#ffd166"/>
+  </svg>`;
+
+  let hits = 0, misses = 0, best = 0, gameOver = false;
+  try { best = parseInt(localStorage.getItem('ninjaGameBest') || '0', 10) || 0; } catch {}
+  hudBest.textContent = best;
+
+  const TARGET_SIZE = () => parseFloat(getComputedStyle(targets[0]).width) || 96;
+
+  function placeTarget(t, all) {
+    const r = arena.getBoundingClientRect();
+    const sz = TARGET_SIZE();
+    const padTop = 70, padBottom = 60, padSides = 24;
+    const maxX = Math.max(40, r.width - sz - padSides * 2);
+    const maxY = Math.max(40, r.height - sz - padTop - padBottom);
+    let x, y, ok = false, attempts = 0;
+    while (!ok && attempts++ < 40) {
+      x = padSides + Math.random() * maxX;
+      y = padTop + Math.random() * maxY;
+      ok = true;
+      for (const o of all) {
+        if (o === t) continue;
+        const ox = parseFloat(o.style.left) || 0;
+        const oy = parseFloat(o.style.top) || 0;
+        if (Math.abs(ox - x) < sz * 1.15 && Math.abs(oy - y) < sz * 1.15) { ok = false; break; }
+      }
+    }
+    t.style.left = x + 'px';
+    t.style.top = y + 'px';
+  }
+
+  function placeAll() { targets.forEach(t => placeTarget(t, targets)); }
+
+  // Stagger float timing per target so motion looks organic
+  targets.forEach(t => {
+    t.style.animationDuration = (5.5 + Math.random() * 3.5).toFixed(2) + 's';
+    t.style.animationDelay = (-Math.random() * 5).toFixed(2) + 's';
+  });
+
+  // Lazy place — wait until arena has size
+  function tryPlace() {
+    if (arena.getBoundingClientRect().width < 100) {
+      requestAnimationFrame(tryPlace);
+    } else {
+      placeAll();
+    }
+  }
+  tryPlace();
+
+  let resizeTO;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTO);
+    resizeTO = setTimeout(placeAll, 180);
+  });
+
+  function updateHUD() {
+    hudHits.textContent = hits;
+    const total = hits + misses;
+    hudAcc.textContent = total ? Math.round(hits / total * 100) + '%' : '—';
+    if (hits > best) {
+      best = hits;
+      hudBest.textContent = best;
+      try { localStorage.setItem('ninjaGameBest', best); } catch {}
+    }
+  }
+
+  function spawnShuriken(x, y) {
+    const sh = document.createElement('div');
+    sh.className = 'thrown-shuriken';
+    sh.innerHTML = SHURIKEN_HTML;
+    sh.style.left = x + 'px';
+    sh.style.top = y + 'px';
+    arena.appendChild(sh);
+    setTimeout(() => sh.remove(), 520);
+  }
+
+  function spawnSparks(x, y) {
+    const N = 14;
+    for (let i = 0; i < N; i++) {
+      const s = document.createElement('div');
+      s.className = 'spark';
+      s.style.left = x + 'px';
+      s.style.top = y + 'px';
+      arena.appendChild(s);
+      const a = (i / N) * Math.PI * 2 + Math.random() * 0.5;
+      const d = 55 + Math.random() * 55;
+      const dx = Math.cos(a) * d;
+      const dy = Math.sin(a) * d;
+      s.animate(
+        [
+          { transform: 'translate(0,0) scale(1)', opacity: 1 },
+          { transform: `translate(${dx}px, ${dy}px) scale(0.2)`, opacity: 0 }
+        ],
+        { duration: 600 + Math.random() * 250, easing: 'cubic-bezier(.4,.4,.7,1)', fill: 'forwards' }
+      );
+      setTimeout(() => s.remove(), 900);
+    }
+  }
+
+  function spawnKpiFly(x, y, text) {
+    const k = document.createElement('div');
+    k.className = 'kpi-fly';
+    k.textContent = text;
+    k.style.left = x + 'px';
+    k.style.top = y + 'px';
+    arena.appendChild(k);
+    setTimeout(() => k.remove(), 1200);
+  }
+
+  function showVictory() {
+    if (arena.querySelector('.victory-banner')) return;
+    const banner = document.createElement('div');
+    banner.className = 'victory-banner';
+    banner.innerHTML = `
+      <h3>🥷 חמש פגיעות. קטלני.</h3>
+      <p>זה בדיוק ההבדל בינינו לסוכנויות אחרות. אנחנו לא יורים סתם — אנחנו מכוונים.<br>בא לראות איך זה נראה על תקציב אמיתי?</p>
+      <a href="/contact" class="btn btn-primary" data-cursor="link">תיאום פגישה — נכוון לך מטרות אמיתיות</a>
+    `;
+    arena.appendChild(banner);
+  }
+
+  function rearm(t) {
+    setTimeout(() => {
+      t.classList.remove('hit');
+      t.style.opacity = '';
+      t.style.filter = '';
+      placeTarget(t, targets);
+    }, 750);
+  }
+
+  arena.addEventListener('click', (e) => {
+    if (gameOver) return;
+    if (e.target.closest('.game-hud')) return;
+    if (e.target.closest('.victory-banner')) return;
+
+    const r = arena.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const y = e.clientY - r.top;
+
+    spawnShuriken(x, y);
+    if (hint) hint.classList.add('hidden');
+
+    const t = e.target.closest('.target');
+    if (t && !t.classList.contains('hit')) {
+      hits++;
+      t.classList.add('hit');
+      const tr = t.getBoundingClientRect();
+      const cx = (tr.left + tr.width / 2) - r.left;
+      const cy = (tr.top + tr.height / 2) - r.top;
+      setTimeout(() => spawnSparks(cx, cy), 220);
+      spawnKpiFly(cx, cy, '+' + (t.dataset.value || ''));
+      updateHUD();
+      if (hits >= 5) {
+        gameOver = true;
+        setTimeout(showVictory, 600);
+      } else {
+        rearm(t);
+      }
+    } else if (!t) {
+      misses++;
+      updateHUD();
+    }
+  });
+
+  reset.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hits = 0;
+    misses = 0;
+    gameOver = false;
+    arena.querySelector('.victory-banner')?.remove();
+    targets.forEach(t => {
+      t.classList.remove('hit');
+      t.style.opacity = '';
+      t.style.filter = '';
+    });
+    placeAll();
+    if (hint) hint.classList.remove('hidden');
+    updateHUD();
+  });
+
+  // Keyboard a11y — Enter/Space on focused target counts as a hit
+  targets.forEach(t => {
+    t.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        t.click();
+      }
+    });
+  });
+})();
