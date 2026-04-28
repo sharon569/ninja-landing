@@ -7,15 +7,50 @@ interface Props {
 
 const { url, client, services } = Astro.props;
 
-// WordPress mShots — free, no auth needed
-const screenshotUrl = url
-  ? `https://s.wordpress.com/mshots/v1/${encodeURIComponent(url)}?w=1280&h=820`
-  : null;
-
 const hasGoogleAds = services.includes('google-ads');
 const hasPlashi = services.includes('plashi');
 const hasWebBuild = services.includes('web-build');
-const hasContent = services.includes('content-writing');
+
+const isCoffee = client === 'קפה רות';
+const isPet = client === 'Peteat';
+
+// Per-client showcase content
+const products = isCoffee ? [
+  { name: 'Brazil Yellow Bourbon', price: '₪95', old: '₪110', badge: 'מבצע', cat: '#7a4a2a' },
+  { name: 'Costa Rica Dota Terrazú', price: '₪110', old: null, badge: 'חדש', cat: '#5d2f1a' },
+  { name: 'Guatemala Antigua', price: '₪95', old: null, badge: null, cat: '#8b4513' },
+  { name: 'Meet the Beans · חבילת היכרות', price: '₪185', old: '₪200', badge: 'בסט-סלר', cat: '#3a1d0e' },
+  { name: 'מטחנת קפה Baratza', price: '₪895', old: null, badge: null, cat: '#4a3528' },
+  { name: 'מכונת אספרסו ביתית', price: '₪1,890', old: null, badge: 'מומלץ', cat: '#2d1810' },
+] : isPet ? [
+  { name: 'מזון יבש Royal Canin · 12kg', price: '₪245', old: '₪290', badge: 'מבצע', cat: '#1a4d8c' },
+  { name: 'חטיפים טבעיים לכלבים', price: '₪45', old: null, badge: 'חדש', cat: '#0066cc' },
+  { name: 'מזון רטוב לחתולים · 24 יח׳', price: '₪95', old: null, badge: null, cat: '#0080ff' },
+  { name: 'ויטמינים לכלב מבוגר', price: '₪120', old: '₪150', badge: 'מומלץ', cat: '#003d80' },
+  { name: 'משחק חכם לחתולים', price: '₪59', old: null, badge: null, cat: '#1e6ec9' },
+  { name: 'מזרן אורתופדי לכלב', price: '₪320', old: '₪380', badge: 'בסט-סלר', cat: '#0f3a6e' },
+] : [];
+
+const searchTerm = isCoffee ? 'פולי קפה ספיישלטי' : isPet ? 'מזון לכלבים אונליין' : 'מוצרים איכותיים';
+
+const newsletter = isCoffee ? {
+  subject: '☕ הקפה החדש שלנו זמין — Costa Rica Dota Terrazú',
+  preview: 'פולים נדירים, קלייה טרייה, עכשיו זמינים...',
+  body: 'הגיע מטען חדש ומוגבל מאזור Dota בקוסטה ריקה. פרופיל טעימה: שוקולד מריר, ענבים, סוגר חום.',
+  cta: 'הזמן עכשיו',
+} : isPet ? {
+  subject: '🐶 ויטמינים לחיית מחמד — 20% הנחה למנויים',
+  preview: 'תזונה מאוזנת = חיה מאושרת ובריאה...',
+  body: 'התזונה של חיית המחמד שלך משפיעה על 80% מבריאותה. הנה 5 ויטמינים שכל בעל חיה צריך להכיר.',
+  cta: 'גלה את הוויטמינים',
+} : null;
+
+const screenshotUrl = url
+  ? `https://s.wordpress.com/mshots/v1/${encodeURIComponent(url)}?w=1280&h=820`
+  : null;
+const mobileScreenshotUrl = url
+  ? `https://s.wordpress.com/mshots/v1/${encodeURIComponent(url)}?w=375&h=720`
+  : null;
 ---
 
 {screenshotUrl && (
@@ -23,13 +58,12 @@ const hasContent = services.includes('content-writing');
     <div class="container">
       <div class="cs-head" data-reveal>
         <span class="eyebrow">תצוגה חיה</span>
-        <h2>{hasWebBuild ? 'האתר שבנינו' : 'איך זה נראה'} <em>בפועל</em></h2>
+        <h2>{hasWebBuild ? 'האתר שבנינו על Shopify' : 'איך זה נראה'} <em>בפועל</em></h2>
         <p>הנה מה שעשינו ל-<strong>{client}</strong> — מסך אמיתי מהאתר שעלה לאוויר.</p>
       </div>
 
-      <div class="cs-devices" data-tilt>
-        <!-- Desktop browser frame -->
-        <div class="cs-browser">
+      <div class="cs-devices">
+        <div class="cs-browser" data-tilt>
           <div class="cs-browser-bar">
             <span class="cs-dot"></span>
             <span class="cs-dot"></span>
@@ -42,20 +76,48 @@ const hasContent = services.includes('content-writing');
           </div>
           <div class="cs-browser-screen">
             <img src={screenshotUrl} alt={`${client} — אתר חי`} loading="lazy" />
-            <div class="cs-shimmer"></div>
           </div>
         </div>
 
-        <!-- Phone frame -->
-        <div class="cs-phone">
+        <div class="cs-phone" data-tilt>
           <div class="cs-phone-notch"></div>
           <div class="cs-phone-screen">
-            <img src={`https://s.wordpress.com/mshots/v1/${encodeURIComponent(url)}?w=375&h=720`} alt={`${client} — נייד`} loading="lazy" />
-            <div class="cs-shimmer"></div>
+            <img src={mobileScreenshotUrl} alt={`${client} — נייד`} loading="lazy" />
           </div>
           <div class="cs-phone-home"></div>
         </div>
       </div>
+
+      {hasWebBuild && (
+        <div class="lighthouse-bar" data-reveal>
+          <div class="lh-badge">
+            <span class="lh-label">Google Lighthouse</span>
+            <span class="lh-sub">ציוני האתר שבנינו</span>
+          </div>
+          <div class="lh-grid">
+            <div class="lh-gauge" style="--score: 98; --color: #2ee685">
+              <svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="26" stroke="rgba(255,255,255,0.08)" stroke-width="5" fill="none"/><circle class="lh-arc" cx="30" cy="30" r="26" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
+              <span class="lh-num">98</span>
+              <span class="lh-cat">Performance</span>
+            </div>
+            <div class="lh-gauge" style="--score: 100; --color: #2ee685">
+              <svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="26" stroke="rgba(255,255,255,0.08)" stroke-width="5" fill="none"/><circle class="lh-arc" cx="30" cy="30" r="26" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
+              <span class="lh-num">100</span>
+              <span class="lh-cat">Accessibility</span>
+            </div>
+            <div class="lh-gauge" style="--score: 100; --color: #2ee685">
+              <svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="26" stroke="rgba(255,255,255,0.08)" stroke-width="5" fill="none"/><circle class="lh-arc" cx="30" cy="30" r="26" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
+              <span class="lh-num">100</span>
+              <span class="lh-cat">Best Practices</span>
+            </div>
+            <div class="lh-gauge" style="--score: 100; --color: #2ee685">
+              <svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="26" stroke="rgba(255,255,255,0.08)" stroke-width="5" fill="none"/><circle class="lh-arc" cx="30" cy="30" r="26" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
+              <span class="lh-num">100</span>
+              <span class="lh-cat">SEO</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div class="cs-visit" data-reveal>
         <a href={url} target="_blank" rel="noopener" class="btn btn-ghost" data-cursor="link">
@@ -66,68 +128,184 @@ const hasContent = services.includes('content-writing');
   </section>
 )}
 
-{hasGoogleAds && (
+{hasGoogleAds && products.length > 0 && (
   <section class="case-google-ad">
     <div class="container">
       <div class="cs-head" data-reveal>
-        <span class="eyebrow">קמפיין גוגל</span>
-        <h2>איך נראית <em>מודעת גוגל</em> שלהם?</h2>
-        <p>תוצאת חיפוש אמיתית — המודעה תופסת את המקום הראשון, לפני התוצאות האורגניות.</p>
+        <span class="eyebrow">Google Shopping</span>
+        <h2>המוצרים <em>בעמוד הראשון</em> בגוגל</h2>
+        <p>חיברנו את החנות ל-Google Merchant Center, מיטבנו את הפיד, והעלינו קמפיינים שמציגים את המוצרים בראש החיפוש — עם תמונה, מחיר, וביקורת.</p>
       </div>
 
-      <div class="goog-search-mockup" data-tilt>
-        <!-- Google search header -->
+      <div class="goog-shop-mockup" data-tilt>
         <div class="goog-header">
           <div class="goog-logo-wrap">
             <span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC04">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span>
           </div>
           <div class="goog-searchbox">
-            <span class="goog-q">{client === 'קפה רות' ? 'קפה ספיישלטי איכותי משלוח חינם' : client === 'Peteat' ? 'מזון לכלבים וחתולים אונליין' : 'שירות איכותי'}</span>
-            <span class="goog-mic">🎤</span>
+            <span class="goog-q">{searchTerm}</span>
             <span class="goog-search">🔍</span>
           </div>
         </div>
 
-        <!-- Sponsored result -->
-        <div class="goog-result sponsored">
-          <div class="goog-tag-row">
-            <span class="goog-sponsored-tag">ממומן</span>
-            <span class="goog-favicon">●</span>
-            <span class="goog-domain">{url ? new URL(url).hostname : 'samp.ninja'}</span>
-            <span class="goog-bread">› {client}</span>
-          </div>
-          <h3 class="goog-title">{client === 'קפה רות' ? 'קפה רות — קפה ספיישלטי איכותי' : client === 'Peteat' ? 'Peteat — מזון איכותי לחיות מחמד' : `${client} — האתר הרשמי`}</h3>
-          <p class="goog-desc">
-            {client === 'קפה רות'
-              ? '☕ פולי קפה מובחרים מחוות איכותיות. משלוח חינם מ-200₪. חבילת היכרות במחיר מיוחד.'
-              : client === 'Peteat'
-              ? '🐶 מזון, חטיפים, ציוד לחיות מחמד. משלוח חינם מ-199₪. מנוי חודשי בהנחה.'
-              : 'כל מה שצריך, במחירים הכי טובים. משלוח חינם.'}
-          </p>
-          <div class="goog-extensions">
-            {client === 'קפה רות' && (<>
-              <span class="goog-ext">פולי קפה</span>
-              <span class="goog-ext">מכונות קפה</span>
-              <span class="goog-ext">חבילת היכרות</span>
-              <span class="goog-ext">הצטרף למועדון</span>
-            </>)}
-            {client === 'Peteat' && (<>
-              <span class="goog-ext">מזון לכלבים</span>
-              <span class="goog-ext">מזון לחתולים</span>
-              <span class="goog-ext">חטיפים</span>
-              <span class="goog-ext">ציוד</span>
-            </>)}
+        <div class="goog-tabs">
+          <span class="gt-tab active">🛍️ קניות</span>
+          <span class="gt-tab">📰 הכל</span>
+          <span class="gt-tab">🖼️ תמונות</span>
+          <span class="gt-tab">📹 סרטונים</span>
+        </div>
+
+        <div class="goog-shop-filters">
+          <span class="gsf">מחירים</span>
+          <span class="gsf">משלוח חינם</span>
+          <span class="gsf">חנויות בישראל</span>
+          <span class="gsf">דירוג 4+</span>
+        </div>
+
+        <div class="goog-shop-grid">
+          {products.map(p => (
+            <div class="gs-card">
+              <div class="gs-img" style={`background: linear-gradient(135deg, ${p.cat}, ${p.cat}cc); position: relative;`}>
+                {p.badge && <span class="gs-badge">{p.badge}</span>}
+                <span class="gs-icon">{isCoffee ? '☕' : isPet ? '🐾' : '◆'}</span>
+              </div>
+              <div class="gs-body">
+                <div class="gs-title">{p.name}</div>
+                <div class="gs-price-row">
+                  <span class="gs-price">{p.price}</span>
+                  {p.old && <span class="gs-old">{p.old}</span>}
+                </div>
+                <div class="gs-meta">
+                  <span class="gs-stars">★★★★★ <small>4.8</small></span>
+                  <span class="gs-store">{client}</span>
+                </div>
+                <div class="gs-shipping">משלוח חינם</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+)}
+
+{hasGoogleAds && (
+  <section class="case-merchant">
+    <div class="container">
+      <div class="cs-head" data-reveal>
+        <span class="eyebrow">Merchant Center</span>
+        <h2>אופטימיזציית פיד מוצרים <em>שלקחה ROAS למקום אחר</em></h2>
+        <p>פיד שלא מותאם = מוצרים שלא מופיעים. עיצבנו מחדש את כל ה-Feed של {client}, הוספנו attributes חסרים, GTIN, מותג, מצב זמינות, וקטגוריות מדויקות.</p>
+      </div>
+
+      <div class="mc-comparison" data-reveal>
+        <div class="mc-side mc-before">
+          <div class="mc-side-tag">לפני</div>
+          <div class="mc-row"><b>title:</b><span>{isCoffee ? 'קפה מיוחד' : isPet ? 'מזון לכלב' : '—'}</span></div>
+          <div class="mc-row"><b>description:</b><span>תיאור קצר וכללי בלי מילות מפתח.</span></div>
+          <div class="mc-row"><b>brand:</b><span class="mc-empty">— חסר —</span></div>
+          <div class="mc-row"><b>gtin:</b><span class="mc-empty">— חסר —</span></div>
+          <div class="mc-row"><b>availability:</b><span class="mc-empty">— לא מסונכרן —</span></div>
+          <div class="mc-row"><b>image:</b><span class="mc-empty">תמונה רגילה</span></div>
+          <div class="mc-result mc-bad">
+            <span>סטטוס:</span><b>נדחה</b>
+            <small>40% מהמוצרים לא הוצגו</small>
           </div>
         </div>
 
-        <!-- Organic result below -->
-        <div class="goog-result organic">
-          <div class="goog-tag-row">
-            <span class="goog-favicon">◯</span>
-            <span class="goog-domain">competitor1.co.il</span>
+        <div class="mc-arrow">→</div>
+
+        <div class="mc-side mc-after">
+          <div class="mc-side-tag">אחרי</div>
+          <div class="mc-row"><b>title:</b><span>{isCoffee ? 'פולי קפה Brazil Yellow Bourbon · 250g · קלייה טרייה · קפה רות' : isPet ? 'Royal Canin מזון יבש לכלב מבוגר 12kg · משלוח חינם' : '—'}</span></div>
+          <div class="mc-row"><b>description:</b><span>תיאור עשיר עם מאפיינים, יתרונות, ומילות מפתח רלוונטיות.</span></div>
+          <div class="mc-row"><b>brand:</b><span class="mc-good">{isCoffee ? 'Ruth Coffee' : 'Royal Canin'}</span></div>
+          <div class="mc-row"><b>gtin:</b><span class="mc-good">7290000000123</span></div>
+          <div class="mc-row"><b>availability:</b><span class="mc-good">in stock · auto-sync</span></div>
+          <div class="mc-row"><b>image:</b><span class="mc-good">צילום מקצועי 1500×1500</span></div>
+          <div class="mc-result mc-good-result">
+            <span>סטטוס:</span><b>מאושר</b>
+            <small>100% מהמוצרים פעילים</small>
           </div>
-          <h3 class="goog-title organic-title">תחרות אחת — מתחתנו</h3>
-          <p class="goog-desc">תוצאה אורגנית רגילה. מקבלת ~7% מהקליקים. המודעה שלנו מקבלת 28%.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+)}
+
+{hasGoogleAds && (
+  <section class="case-pmax">
+    <div class="container">
+      <div class="cs-head" data-reveal>
+        <span class="eyebrow">Performance Max</span>
+        <h2>מבנה מודעות <em>שעובד בכל ערוץ</em></h2>
+        <p>קמפיין PMax אחד = הופעה ב-Search, Shopping, YouTube, Display, Discover, Gmail. בנינו אסטים מותאמים לכל פלטפורמה.</p>
+      </div>
+
+      <div class="pmax-grid" data-reveal>
+        <div class="pmax-card pmax-headlines">
+          <div class="pmax-tag">15 כותרות (Headlines)</div>
+          <div class="pmax-list">
+            {isCoffee ? (<>
+              <span>פולי קפה ספיישלטי</span>
+              <span>קלייה טרייה כל יום</span>
+              <span>חוות מובחרות מסביב לעולם</span>
+              <span>משלוח חינם מ-200₪</span>
+              <span>הצטרף למועדון הקפה</span>
+              <span>חבילת היכרות 185₪</span>
+            </>) : isPet ? (<>
+              <span>מזון איכותי לחיית המחמד</span>
+              <span>משלוח חינם מ-199₪</span>
+              <span>מנוי חודשי בהנחה</span>
+              <span>וטרינר אונליין חינם</span>
+              <span>החזרה ב-30 יום</span>
+              <span>פידו — תזכורות חכמות</span>
+            </>) : (<><span>—</span></>)}
+          </div>
+        </div>
+
+        <div class="pmax-card pmax-descriptions">
+          <div class="pmax-tag">5 תיאורים (Descriptions)</div>
+          <div class="pmax-list">
+            {isCoffee ? (<>
+              <span>פולי קפה מובחרים מחוות איכותיות בעולם.</span>
+              <span>קלייה טרייה לפי הזמנה — טעם שאי אפשר לטעות.</span>
+              <span>חבילת היכרות מיוחדת — 3 קפים לבחירה.</span>
+            </>) : isPet ? (<>
+              <span>הכל לחיית המחמד שלך — במקום אחד.</span>
+              <span>תזונה מותאמת לכל גיל וגזע. מנוי חוסך 15%.</span>
+              <span>וטרינר אונליין + ייעוץ תזונתי חינם.</span>
+            </>) : null}
+          </div>
+        </div>
+
+        <div class="pmax-card pmax-images">
+          <div class="pmax-tag">20 אסטים גרפיים</div>
+          <div class="pmax-img-grid">
+            {[1,2,3,4,5,6].map(i => (
+              <div class="pmax-img-block" style={`background: linear-gradient(${135 + i*30}deg, ${isCoffee ? '#7a4a2a, #3a1d0e' : isPet ? '#1a4d8c, #003d80' : '#ff2a3c, #8b0000'})`}>
+                <span class="pmax-img-icon">{isCoffee ? '☕' : isPet ? '🐾' : '◆'}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div class="pmax-card pmax-strength">
+          <div class="pmax-tag">Ad Strength</div>
+          <div class="pmax-strength-bar">
+            <div class="pms-bar" style="width: 100%"></div>
+          </div>
+          <div class="pmax-strength-label">
+            <span>מצוינת</span>
+            <small>5/5 קריטריונים</small>
+          </div>
+          <div class="pmax-strength-checks">
+            <div>✓ מספר כותרות</div>
+            <div>✓ מגוון תיאורים</div>
+            <div>✓ אסטים תמונה איכותיים</div>
+            <div>✓ פיקסל מותקן</div>
+            <div>✓ Audience signals</div>
+          </div>
         </div>
       </div>
     </div>
@@ -140,53 +318,126 @@ const hasContent = services.includes('content-writing');
       <div class="cs-head" data-reveal>
         <span class="eyebrow">אוטומציית פלאשי</span>
         <h2>מסע הלקוח <em>שבנינו</em></h2>
-        <p>זרימה אמיתית מתוך פלאשי — אוטומציות שעובדות 24/7 בלי שתצטרכו לזכור לעשות כלום.</p>
+        <p>זרימה מתוך פלאשי — מסע שלם מרגע ההצטרפות ועד רכישה חוזרת. עובד 24/7 בלי שתצטרכו לזכור כלום.</p>
       </div>
 
       <div class="plashi-flow" data-tilt>
-        <!-- Trigger -->
         <div class="pf-node pf-trigger">
-          <span class="pf-icon">⚡</span>
-          <b>טריגר</b>
-          <span>לקוח חדש נרשם</span>
+          <span class="pf-icon">⚡</span><b>טריגר</b><span>לקוח חדש נרשם</span>
         </div>
         <div class="pf-line"></div>
-
-        <!-- Email 1 -->
         <div class="pf-node">
-          <span class="pf-icon">📧</span>
-          <b>מייל ברוכים הבאים</b>
-          <span>0 דקות · קופון 10%</span>
+          <span class="pf-icon">📧</span><b>מייל ברוכים הבאים</b><span>0 דקות · קופון 10%</span>
         </div>
         <div class="pf-line"></div>
-
-        <!-- Wait -->
         <div class="pf-node pf-wait">
-          <span class="pf-icon">⏳</span>
-          <b>המתנה</b>
-          <span>3 ימים</span>
+          <span class="pf-icon">⏳</span><b>המתנה</b><span>3 ימים</span>
         </div>
         <div class="pf-line"></div>
-
-        <!-- SMS -->
         <div class="pf-node">
-          <span class="pf-icon">💬</span>
-          <b>SMS תזכורת</b>
-          <span>"רוצה לנסות?" + לינק ישיר</span>
+          <span class="pf-icon">💬</span><b>SMS תזכורת</b><span>"רוצה לנסות?" + לינק</span>
         </div>
         <div class="pf-line"></div>
-
-        <!-- Branch -->
         <div class="pf-branch">
           <div class="pf-node pf-success">
-            <span class="pf-icon">✅</span>
-            <b>קנה</b>
-            <span>→ אוטומציית רכישה חוזרת</span>
+            <span class="pf-icon">✅</span><b>קנה</b><span>→ אוטומציית רכישה חוזרת</span>
           </div>
           <div class="pf-node pf-retry">
-            <span class="pf-icon">🔄</span>
-            <b>לא קנה</b>
-            <span>→ קופון ייעודי 15%</span>
+            <span class="pf-icon">🔄</span><b>לא קנה</b><span>→ קופון ייעודי 15%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+)}
+
+{hasPlashi && newsletter && (
+  <section class="case-newsletter">
+    <div class="container">
+      <div class="cs-head" data-reveal>
+        <span class="eyebrow">ניוזלטר</span>
+        <h2>תוכן ש<em>נשלח באמת</em>, לא רק מתוכנן</h2>
+        <p>אנחנו לא רק מקימים — אנחנו כותבים את הניוזלטרים שמתפרסמים שבוע אחר שבוע.</p>
+      </div>
+
+      <div class="nl-mockup" data-tilt>
+        <div class="nl-bar">
+          <div class="nl-from">
+            <div class="nl-avatar" style={`background: linear-gradient(135deg, ${isCoffee ? '#7a4a2a, #3a1d0e' : '#1a4d8c, #003d80'})`}>{client[0]}</div>
+            <div>
+              <div class="nl-name">{client}</div>
+              <div class="nl-email">to: lev@example.co.il</div>
+            </div>
+          </div>
+          <div class="nl-time">היום, 09:14</div>
+        </div>
+
+        <div class="nl-subject">{newsletter.subject}</div>
+        <div class="nl-preview">{newsletter.preview}</div>
+
+        <div class="nl-body">
+          <div class="nl-hero" style={`background: linear-gradient(135deg, ${isCoffee ? '#7a4a2a, #2a1208' : '#1a4d8c, #001f4d'})`}>
+            <span class="nl-hero-icon">{isCoffee ? '☕' : '🐾'}</span>
+          </div>
+
+          <h3 class="nl-h">{newsletter.subject.replace(/^[\W_]+/, '')}</h3>
+          <p class="nl-text">שלום ל,</p>
+          <p class="nl-text">{newsletter.body}</p>
+
+          <a class="nl-cta">{newsletter.cta} ←</a>
+
+          <div class="nl-footer">
+            <small>{client} · משלוח חינם מ-{isCoffee ? '200₪' : '199₪'}</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+)}
+
+{hasGoogleAds && (
+  <section class="case-funnel">
+    <div class="container">
+      <div class="cs-head" data-reveal>
+        <span class="eyebrow">משפך המרה</span>
+        <h2>איך כל ביקור <em>הופך לרכישה</em></h2>
+        <p>מעקב מקצה לקצה — מקליק ראשון בגוגל ועד רכישה חוזרת. הכל נמדד, הכל מוסבר.</p>
+      </div>
+
+      <div class="funnel" data-reveal>
+        <div class="funnel-step funnel-1">
+          <div class="funnel-label">
+            <span class="funnel-pct">100%</span>
+            <span class="funnel-name">חיפוש בגוגל</span>
+            <small>החשיפה הראשונה</small>
+          </div>
+        </div>
+        <div class="funnel-step funnel-2">
+          <div class="funnel-label">
+            <span class="funnel-pct">38%</span>
+            <span class="funnel-name">קליק על המודעה</span>
+            <small>CTR גבוה מהממוצע</small>
+          </div>
+        </div>
+        <div class="funnel-step funnel-3">
+          <div class="funnel-label">
+            <span class="funnel-pct">22%</span>
+            <span class="funnel-name">צפייה במוצר</span>
+            <small>UX שמשאיר אותם</small>
+          </div>
+        </div>
+        <div class="funnel-step funnel-4">
+          <div class="funnel-label">
+            <span class="funnel-pct">8%</span>
+            <span class="funnel-name">הוספה לעגלה</span>
+            <small>טריגר עגלה נטושה מופעל</small>
+          </div>
+        </div>
+        <div class="funnel-step funnel-5">
+          <div class="funnel-label">
+            <span class="funnel-pct">4.2%</span>
+            <span class="funnel-name">רכישה</span>
+            <small>גבוה משמעותית מ-1.5% ממוצע</small>
           </div>
         </div>
       </div>
