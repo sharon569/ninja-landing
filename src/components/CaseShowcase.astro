@@ -1,0 +1,195 @@
+---
+interface Props {
+  url?: string;
+  client: string;
+  services: string[];
+}
+
+const { url, client, services } = Astro.props;
+
+// WordPress mShots — free, no auth needed
+const screenshotUrl = url
+  ? `https://s.wordpress.com/mshots/v1/${encodeURIComponent(url)}?w=1280&h=820`
+  : null;
+
+const hasGoogleAds = services.includes('google-ads');
+const hasPlashi = services.includes('plashi');
+const hasWebBuild = services.includes('web-build');
+const hasContent = services.includes('content-writing');
+---
+
+{screenshotUrl && (
+  <section class="case-showcase">
+    <div class="container">
+      <div class="cs-head" data-reveal>
+        <span class="eyebrow">תצוגה חיה</span>
+        <h2>{hasWebBuild ? 'האתר שבנינו' : 'איך זה נראה'} <em>בפועל</em></h2>
+        <p>הנה מה שעשינו ל-<strong>{client}</strong> — מסך אמיתי מהאתר שעלה לאוויר.</p>
+      </div>
+
+      <div class="cs-devices" data-tilt>
+        <!-- Desktop browser frame -->
+        <div class="cs-browser">
+          <div class="cs-browser-bar">
+            <span class="cs-dot"></span>
+            <span class="cs-dot"></span>
+            <span class="cs-dot"></span>
+            <div class="cs-url"><span class="cs-lock">🔒</span>{url}</div>
+            <div class="cs-actions">
+              <span class="cs-btn-mini">↻</span>
+              <span class="cs-btn-mini">⊕</span>
+            </div>
+          </div>
+          <div class="cs-browser-screen">
+            <img src={screenshotUrl} alt={`${client} — אתר חי`} loading="lazy" />
+            <div class="cs-shimmer"></div>
+          </div>
+        </div>
+
+        <!-- Phone frame -->
+        <div class="cs-phone">
+          <div class="cs-phone-notch"></div>
+          <div class="cs-phone-screen">
+            <img src={`https://s.wordpress.com/mshots/v1/${encodeURIComponent(url)}?w=375&h=720`} alt={`${client} — נייד`} loading="lazy" />
+            <div class="cs-shimmer"></div>
+          </div>
+          <div class="cs-phone-home"></div>
+        </div>
+      </div>
+
+      <div class="cs-visit" data-reveal>
+        <a href={url} target="_blank" rel="noopener" class="btn btn-ghost" data-cursor="link">
+          בקרו באתר החי ←
+        </a>
+      </div>
+    </div>
+  </section>
+)}
+
+{hasGoogleAds && (
+  <section class="case-google-ad">
+    <div class="container">
+      <div class="cs-head" data-reveal>
+        <span class="eyebrow">קמפיין גוגל</span>
+        <h2>איך נראית <em>מודעת גוגל</em> שלהם?</h2>
+        <p>תוצאת חיפוש אמיתית — המודעה תופסת את המקום הראשון, לפני התוצאות האורגניות.</p>
+      </div>
+
+      <div class="goog-search-mockup" data-tilt>
+        <!-- Google search header -->
+        <div class="goog-header">
+          <div class="goog-logo-wrap">
+            <span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC04">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span>
+          </div>
+          <div class="goog-searchbox">
+            <span class="goog-q">{client === 'קפה רות' ? 'קפה ספיישלטי איכותי משלוח חינם' : client === 'Peteat' ? 'מזון לכלבים וחתולים אונליין' : 'שירות איכותי'}</span>
+            <span class="goog-mic">🎤</span>
+            <span class="goog-search">🔍</span>
+          </div>
+        </div>
+
+        <!-- Sponsored result -->
+        <div class="goog-result sponsored">
+          <div class="goog-tag-row">
+            <span class="goog-sponsored-tag">ממומן</span>
+            <span class="goog-favicon">●</span>
+            <span class="goog-domain">{url ? new URL(url).hostname : 'samp.ninja'}</span>
+            <span class="goog-bread">› {client}</span>
+          </div>
+          <h3 class="goog-title">{client === 'קפה רות' ? 'קפה רות — קפה ספיישלטי איכותי' : client === 'Peteat' ? 'Peteat — מזון איכותי לחיות מחמד' : `${client} — האתר הרשמי`}</h3>
+          <p class="goog-desc">
+            {client === 'קפה רות'
+              ? '☕ פולי קפה מובחרים מחוות איכותיות. משלוח חינם מ-200₪. חבילת היכרות במחיר מיוחד.'
+              : client === 'Peteat'
+              ? '🐶 מזון, חטיפים, ציוד לחיות מחמד. משלוח חינם מ-199₪. מנוי חודשי בהנחה.'
+              : 'כל מה שצריך, במחירים הכי טובים. משלוח חינם.'}
+          </p>
+          <div class="goog-extensions">
+            {client === 'קפה רות' && (<>
+              <span class="goog-ext">פולי קפה</span>
+              <span class="goog-ext">מכונות קפה</span>
+              <span class="goog-ext">חבילת היכרות</span>
+              <span class="goog-ext">הצטרף למועדון</span>
+            </>)}
+            {client === 'Peteat' && (<>
+              <span class="goog-ext">מזון לכלבים</span>
+              <span class="goog-ext">מזון לחתולים</span>
+              <span class="goog-ext">חטיפים</span>
+              <span class="goog-ext">ציוד</span>
+            </>)}
+          </div>
+        </div>
+
+        <!-- Organic result below -->
+        <div class="goog-result organic">
+          <div class="goog-tag-row">
+            <span class="goog-favicon">◯</span>
+            <span class="goog-domain">competitor1.co.il</span>
+          </div>
+          <h3 class="goog-title organic-title">תחרות אחת — מתחתנו</h3>
+          <p class="goog-desc">תוצאה אורגנית רגילה. מקבלת ~7% מהקליקים. המודעה שלנו מקבלת 28%.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+)}
+
+{hasPlashi && (
+  <section class="case-plashi">
+    <div class="container">
+      <div class="cs-head" data-reveal>
+        <span class="eyebrow">אוטומציית פלאשי</span>
+        <h2>מסע הלקוח <em>שבנינו</em></h2>
+        <p>זרימה אמיתית מתוך פלאשי — אוטומציות שעובדות 24/7 בלי שתצטרכו לזכור לעשות כלום.</p>
+      </div>
+
+      <div class="plashi-flow" data-tilt>
+        <!-- Trigger -->
+        <div class="pf-node pf-trigger">
+          <span class="pf-icon">⚡</span>
+          <b>טריגר</b>
+          <span>לקוח חדש נרשם</span>
+        </div>
+        <div class="pf-line"></div>
+
+        <!-- Email 1 -->
+        <div class="pf-node">
+          <span class="pf-icon">📧</span>
+          <b>מייל ברוכים הבאים</b>
+          <span>0 דקות · קופון 10%</span>
+        </div>
+        <div class="pf-line"></div>
+
+        <!-- Wait -->
+        <div class="pf-node pf-wait">
+          <span class="pf-icon">⏳</span>
+          <b>המתנה</b>
+          <span>3 ימים</span>
+        </div>
+        <div class="pf-line"></div>
+
+        <!-- SMS -->
+        <div class="pf-node">
+          <span class="pf-icon">💬</span>
+          <b>SMS תזכורת</b>
+          <span>"רוצה לנסות?" + לינק ישיר</span>
+        </div>
+        <div class="pf-line"></div>
+
+        <!-- Branch -->
+        <div class="pf-branch">
+          <div class="pf-node pf-success">
+            <span class="pf-icon">✅</span>
+            <b>קנה</b>
+            <span>→ אוטומציית רכישה חוזרת</span>
+          </div>
+          <div class="pf-node pf-retry">
+            <span class="pf-icon">🔄</span>
+            <b>לא קנה</b>
+            <span>→ קופון ייעודי 15%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+)}

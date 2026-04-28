@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import CaseShowcase from '../../components/CaseShowcase.astro';
 import { cases } from '../../data/cases';
 import { services } from '../../data/services';
 
@@ -12,6 +13,8 @@ export function getStaticPaths() {
 
 const { caseStudy } = Astro.props;
 const linkedServices = caseStudy.services.map((s: string) => (services as any)[s]).filter(Boolean);
+const clientUrl = (caseStudy as any).url;
+const clientName = (caseStudy as any).client || caseStudy.testimonialAuthor;
 ---
 
 <Layout title={`${caseStudy.headline} | NINJA Digital`}>
@@ -37,6 +40,10 @@ const linkedServices = caseStudy.services.map((s: string) => (services as any)[s
     </div>
   </div>
 </section>
+
+{clientUrl && (
+  <CaseShowcase url={clientUrl} client={clientName} services={caseStudy.services} />
+)}
 
 <section class="why">
   <div class="container">
