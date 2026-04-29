@@ -351,7 +351,7 @@ if (form) form.addEventListener('submit', async (e) => {
     const data = await res.json().catch(() => ({}));
     if (res.ok && (data.success === 'true' || data.success === true)) {
       status.classList.add('ok');
-      status.textContent = '✓ קיבלנו! נחזור אליך תוך 24 שעות.';
+      status.textContent = '✓ קיבלנו! נחזור אליכם תוך 24 שעות.';
       form.reset();
     } else {
       status.classList.add('err');
@@ -359,7 +359,7 @@ if (form) form.addEventListener('submit', async (e) => {
     }
   } catch (err) {
     status.classList.add('err');
-    status.textContent = 'שליחה נכשלה. בדוק חיבור אינטרנט.';
+    status.textContent = 'שליחה נכשלה. בדקו חיבור אינטרנט.';
   } finally {
     btn.textContent = original;
     btn.disabled = false;
@@ -524,7 +524,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     hint.className = 'egg-hint';
     hint.innerHTML = `
       <span class="eg-icon">🥷</span>
-      <span class="eg-text">טיפ: לחץ <b>5 פעמים על הלוגו</b> וגלה משהו מגניב</span>
+      <span class="eg-text">טיפ: לחצו <b>5 פעמים על הלוגו</b> וגלו משהו מגניב</span>
       <span class="eg-close" aria-label="סגור">×</span>
     `;
     document.body.appendChild(hint);
@@ -774,8 +774,8 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     banner.className = 'victory-banner';
     banner.innerHTML = `
       <h3>🥷 חמש פגיעות. קטלני.</h3>
-      <p>זה בדיוק ההבדל בינינו לסוכנויות אחרות. אנחנו לא יורים סתם — אנחנו מכוונים.<br>בא לראות איך זה נראה על תקציב אמיתי?</p>
-      <a href="/contact" class="btn btn-primary" data-cursor="link">תיאום פגישה — נכוון לך מטרות אמיתיות</a>
+      <p>זה בדיוק ההבדל בינינו לסוכנויות אחרות. אנחנו לא יורים סתם — אנחנו מכוונים.<br>בא לכם לראות איך זה נראה על תקציב אמיתי?</p>
+      <a href="/contact" class="btn btn-primary" data-cursor="link">תיאום פגישה — נכוון לכם מטרות אמיתיות</a>
     `;
     arena.appendChild(banner);
   }

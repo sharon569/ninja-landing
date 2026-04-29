@@ -1,18 +1,18 @@
 ---
-title: "Schema Markup לאיקומרס: 5 דקות עבודה שיכולות לתת לך עמוד 1"
+title: "Schema Markup לאיקומרס: 5 דקות עבודה שיכולות לתת לכם עמוד 1"
 description: "Schema הוא הקוד המוסתר שגוגל אוהב. עמודי מוצר עם Schema מקבלים Rich Results — תמונות, ביקורות, מחיר. CTR גדל ב-30%."
 date: 2026-03-20
 category: "SEO"
 readTime: 6
 ---
 
-יש לך דף מוצר. אתה במקום 5 בגוגל. המתחרה במקום 7 — אבל מקבל 3 פעמים יותר קליקים. **למה?**
+יש לכם דף מוצר. אתם במקום 5 בגוגל. המתחרה במקום 7 — אבל מקבל 3 פעמים יותר קליקים. **למה?**
 
 כי המתחרה הוסיף שורות קוד פשוטות שגוגל אוהב. בעולם ה-SEO זה נקרא **Schema Markup**, וזה הסוד הכי לא מנוצל בקרב 90% מהאתרים בישראל.
 
 ## מה זה Schema
 
-Schema הוא **קוד JSON שאתה מטמיע בדפים** שמסביר לגוגל **בדיוק מה יש בדף**.
+Schema הוא **קוד JSON שאתם מטמיע בדפים** שמסביר לגוגל **בדיוק מה יש בדף**.
 
 ללא Schema, גוגל מנחש:
 > "יש כאן טקסט. אולי זה מוצר?"
@@ -98,10 +98,10 @@ yoursite.co.il/category/sport-shoes/nike-airmax-2024-product-id-12345
 
 ### 3. FAQ Schema
 
-אם יש לך שאלות נפוצות בדף — Schema מציג אותן ישר בגוגל:
+אם יש לכם שאלות נפוצות בדף — Schema מציג אותן ישר בגוגל:
 
 ```
-[התוצאה שלך]
+[התוצאה שלכם]
 ▼ מתי המוצר מגיע?
 ▼ אפשר להחזיר?
 ▼ מה תכונות המוצר?
@@ -117,7 +117,7 @@ yoursite.co.il/category/sport-shoes/nike-airmax-2024-product-id-12345
 {
   "@context": "https://schema.org",
   "@type": "Organization",
-  "name": "השם שלך",
+  "name": "השם שלכם",
   "url": "https://yoursite.co.il",
   "logo": "https://yoursite.co.il/logo.png",
   "contactPoint": {
@@ -145,15 +145,15 @@ yoursite.co.il/category/sport-shoes/nike-airmax-2024-product-id-12345
 תוסף **RankMath** או **Yoast Premium**. גם מטמיע אוטומטית.
 
 ### אתר Custom
-חבר את ה-Schema ידנית. כל דף = JSON ייחודי. דורש מתכנת.
+חברו את ה-Schema ידנית. כל דף = JSON ייחודי. דורש מתכנת.
 
-## בדיקה — חובה לפני שאתה זז
+## בדיקה — חובה לפני שאתם זז
 
-לפני שאתה אומר "טוב, מטמע" — תבדוק את ה-Schema:
+לפני שאתם אומר "טוב, מטמע" — תבדקו את ה-Schema:
 
 **Rich Results Test:** https://search.google.com/test/rich-results
 
-תכניס URL → תקבל דוח שיגיד לך אם ה-Schema נכון או לא.
+תכניס URL → תקבלו דוח שיגיד לכם אם ה-Schema נכון או לא.
 
 **Schema Markup Validator:** https://validator.schema.org
 
@@ -165,7 +165,7 @@ yoursite.co.il/category/sport-shoes/nike-airmax-2024-product-id-12345
 
 ❌ **ביקורות מזויפות / שלא בדף** — אם תכריז "127 ביקורות" אבל אין להן מקבילה גלויה בדף → סנקציה.
 
-❌ **Schema לא מתעדכן** — אם המחיר משתנה, ה-Schema צריך להתעדכן אוטומטית. אחרת אתה משקר לגוגל.
+❌ **Schema לא מתעדכן** — אם המחיר משתנה, ה-Schema צריך להתעדכן אוטומטית. אחרת אתם משקר לגוגל.
 
 ## דוגמה אמיתית
 
@@ -184,4 +184,4 @@ yoursite.co.il/category/sport-shoes/nike-airmax-2024-product-id-12345
 
 ---
 
-רוצה שנבדוק את ה-Schema באתר שלך? שלח URL ב-[WhatsApp](https://wa.me/972545822451) — אריץ Rich Results Test ואחזור עם המלצות תוך 24 שעות.
+רוצים שנבדוק את ה-Schema באתר שלכם? שלחו URL ב-[WhatsApp](https://wa.me/972545822451) — אריץ Rich Results Test ואחזור עם המלצות תוך 24 שעות.
