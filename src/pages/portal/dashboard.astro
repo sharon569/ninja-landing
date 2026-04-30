@@ -661,8 +661,14 @@ const showDow = hasData && curr.length >= 7;
     gap: 14px;
     margin-bottom: 24px;
   }
-  @media (max-width: 900px) { .kpi-grid-8 { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 540px) { .kpi-grid-8 { grid-template-columns: 1fr; } }
+  @media (max-width: 768px) {
+    .kpi-grid-8 { gap: 8px; }
+    .kpi-grid-8 .kpi-card { padding: 12px 10px; padding-bottom: 8px; }
+    .kpi-grid-8 .kpi-label { font-size: 0.7rem; letter-spacing: 0.5px; }
+    .kpi-grid-8 .kpi-value { font-size: 1.3rem; }
+    .kpi-grid-8 .kpi-delta { font-size: 0.74rem; }
+    .kpi-grid-8 .spark { display: none; }
+  }
   .kpi-grid-8 .kpi-card {
     padding-bottom: 12px;
     transition: border-color 220ms ease, box-shadow 260ms ease, transform 220ms ease;
