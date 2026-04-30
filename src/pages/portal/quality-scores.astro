@@ -1,0 +1,541 @@
+---
+import PortalLayout from '../../layouts/PortalLayout.astro';
+import { createSupabaseServerClient } from '../../lib/supabase';
+
+export const prerender = false;
+
+const supabase = createSupabaseServerClient({ cookies: Astro.cookies, request: Astro.request });
+const { data: { user } } = await supabase.auth.getUser();
+if (!user) return Astro.redirect('/portal/login');
+
+const { data: clientLink } = await supabase
+  .from('client_users')
+  .select('client_id, clients!inner(id, business_name)')
+  .eq('user_id', user.id).maybeSingle();
+
+const client = (clientLink?.clients ?? null) as { id: string; business_name: string } | null;
+if (!client) return Astro.redirect('/portal/login?error=no_client_assigned');
+
+const { data: snap } = await supabase
+  .from('quality_snapshot')
+  .select('snapshot_date, optimization_score, keywords, ads, asset_groups, landing_page')
+  .eq('client_id', client.id)
+  .order('snapshot_date', { ascending: false })
+  .limit(1).maybeSingle();
+
+type Kw = { text: string; qs: number; ad_relevance: string; lp_exp: string; exp_ctr: string; campaign: string; impressions: number };
+type Ad = { ad_name: string; type: string; strength: string; campaign: string; ad_group: string; impressions: number };
+type Ag = { ag_id: number; name: string; strength: string; campaign: string };
+
+const optScore = snap?.optimization_score != null ? Number(snap.optimization_score) : null;
+const kw = (snap?.keywords as any) ?? null;
+const ads = (snap?.ads as any) ?? null;
+const ags = (snap?.asset_groups as any) ?? null;
+const lp = (snap?.landing_page as any) ?? null;
+
+const STRENGTH_ORDER = ['EXCELLENT', 'GOOD', 'AVERAGE', 'POOR', 'PENDING', 'NO_ADS', 'UNKNOWN'];
+const STRENGTH_LABEL: Record<string, string> = {
+  EXCELLENT: 'מצוין', GOOD: 'טוב', AVERAGE: 'ממוצע', POOR: 'חלש', PENDING: 'ממתין', NO_ADS: 'אין מודעות', UNKNOWN: '—'
+};
+const LP_LABEL: Record<string, string> = {
+  ABOVE_AVERAGE: 'מעל הממוצע', AVERAGE: 'ממוצע', BELOW_AVERAGE: 'מתחת לממוצע',
+  UNSPECIFIED: '—', UNKNOWN: '—'
+};
+
+// ----- Auto-generated tasks -----
+type Task = { tone: 'critical' | 'warn' | 'good' | 'info'; icon: string; title: string; detail: string };
+const tasks: Task[] = [];
+
+if (optScore != null) {
+  if (optScore < 0.7) {
+    tasks.push({
+      tone: 'warn', icon: '⚙️',
+      title: `ציון אופטימיזציה ${(optScore * 100).toFixed(0)}% — יש המלצות פתוחות ב-Google Ads`,
+      detail: 'גש ל-Recommendations בחשבון. כל המלצה שמיושמת מקרבת ל-100%. לא הכל כדאי ליישם — לפלטר ידנית.'
+    });
+  } else if (optScore >= 0.9) {
+    tasks.push({
+      tone: 'good', icon: '✅',
+      title: `ציון אופטימיזציה ${(optScore * 100).toFixed(0)}% — מעולה`,
+      detail: 'המלצות Google Ads ממומשות. להמשיך לבדוק שבועית.'
+    });
+  }
+}
+
+if (kw && kw.count > 0) {
+  if (kw.avg_qs < 6) {
+    tasks.push({
+      tone: 'critical', icon: '🎯',
+      title: `QS ממוצע ${kw.avg_qs} — נמוך`,
+      detail: `${kw.low_qs?.length ?? 0} מילות מפתח עם QS ≤ 4. כל אחת כזו מעלה CPC ב-30%-50%. לעבור על הרשימה ולשפר/להחליף.`
+    });
+  } else if (kw.avg_qs >= 7) {
+    tasks.push({
+      tone: 'good', icon: '🎯',
+      title: `QS ממוצע ${kw.avg_qs} — חזק`,
+      detail: 'מילות המפתח ממוקדות. לבדוק האם יש high-cost low-QS עוד מסתתרים.'
+    });
+  }
+}
+
+if (lp) {
+  const total = (lp.ABOVE_AVERAGE ?? 0) + (lp.AVERAGE ?? 0) + (lp.BELOW_AVERAGE ?? 0);
+  const below = lp.BELOW_AVERAGE ?? 0;
+  if (total > 0 && (below / total) > 0.20) {
+    tasks.push({
+      tone: 'critical', icon: '🌐',
+      title: `${below} מילות מפתח עם חוויית דף נחיתה מתחת לממוצע (${((below/total)*100).toFixed(0)}%)`,
+      detail: 'זה מעיד על בעיות באתר — איטיות, חוסר רלוונטיות, חוויית מובייל. עיין ב"אבחון אתר".'
+    });
+  }
+}
+
+if (ads && ads.count > 0) {
+  const poor = ads.strength_dist?.POOR ?? 0;
+  const avg = ads.strength_dist?.AVERAGE ?? 0;
+  if (poor + avg > 0) {
+    tasks.push({
+      tone: 'warn', icon: '📝',
+      title: `${poor + avg} מודעות עם Ad Strength חלש (${poor} POOR + ${avg} AVERAGE)`,
+      detail: 'לרענן headlines/descriptions. Ad Strength חלש מקבל פחות חשיפה ב-PMax/RSA.'
+    });
+  }
+}
+
+if (ags && ags.count > 0) {
+  const lowAg = (ags.strength_dist?.POOR ?? 0) + (ags.strength_dist?.AVERAGE ?? 0);
+  if (lowAg > 0) {
+    tasks.push({
+      tone: 'warn', icon: '🎨',
+      title: `${lowAg} קבוצות נכסים PMax עם Ad Strength חלש/ממוצע`,
+      detail: 'להוסיף assets איכותיים: כותרות עם מותגים, USP, תמונות נוספות.'
+    });
+  }
+}
+
+if (tasks.length === 0 && snap) {
+  tasks.push({
+    tone: 'good', icon: '🌟',
+    title: 'אין נקודות חולשה משמעותיות',
+    detail: 'איכות מדדים יציבה. המשך לעקוב שבועית.'
+  });
+}
+
+const ageDays = snap?.snapshot_date
+  ? Math.floor((Date.now() - new Date(String(snap.snapshot_date) + 'T00:00:00Z').getTime()) / 86400000)
+  : null;
+
+// Distribution helpers
+const qsDist = kw?.qs_distribution ?? {};
+const qsTotal = Object.values(qsDist).reduce((a: number, b: any) => a + Number(b), 0) as number;
+function qsBarPct(score: number): number {
+  if (!qsTotal) return 0;
+  return ((Number(qsDist[String(score)] ?? 0) / qsTotal) * 100);
+}
+function qsColor(score: number): string {
+  if (score <= 4) return '#ff2a3c';
+  if (score <= 6) return '#ffd166';
+  return '#22c993';
+}
+---
+
+<PortalLayout title={`ציוני איכות — ${client.business_name}`} user={user} clientName={client.business_name}>
+
+  <div class="portal-page-header">
+    <h1>ציוני איכות</h1>
+    <p>
+      איכות של כל החלקים: חשבון, מילות מפתח, מודעות, אתר.
+      ציון נמוך מעלה עלות ומוריד חשיפה — להלן רשימת מה לתקן.
+      {snap?.snapshot_date && (
+        <>
+          {' '}snapshot מ-<span style="font-family:monospace; color:var(--ink);">{snap.snapshot_date}</span>
+          {ageDays != null && ageDays > 0 && <span style="color:var(--ink-mute);"> · לפני {ageDays} ימים</span>}
+        </>
+      )}
+    </p>
+  </div>
+
+  {!snap ? (
+    <div class="portal-card audit-empty">
+      <div class="audit-empty-icon">📊</div>
+      <h2>טרם נאסף snapshot</h2>
+      <p>הנתונים יתעדכנו אוטומטית בריצה השבועית הבאה (יום ראשון 11:00).</p>
+    </div>
+  ) : (
+    <>
+      <!-- Auto-generated tasks at top -->
+      <div class="portal-card" style="margin-bottom:24px;">
+        <div class="portal-card-header">
+          <h2>מה לעשות</h2>
+          <span style="color:var(--ink-mute); font-size:0.85rem;">{tasks.length} נקודות מתוך הניתוח</span>
+        </div>
+        <ul class="qs-task-list">
+          {tasks.map(t => (
+            <li class={`qs-task qs-task-${t.tone}`}>
+              <div class="qs-task-icon">{t.icon}</div>
+              <div>
+                <div class="qs-task-title">{t.title}</div>
+                <div class="qs-task-detail">{t.detail}</div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <!-- Account optimization score (hero) -->
+      {optScore != null && (
+        <div class="portal-card opt-card" style="margin-bottom:24px;">
+          <div class="opt-info">
+            <div class="opt-label">ציון אופטימיזציה — חשבון</div>
+            <div class="opt-value">{(optScore * 100).toFixed(0)}<span class="opt-pct">%</span></div>
+            <div class="opt-desc">
+              <strong>מה זה?</strong> מדד של Google Ads (0-100%) שמעריך כמה המלצות "כדאי ליישם" עוד פתוחות.
+              100% = הכל ממומש. ככל שמתקרבים — Google מעניק יותר ראיית חיובית בחשבון, אבל לא כל המלצה כדאית — צריך לפלטר.
+            </div>
+          </div>
+          <div class="opt-bar-wrap">
+            <div class="opt-bar" style={`--pct:${optScore * 100}%`}></div>
+          </div>
+        </div>
+      )}
+
+      <!-- Keywords -->
+      <div class="portal-card" style="margin-bottom:24px;">
+        <div class="portal-card-header">
+          <h2>איכות מילות מפתח (QS)</h2>
+          <span style="color:var(--ink-mute); font-size:0.85rem;">
+            {kw?.count ?? 0} מילים פעילות · ממוצע {kw?.avg_qs ?? '—'}
+          </span>
+        </div>
+        <p class="qs-explain">
+          <strong>מה זה QS?</strong> ציון 1-10 שגוגל נותן לכל מילת מפתח. מבוסס על 3 רכיבים:
+          <em>Expected CTR</em> (כמה צפויים ללחוץ),
+          <em>Ad Relevance</em> (כמה המודעה רלוונטית),
+          <em>Landing Page Experience</em> (איכות דף הנחיתה).
+          QS גבוה = CPC נמוך + Ad Rank גבוה + יותר חשיפות.
+        </p>
+
+        {qsTotal > 0 && (
+          <div class="qs-dist">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+              <div class="qs-dist-row">
+                <div class="qs-dist-label">{n}</div>
+                <div class="qs-dist-bar">
+                  <div class="qs-dist-fill" style={`width:${qsBarPct(n)}%; background:${qsColor(n)};`}></div>
+                </div>
+                <div class="qs-dist-count">{qsDist[String(n)] ?? 0}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {kw?.low_qs && kw.low_qs.length > 0 && (
+          <>
+            <h3 style="font-family:Rubik; font-size:1rem; margin: 18px 0 10px;">מילים בעייתיות (QS ≤ 4)</h3>
+            <div class="kw-table-wrap">
+              <table class="kw-table">
+                <thead>
+                  <tr>
+                    <th>מילה</th>
+                    <th>QS</th>
+                    <th>Expected CTR</th>
+                    <th>Ad Relevance</th>
+                    <th>Landing Page</th>
+                    <th>חשיפות</th>
+                    <th>קמפיין</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {kw.low_qs.slice(0, 10).map((k: Kw) => (
+                    <tr>
+                      <td style="font-family:monospace;">{k.text}</td>
+                      <td><span class="qs-badge" style={`color:${qsColor(k.qs)};`}>{k.qs}/10</span></td>
+                      <td>{LP_LABEL[k.exp_ctr] ?? k.exp_ctr}</td>
+                      <td>{LP_LABEL[k.ad_relevance] ?? k.ad_relevance}</td>
+                      <td>{LP_LABEL[k.lp_exp] ?? k.lp_exp}</td>
+                      <td>{k.impressions.toLocaleString()}</td>
+                      <td style="color:var(--ink-mute); font-size:0.82rem;">{k.campaign}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
+
+      <!-- Ads -->
+      <div class="portal-card" style="margin-bottom:24px;">
+        <div class="portal-card-header">
+          <h2>איכות מודעות (Ad Strength)</h2>
+          <span style="color:var(--ink-mute); font-size:0.85rem;">{ads?.count ?? 0} מודעות פעילות</span>
+        </div>
+        <p class="qs-explain">
+          <strong>מה זה Ad Strength?</strong> דירוג של גוגל לקופי של המודעה (POOR / AVERAGE / GOOD / EXCELLENT).
+          מתבסס על מספר ה-headlines, גיוון, מילות מפתח רלוונטיות, ותכונות. דירוג גבוה = יותר rotation אופטימלי
+          + יותר variations מותאמות-משתמש.
+        </p>
+
+        {ads?.strength_dist && Object.keys(ads.strength_dist).length > 0 && (
+          <div class="strength-pills">
+            {STRENGTH_ORDER.filter(s => ads.strength_dist[s]).map(s => (
+              <div class={`strength-pill strength-${s.toLowerCase()}`}>
+                <strong>{ads.strength_dist[s]}</strong>
+                <span>{STRENGTH_LABEL[s]}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {ads?.low_strength && ads.low_strength.length > 0 && (
+          <>
+            <h3 style="font-family:Rubik; font-size:1rem; margin: 18px 0 10px;">מודעות לרענון</h3>
+            <ul style="list-style:none; padding:0; margin:0;">
+              {ads.low_strength.slice(0, 8).map((a: Ad) => (
+                <li class="weak-row">
+                  <div>
+                    <div style="font-weight:500;">{a.ad_name || `${a.type} #${a.ad_group}`}</div>
+                    <div style="color:var(--ink-mute); font-size:0.82rem;">
+                      {a.campaign} · {a.ad_group} · {a.impressions.toLocaleString()} חשיפות
+                    </div>
+                  </div>
+                  <span class={`strength-tag strength-${a.strength.toLowerCase()}`}>{STRENGTH_LABEL[a.strength]}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+
+      <!-- Asset groups (PMax) -->
+      {ags && ags.count > 0 && (
+        <div class="portal-card" style="margin-bottom:24px;">
+          <div class="portal-card-header">
+            <h2>קבוצות נכסים PMax</h2>
+            <span style="color:var(--ink-mute); font-size:0.85rem;">{ags.count} קבוצות פעילות</span>
+          </div>
+          <p class="qs-explain">
+            <strong>מה זה?</strong> ב-Performance Max כל קמפיין מורכב מ-Asset Groups שכל אחת מקבלת Ad Strength נפרד.
+            קבוצה חלשה מקבלת פחות חשיפה. הוסף headlines, long headlines, descriptions, תמונות וסרטונים מגוונים.
+          </p>
+          {ags.strength_dist && (
+            <div class="strength-pills">
+              {STRENGTH_ORDER.filter(s => ags.strength_dist[s]).map(s => (
+                <div class={`strength-pill strength-${s.toLowerCase()}`}>
+                  <strong>{ags.strength_dist[s]}</strong>
+                  <span>{STRENGTH_LABEL[s]}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {ags.low_strength && ags.low_strength.length > 0 && (
+            <ul style="list-style:none; padding:0; margin:14px 0 0;">
+              {ags.low_strength.map((a: Ag) => (
+                <li class="weak-row">
+                  <div>
+                    <div style="font-weight:500;">{a.name}</div>
+                    <div style="color:var(--ink-mute); font-size:0.82rem;">{a.campaign}</div>
+                  </div>
+                  <span class={`strength-tag strength-${a.strength.toLowerCase()}`}>{STRENGTH_LABEL[a.strength]}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <!-- Landing page -->
+      {lp && (lp.ABOVE_AVERAGE + lp.AVERAGE + lp.BELOW_AVERAGE) > 0 && (
+        <div class="portal-card">
+          <div class="portal-card-header">
+            <h2>חוויית דף נחיתה</h2>
+          </div>
+          <p class="qs-explain">
+            <strong>מה זה?</strong> רכיב של ה-QS — Google מעריך כמה דף הנחיתה רלוונטי לחיפוש,
+            כמה הוא מהיר וברור. דירוג מתחת לממוצע מצביע על: איטיות, תוכן לא רלוונטי, חוויית מובייל גרועה,
+            או מבנה מבלבל. <a href="/portal/site-audit" style="color:var(--gold);">עיין ב-אבחון אתר</a> לפירוט.
+          </p>
+          <div class="lp-bars">
+            <div class="lp-bar lp-good" style={`flex:${lp.ABOVE_AVERAGE ?? 0};`}>
+              <div>{lp.ABOVE_AVERAGE ?? 0}</div>
+              <small>מעל הממוצע</small>
+            </div>
+            <div class="lp-bar lp-avg" style={`flex:${lp.AVERAGE ?? 0};`}>
+              <div>{lp.AVERAGE ?? 0}</div>
+              <small>ממוצע</small>
+            </div>
+            <div class="lp-bar lp-bad" style={`flex:${lp.BELOW_AVERAGE ?? 0};`}>
+              <div>{lp.BELOW_AVERAGE ?? 0}</div>
+              <small>מתחת לממוצע</small>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )}
+
+</PortalLayout>
+
+<style>
+  .audit-empty { text-align: center; padding: 40px 24px; }
+  .audit-empty-icon { font-size: 3rem; margin-bottom: 16px; }
+
+  /* Tasks */
+  .qs-task-list { list-style: none; padding: 0; margin: 0; }
+  .qs-task {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    margin-bottom: 10px;
+    align-items: flex-start;
+  }
+  .qs-task:last-child { margin-bottom: 0; }
+  .qs-task-icon { font-size: 1.6rem; line-height: 1; }
+  .qs-task-title { font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+  .qs-task-detail { color: var(--ink-mute); font-size: 0.92rem; line-height: 1.5; }
+  .qs-task-critical { border-color: rgba(255,42,60,0.4); background: rgba(255,42,60,0.05); }
+  .qs-task-warn     { border-color: rgba(255,209,102,0.35); background: rgba(255,209,102,0.04); }
+  .qs-task-good     { border-color: rgba(34,201,147,0.35); background: rgba(34,201,147,0.04); }
+  .qs-task-info     { border-color: rgba(91,141,239,0.3);  background: rgba(91,141,239,0.04); }
+
+  /* Account optimization */
+  .opt-card {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: center;
+    background: linear-gradient(135deg, rgba(34,201,147,0.05), rgba(255,209,102,0.03) 80%);
+  }
+  @media (max-width: 720px) { .opt-card { grid-template-columns: 1fr; } }
+  .opt-label {
+    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--ink-mute); margin-bottom: 6px;
+  }
+  .opt-value {
+    font-family: Rubik, sans-serif; font-weight: 700; font-size: 3rem;
+    color: var(--ink); line-height: 1;
+  }
+  .opt-pct { font-size: 1.4rem; color: var(--ink-mute); margin-right: 4px; }
+  .opt-desc { color: var(--ink-mute); font-size: 0.9rem; line-height: 1.55; margin-top: 12px; max-width: 540px; }
+  .opt-desc strong { color: var(--ink); }
+  .opt-desc em { color: var(--gold); font-style: normal; font-weight: 500; }
+  .opt-bar-wrap {
+    width: 220px; height: 220px;
+    background:
+      conic-gradient(#22c993 0%, #22c993 var(--pct), rgba(255,255,255,0.06) var(--pct), rgba(255,255,255,0.06) 100%);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .opt-bar-wrap::before {
+    content: '';
+    position: absolute; inset: 18px;
+    background: var(--bg-1, #0c0e13);
+    border-radius: 50%;
+    border: 1px solid var(--line);
+  }
+  .opt-bar-wrap::after {
+    content: '%';
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0; /* hide */
+  }
+
+  /* Explain text */
+  .qs-explain {
+    color: var(--ink-mute); font-size: 0.92rem; line-height: 1.55;
+    background: rgba(255,255,255,0.02);
+    border-right: 3px solid var(--gold);
+    padding: 12px 14px;
+    border-radius: 6px;
+    margin: 0 0 18px;
+  }
+  .qs-explain strong { color: var(--ink); }
+  .qs-explain em { color: var(--gold); font-style: normal; font-weight: 500; }
+
+  /* QS distribution */
+  .qs-dist {
+    display: grid; gap: 6px;
+    margin: 12px 0 18px;
+  }
+  .qs-dist-row {
+    display: grid; grid-template-columns: 30px 1fr 50px;
+    gap: 10px; align-items: center;
+  }
+  .qs-dist-label {
+    font-family: monospace; color: var(--ink-mute);
+    text-align: center; font-size: 0.85rem;
+  }
+  .qs-dist-bar {
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px; overflow: hidden;
+    height: 18px;
+  }
+  .qs-dist-fill { height: 100%; transition: width 600ms ease; min-width: 2px; }
+  .qs-dist-count { color: var(--ink-mute); font-size: 0.85rem; text-align: left; }
+
+  /* Keyword table */
+  .kw-table-wrap { overflow-x: auto; }
+  .kw-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  .kw-table th {
+    text-align: right; color: var(--ink-mute); font-weight: 500;
+    padding: 10px 10px; border-bottom: 1px solid var(--line);
+    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .kw-table td { padding: 10px; border-bottom: 1px solid var(--line); color: var(--ink-dim); }
+  .kw-table tr:last-child td { border-bottom: none; }
+  .qs-badge { font-weight: 700; font-family: Rubik, sans-serif; }
+
+  /* Strength pills */
+  .strength-pills { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 18px; }
+  .strength-pill {
+    padding: 10px 14px; border-radius: 10px;
+    border: 1px solid var(--line); background: rgba(255,255,255,0.02);
+    text-align: center; min-width: 88px;
+    display: flex; flex-direction: column;
+  }
+  .strength-pill strong { font-size: 1.4rem; color: var(--ink); font-family: Rubik, sans-serif; }
+  .strength-pill span { font-size: 0.78rem; color: var(--ink-mute); margin-top: 2px; }
+  .strength-pill.strength-excellent { border-color: rgba(34,201,147,0.5);  background: rgba(34,201,147,0.05); }
+  .strength-pill.strength-excellent strong { color: #22c993; }
+  .strength-pill.strength-good      { border-color: rgba(91,141,239,0.4);  background: rgba(91,141,239,0.05); }
+  .strength-pill.strength-good strong      { color: #5b8def; }
+  .strength-pill.strength-average   { border-color: rgba(255,209,102,0.45); background: rgba(255,209,102,0.05); }
+  .strength-pill.strength-average strong   { color: var(--gold); }
+  .strength-pill.strength-poor      { border-color: rgba(255,42,60,0.45);   background: rgba(255,42,60,0.05); }
+  .strength-pill.strength-poor strong      { color: #ff2a3c; }
+
+  .weak-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid var(--line); gap: 12px;
+  }
+  .weak-row:last-child { border-bottom: none; }
+
+  .strength-tag {
+    padding: 3px 10px; border-radius: 4px; font-size: 0.78rem; font-weight: 500;
+  }
+  .strength-tag.strength-excellent { background: rgba(34,201,147,0.12); color: #22c993; }
+  .strength-tag.strength-good      { background: rgba(91,141,239,0.12); color: #5b8def; }
+  .strength-tag.strength-average   { background: rgba(255,209,102,0.12); color: var(--gold); }
+  .strength-tag.strength-poor      { background: rgba(255,42,60,0.12); color: #ff2a3c; }
+
+  /* Landing page bars */
+  .lp-bars {
+    display: flex; gap: 4px; margin-top: 12px;
+    border-radius: 8px; overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .lp-bar {
+    padding: 16px 12px;
+    text-align: center;
+    font-size: 0.82rem; color: var(--ink-mute);
+    min-width: 0;
+  }
+  .lp-bar div { font-size: 1.4rem; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .lp-good { background: rgba(34,201,147,0.12); }
+  .lp-avg  { background: rgba(255,209,102,0.10); }
+  .lp-bad  { background: rgba(255,42,60,0.12); }
+</style>

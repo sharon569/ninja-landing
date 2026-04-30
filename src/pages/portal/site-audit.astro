@@ -1,0 +1,226 @@
+---
+import PortalLayout from '../../layouts/PortalLayout.astro';
+import { createSupabaseServerClient } from '../../lib/supabase';
+import { renderMarkdown } from '../../lib/markdown';
+
+export const prerender = false;
+
+const supabase = createSupabaseServerClient({ cookies: Astro.cookies, request: Astro.request });
+const { data: { user } } = await supabase.auth.getUser();
+if (!user) return Astro.redirect('/portal/login');
+
+const { data: clientLink } = await supabase
+  .from('client_users')
+  .select('client_id, clients!inner(id, business_name)')
+  .eq('user_id', user.id).maybeSingle();
+
+const client = (clientLink?.clients ?? null) as { id: string; business_name: string } | null;
+if (!client) return Astro.redirect('/portal/login?error=no_client_assigned');
+
+// Site audits live in `reports` with type='site_audit' or 'landing_page'.
+const { data: audits } = await supabase
+  .from('reports')
+  .select('id, type, report_date, title, content_md, generated_at')
+  .eq('client_id', client.id)
+  .eq('visible_to_client', true)
+  .in('type', ['site_audit', 'landing_page'])
+  .order('report_date', { ascending: false });
+
+const all = audits ?? [];
+const latest = all[0] ?? null;
+const older = all.slice(1);
+
+// Try to extract severity counts heuristically from latest markdown
+type Sev = 'critical' | 'high' | 'medium' | 'low';
+const sevCounts: Record<Sev, number> = { critical: 0, high: 0, medium: 0, low: 0 };
+if (latest?.content_md) {
+  const md = latest.content_md.toLowerCase();
+  // Count occurrences of severity markers
+  sevCounts.critical = (md.match(/🔴|critical|קריטי/g) || []).length;
+  sevCounts.high = (md.match(/🟠|high(?!light)|חמור/g) || []).length;
+  sevCounts.medium = (md.match(/🟡|medium|בינוני|warning/g) || []).length;
+  sevCounts.low = (md.match(/🟢|low|נמוך|info/g) || []).length;
+}
+const totalIssues = sevCounts.critical + sevCounts.high + sevCounts.medium + sevCounts.low;
+
+const html = latest?.content_md ? renderMarkdown(latest.content_md) : '';
+const ageDays = latest
+  ? Math.floor((Date.now() - new Date(latest.report_date + 'T00:00:00Z').getTime()) / 86400000)
+  : null;
+---
+
+<PortalLayout title={`אבחון אתר — ${client.business_name}`} user={user} clientName={client.business_name}>
+
+  <div class="portal-page-header">
+    <h1>אבחון אתר</h1>
+    <p>
+      רוב הבעיות בהמרות נובעות מהאתר עצמו — לא מהקמפיין.
+      פה תמצא ביקורות מקיפות והמלצות לשיפור שיתורגמו ל-ROAS גבוה יותר.
+    </p>
+  </div>
+
+  {!latest ? (
+    <div class="portal-card audit-empty">
+      <div class="audit-empty-icon">🔍</div>
+      <h2>טרם בוצעה ביקורת</h2>
+      <p>NINJA תעלה ביקורת אתר ראשונה בקרוב. הביקורת בודקת:</p>
+      <ul class="audit-empty-list">
+        <li>⚡ <strong>ביצועים</strong> — מהירות טעינה, Core Web Vitals, חוויית משתמש בנייד</li>
+        <li>🎯 <strong>מסלול המרה</strong> — נקודות נשירה, חוסר אמון, חיכוך בתשלום</li>
+        <li>📊 <strong>Tracking</strong> — האם המרות נמדדות בצורה נכונה? Enhanced Conversions, Server-side?</li>
+        <li>📱 <strong>נייד</strong> — UX בנייד, ויברציה של תוכן, גודל מטרות לחיצה</li>
+        <li>🔒 <strong>אמון</strong> — תוויות אמון, הוכחות חברתיות, מדיניות החזרה</li>
+        <li>📝 <strong>תוכן</strong> — תיאורי מוצר, תמונות, FAQ, Schema markup</li>
+      </ul>
+    </div>
+  ) : (
+    <>
+      <!-- Latest audit hero -->
+      <div class="audit-hero">
+        <div class="audit-hero-meta">
+          <div class="audit-hero-label">ביקורת אחרונה</div>
+          <h2>{latest.title}</h2>
+          <div class="audit-hero-date">
+            📅 {new Date(latest.report_date + 'T00:00:00Z').toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' })}
+            {ageDays != null && ageDays > 0 && <span style="color:var(--ink-mute);"> · לפני {ageDays} ימים</span>}
+          </div>
+        </div>
+        {totalIssues > 0 && (
+          <div class="audit-sev-grid">
+            {sevCounts.critical > 0 && (
+              <div class="sev-card sev-critical">
+                <div class="sev-num">{sevCounts.critical}</div>
+                <div class="sev-label">קריטי</div>
+              </div>
+            )}
+            {sevCounts.high > 0 && (
+              <div class="sev-card sev-high">
+                <div class="sev-num">{sevCounts.high}</div>
+                <div class="sev-label">חמור</div>
+              </div>
+            )}
+            {sevCounts.medium > 0 && (
+              <div class="sev-card sev-medium">
+                <div class="sev-num">{sevCounts.medium}</div>
+                <div class="sev-label">בינוני</div>
+              </div>
+            )}
+            {sevCounts.low > 0 && (
+              <div class="sev-card sev-low">
+                <div class="sev-num">{sevCounts.low}</div>
+                <div class="sev-label">נמוך</div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <!-- Audit body -->
+      <div class="portal-card">
+        <div class="portal-prose" set:html={html}></div>
+      </div>
+
+      <!-- Older audits -->
+      {older.length > 0 && (
+        <details class="portal-card" style="margin-top:24px;">
+          <summary class="portal-card-header" style="cursor:pointer; list-style:none; user-select:none;">
+            <h2 style="margin:0;">ביקורות קודמות</h2>
+            <span style="color:var(--ink-mute); font-size:0.85rem;">{older.length} ביקורות · לחץ להצגה</span>
+          </summary>
+          <ul style="list-style:none; padding:0; margin:14px 0 0;">
+            {older.map(a => (
+              <li style="padding:12px 0; border-bottom:1px solid var(--line);">
+                <a href={`/portal/reports/${a.id}`} style="color:var(--ink); text-decoration:none; display:flex; justify-content:space-between; gap:12px; align-items:center;">
+                  <div>
+                    <div style="font-weight:600;">{a.title}</div>
+                    <div style="color:var(--ink-mute); font-size:0.85rem;">{a.report_date}</div>
+                  </div>
+                  <span style="color:var(--ink-mute);">←</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </>
+  )}
+
+</PortalLayout>
+
+<style>
+  .audit-empty { text-align: center; padding: 40px 24px; }
+  .audit-empty-icon { font-size: 3rem; margin-bottom: 16px; }
+  .audit-empty h2 { margin-bottom: 12px; }
+  .audit-empty-list {
+    list-style: none; padding: 0;
+    text-align: right;
+    max-width: 540px; margin: 18px auto 0;
+  }
+  .audit-empty-list li {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-dim);
+  }
+  .audit-empty-list strong { color: var(--ink); }
+
+  /* Hero */
+  .audit-hero {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: center;
+    padding: 24px 28px;
+    margin-bottom: 24px;
+    border-radius: 14px;
+    background:
+      linear-gradient(135deg, rgba(255,42,60,0.06), rgba(255,209,102,0.03) 60%, transparent);
+    border: 1px solid rgba(255,42,60,0.2);
+  }
+  @media (max-width: 720px) {
+    .audit-hero { grid-template-columns: 1fr; }
+  }
+  .audit-hero-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #ff2a3c;
+    margin-bottom: 6px;
+  }
+  .audit-hero h2 { font-size: 1.5rem; margin-bottom: 8px; }
+  .audit-hero-date { color: var(--ink-mute); font-size: 0.92rem; }
+
+  .audit-sev-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(70px, 1fr);
+    gap: 10px;
+  }
+  .sev-card {
+    text-align: center;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid;
+    background: rgba(255,255,255,0.02);
+  }
+  .sev-num {
+    font-size: 1.6rem;
+    font-weight: 700;
+    font-family: Rubik, sans-serif;
+    line-height: 1;
+  }
+  .sev-label {
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+    color: var(--ink-mute);
+  }
+  .sev-critical { border-color: rgba(255,42,60,0.45); background: rgba(255,42,60,0.08); }
+  .sev-critical .sev-num { color: #ff2a3c; }
+  .sev-high     { border-color: rgba(255,140,60,0.45); background: rgba(255,140,60,0.08); }
+  .sev-high     .sev-num { color: #ff8c3c; }
+  .sev-medium   { border-color: rgba(255,209,102,0.45); background: rgba(255,209,102,0.08); }
+  .sev-medium   .sev-num { color: var(--gold); }
+  .sev-low      { border-color: rgba(34,201,147,0.45); background: rgba(34,201,147,0.06); }
+  .sev-low      .sev-num { color: #22c993; }
+</style>

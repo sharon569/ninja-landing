@@ -8,10 +8,8 @@ export const prerender = false;
 const supabase = createSupabaseServerClient({ cookies: Astro.cookies, request: Astro.request });
 const { data: { user } } = await supabase.auth.getUser();
 
-// Middleware should have caught this, but defense in depth:
 if (!user) return Astro.redirect('/portal/login');
 
-// Find the client this user is associated with (assumes 1:1 for MVP; multi-client support later).
 const { data: clientLink } = await supabase
   .from('client_users')
   .select('client_id, clients!inner(id, business_name, vertical, google_ads_customer_id, currency_code)')
@@ -22,136 +20,341 @@ const client = (clientLink?.clients ?? null) as
   | { id: string; business_name: string; vertical: string | null; google_ads_customer_id: string | null; currency_code: string | null }
   | null;
 
-if (!client) {
-  // User is logged in but not linked to any client — possible after sign-in but before Sharon assigns them
-  return Astro.redirect('/portal/login?error=no_client_assigned');
+if (!client) return Astro.redirect('/portal/login?error=no_client_assigned');
+
+const isService = client.vertical === 'service';
+const convLabel = isService ? 'לידים' : 'המרות';
+const cpaLabel  = isService ? 'CPL' : 'CPA';
+
+// ---------- Date range from URL ----------
+type Range = '1d' | '7d' | '30d' | '90d';
+const RANGES: Record<Range, { days: number; label: string }> = {
+  '1d':  { days: 1,  label: 'אתמול' },
+  '7d':  { days: 7,  label: '7 ימים' },
+  '30d': { days: 30, label: 'חודש' },
+  '90d': { days: 90, label: '3 חודשים' },
+};
+const rangeParam = (Astro.url.searchParams.get('range') ?? '7d') as Range;
+const range: Range = rangeParam in RANGES ? rangeParam : '7d';
+const periodDays = RANGES[range].days;
+
+// ---------- Israel-localized date math ----------
+const israelToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date()); // YYYY-MM-DD
+function shift(yyyymmdd: string, deltaDays: number): string {
+  const d = new Date(yyyymmdd + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + deltaDays);
+  return d.toISOString().slice(0, 10);
 }
 
-// Pull last 30 days for chart, last 7 + prior 7 for KPI deltas
-const today = new Date();
-const sevenDaysAgo = new Date(today);
-sevenDaysAgo.setDate(today.getDate() - 7);
-const fourteenDaysAgo = new Date(today);
-fourteenDaysAgo.setDate(today.getDate() - 14);
-const thirtyDaysAgo = new Date(today);
-thirtyDaysAgo.setDate(today.getDate() - 30);
+let periodEnd: string, periodStart: string, priorEnd: string, priorStart: string;
+if (range === '1d') {
+  periodEnd = shift(israelToday, -1);   // yesterday
+  periodStart = periodEnd;
+  priorEnd = shift(periodEnd, -1);
+  priorStart = priorEnd;
+} else {
+  periodEnd = shift(israelToday, -1);   // exclude today (today's data is incomplete)
+  periodStart = shift(periodEnd, -(periodDays - 1));
+  priorEnd = shift(periodStart, -1);
+  priorStart = shift(priorEnd, -(periodDays - 1));
+}
 
-const fmt = (d: Date) => d.toISOString().slice(0, 10);
+// ---------- Parallel data fetches ----------
+const [
+  { data: currentRows },
+  { data: priorRows },
+  { data: latestReports },
+  { data: latestChanges },
+  { data: latestSearchTerms },
+] = await Promise.all([
+  supabase.from('kpi_snapshots')
+    .select('date, clicks, impressions, conversions, conversions_value, cost')
+    .eq('client_id', client.id)
+    .gte('date', periodStart).lte('date', periodEnd)
+    .order('date', { ascending: true }),
+  supabase.from('kpi_snapshots')
+    .select('date, clicks, impressions, conversions, conversions_value, cost')
+    .eq('client_id', client.id)
+    .gte('date', priorStart).lte('date', priorEnd)
+    .order('date', { ascending: true }),
+  supabase.from('reports')
+    .select('id, type, report_date, title, generated_at')
+    .eq('client_id', client.id).eq('visible_to_client', true)
+    .order('report_date', { ascending: false }).limit(5),
+  supabase.from('change_log')
+    .select('id, occurred_at, category, description')
+    .eq('client_id', client.id).eq('visible_to_client', true)
+    .order('occurred_at', { ascending: false }).limit(8),
+  supabase.from('search_terms_snapshot')
+    .select('snapshot_date, top_ngrams, recommended_negatives')
+    .eq('client_id', client.id)
+    .order('snapshot_date', { ascending: false }).limit(1).maybeSingle(),
+]);
 
-const { data: chartKpis } = await supabase
-  .from('kpi_snapshots')
-  .select('date, clicks, impressions, conversions, conversions_value, cost')
-  .eq('client_id', client.id)
-  .gte('date', fmt(thirtyDaysAgo))
-  .order('date', { ascending: true });
-
-const recentKpis = chartKpis ?? [];
-const last7 = recentKpis.filter(r => r.date >= fmt(sevenDaysAgo));
-const prior7 = recentKpis.filter(r => r.date >= fmt(fourteenDaysAgo) && r.date < fmt(sevenDaysAgo));
-
-const sum = (rows: any[], k: string) => rows.reduce((a, r) => a + Number(r[k] ?? 0), 0);
-
-const kpis = {
-  clicks: sum(last7, 'clicks'),
-  conversions: sum(last7, 'conversions'),
-  cost: sum(last7, 'cost'),
-  cpa: sum(last7, 'conversions') ? sum(last7, 'cost') / sum(last7, 'conversions') : 0,
-};
-const priorKpis = {
-  clicks: sum(prior7, 'clicks'),
-  conversions: sum(prior7, 'conversions'),
-  cost: sum(prior7, 'cost'),
-  cpa: sum(prior7, 'conversions') ? sum(prior7, 'cost') / sum(prior7, 'conversions') : 0,
-};
-
-const delta = (now: number, prior: number) => {
-  if (!prior) return null;
-  return ((now - prior) / prior) * 100;
-};
-
-const currency = client.currency_code ?? 'USD';
-const hasData = (recentKpis?.length ?? 0) > 0;
-
-// Latest 5 reports (only those Sharon has marked visible_to_client)
-const { data: latestReports } = await supabase
-  .from('reports')
-  .select('id, type, report_date, title, generated_at')
-  .eq('client_id', client.id)
-  .eq('visible_to_client', true)
-  .order('report_date', { ascending: false })
-  .limit(5);
-
-// Last 5 changes (visible to client)
-const { data: latestChanges } = await supabase
-  .from('change_log')
-  .select('id, occurred_at, category, description')
-  .eq('client_id', client.id)
-  .eq('visible_to_client', true)
-  .order('occurred_at', { ascending: false })
-  .limit(5);
-
+const curr = currentRows ?? [];
+const prior = priorRows ?? [];
 const reports = latestReports ?? [];
 const changes = latestChanges ?? [];
+const searchSnapshot = latestSearchTerms;
+
+// ---------- Aggregations ----------
+const sum = (rows: any[], k: string) => rows.reduce((a, r) => a + Number(r[k] ?? 0), 0);
+const aggregate = (rows: any[]) => {
+  const impressions = sum(rows, 'impressions');
+  const clicks     = sum(rows, 'clicks');
+  const conversions = sum(rows, 'conversions');
+  const cost       = sum(rows, 'cost');
+  const conv_value = sum(rows, 'conversions_value');
+  return {
+    impressions, clicks, conversions, cost, conv_value,
+    ctr:  impressions ? clicks / impressions : 0,
+    cvr:  clicks      ? conversions / clicks  : 0,
+    cpa:  conversions ? cost / conversions    : 0,
+    roas: cost        ? conv_value / cost     : 0,
+  };
+};
+const A = aggregate(curr);
+const B = aggregate(prior);
+
+const pctDelta = (now: number, p: number) => (!p ? null : ((now - p) / p) * 100);
+const hasData = curr.length > 0;
+const hasPrior = prior.length > 0;
+const currency = client.currency_code ?? 'USD';
+
+// ---------- Sparkline builder (inline SVG) ----------
+function sparkline(values: number[], color = '#ff2a3c'): string {
+  if (values.length < 2) return '';
+  const W = 80, H = 24, P = 2;
+  const max = Math.max(...values, 0.0001);
+  const min = Math.min(...values);
+  const range = max - min || 1;
+  const step = (W - P * 2) / (values.length - 1);
+  const points = values.map((v, i) => {
+    const x = P + i * step;
+    const y = H - P - ((v - min) / range) * (H - P * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:24px;display:block;opacity:.85;"><polyline fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" points="${points}"/></svg>`;
+}
+
+const dailyImp  = curr.map(r => Number(r.impressions ?? 0));
+const dailyClk  = curr.map(r => Number(r.clicks ?? 0));
+const dailyConv = curr.map(r => Number(r.conversions ?? 0));
+const dailyCost = curr.map(r => Number(r.cost ?? 0));
+const dailyRev  = curr.map(r => Number(r.conversions_value ?? 0));
+const dailyCtr  = curr.map(r => { const i = Number(r.impressions ?? 0); return i ? Number(r.clicks ?? 0) / i : 0; });
+const dailyCvr  = curr.map(r => { const c = Number(r.clicks ?? 0); return c ? Number(r.conversions ?? 0) / c : 0; });
+const dailyCpa  = curr.map(r => { const c = Number(r.conversions ?? 0); return c ? Number(r.cost ?? 0) / c : 0; });
+const dailyRoas = curr.map(r => { const c = Number(r.cost ?? 0); return c ? Number(r.conversions_value ?? 0) / c : 0; });
+
+// ---------- Auto insights ----------
+const insights: { icon: string; tone: 'good' | 'bad' | 'info'; text: string }[] = [];
+if (hasData && hasPrior) {
+  const roasD = pctDelta(A.roas, B.roas);
+  const cpaD = pctDelta(A.cpa, B.cpa);
+  const ctrD = pctDelta(A.ctr, B.ctr);
+  if (roasD != null && roasD > 10) insights.push({ icon: '🚀', tone: 'good', text: `ROAS עלה ${roasD.toFixed(0)}% מול התקופה הקודמת — האופטימיזציה עובדת.` });
+  if (cpaD != null && cpaD < -10)  insights.push({ icon: '💰', tone: 'good', text: `CPA ירד ${Math.abs(cpaD).toFixed(0)}% — אותן המרות בעלות נמוכה יותר.` });
+  if (ctrD != null && ctrD > 15)   insights.push({ icon: '📈', tone: 'good', text: `CTR עלה ${ctrD.toFixed(0)}% — הקופי החדש מושך יותר קליקים.` });
+  if (cpaD != null && cpaD > 25)   insights.push({ icon: '⚠️', tone: 'bad', text: `CPA עלה ${cpaD.toFixed(0)}% — שווה לבדוק bidding ו-search terms.` });
+  if (A.cost > 0 && A.conversions === 0) insights.push({ icon: '🛑', tone: 'bad', text: 'אפס המרות בתקופה — ייתכן ומעקב המרות שבור.' });
+}
+if (searchSnapshot && Array.isArray(searchSnapshot.recommended_negatives)) {
+  const wasted = (searchSnapshot.recommended_negatives as any[]).reduce((s, n) => s + Number(n.cost ?? 0), 0);
+  if (wasted > 30) insights.push({ icon: '🎯', tone: 'info', text: `${fmtMoney(wasted, currency)} בוזבזו על מילים ללא המרות (30 ימים) — ${(searchSnapshot.recommended_negatives as any[]).length} negatives ממתינים.` });
+}
+const insightsToShow = insights.slice(0, 3);
+
+// ---------- KPI cards config (vertical-aware) ----------
+const ALL_CARDS = [
+  { key: 'imp',   label: 'חשיפות',                       value: fmtNum(A.impressions),                 delta: pctDelta(A.impressions, B.impressions), spark: sparkline(dailyImp,  '#5b8def'), inverse: false },
+  { key: 'clk',   label: 'קליקים',                       value: fmtNum(A.clicks),                       delta: pctDelta(A.clicks, B.clicks),           spark: sparkline(dailyClk,  '#5b8def'), inverse: false },
+  { key: 'ctr',   label: 'CTR',                           value: `${(A.ctr * 100).toFixed(2)}%`,         delta: pctDelta(A.ctr, B.ctr),                 spark: sparkline(dailyCtr,  '#ffd166'), inverse: false },
+  { key: 'conv',  label: convLabel,                       value: A.conversions.toFixed(1),               delta: pctDelta(A.conversions, B.conversions), spark: sparkline(dailyConv, '#22c993'), inverse: false },
+  { key: 'cvr',   label: 'CvR',                           value: `${(A.cvr * 100).toFixed(2)}%`,         delta: pctDelta(A.cvr, B.cvr),                 spark: sparkline(dailyCvr,  '#22c993'), inverse: false },
+  { key: 'rev',   label: `ערך המרה (${currency})`,       value: fmtMoney(A.conv_value, currency),       delta: pctDelta(A.conv_value, B.conv_value),   spark: sparkline(dailyRev,  '#22c993'), inverse: false },
+  { key: 'cost',  label: `הוצאה (${currency})`,          value: fmtMoney(A.cost, currency),             delta: pctDelta(A.cost, B.cost),               spark: sparkline(dailyCost, '#ff2a3c'), inverse: true  },
+  { key: 'cpa',   label: cpaLabel,                        value: A.cpa ? fmtMoney(A.cpa, currency) : '—', delta: pctDelta(A.cpa, B.cpa),                spark: sparkline(dailyCpa,  '#ff2a3c'), inverse: true  },
+  { key: 'roas',  label: 'ROAS',                          value: A.roas ? `${A.roas.toFixed(2)}x` : '—', delta: pctDelta(A.roas, B.roas),               spark: sparkline(dailyRoas, '#22c993'), inverse: false },
+];
+
+// For service: drop revenue + ROAS (rarely meaningful for lead-gen).
+// Empty value heuristic: if conv_value is 0 across whole period, also hide.
+const hideRevenue = isService || A.conv_value === 0;
+const visibleKeys = hideRevenue
+  ? ['imp','clk','ctr','conv','cvr','cost','cpa']
+  : ['imp','clk','ctr','conv','cvr','rev','cost','cpa','roas'];
+const KPI_CARDS = ALL_CARDS.filter(c => visibleKeys.includes(c.key));
+
+const showChart = hasData && curr.length >= 2;
+const topNgrams = (searchSnapshot?.top_ngrams as any[] | undefined) ?? [];
+
+// ---------- Best day in period (by revenue) ----------
+let bestDay: { date: string; revenue: number; conversions: number; cost: number; roas: number; } | null = null;
+if (hasData) {
+  for (const r of curr) {
+    const rev = Number(r.conversions_value ?? 0);
+    const cost = Number(r.cost ?? 0);
+    if (!bestDay || rev > bestDay.revenue) {
+      bestDay = {
+        date: r.date,
+        revenue: rev,
+        conversions: Number(r.conversions ?? 0),
+        cost,
+        roas: cost ? rev / cost : 0,
+      };
+    }
+  }
+  if (bestDay && bestDay.revenue === 0) bestDay = null;
+}
+
+// ---------- Day-of-week aggregates ----------
+const DOW_LABELS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+const dowAgg: { revenue: number; conversions: number; cost: number; clicks: number; days: number; }[] =
+  Array.from({ length: 7 }, () => ({ revenue: 0, conversions: 0, cost: 0, clicks: 0, days: 0 }));
+for (const r of curr) {
+  const d = new Date(r.date + 'T00:00:00Z');
+  const dow = d.getUTCDay(); // 0 = Sunday
+  const slot = dowAgg[dow];
+  slot.revenue += Number(r.conversions_value ?? 0);
+  slot.conversions += Number(r.conversions ?? 0);
+  slot.cost += Number(r.cost ?? 0);
+  slot.clicks += Number(r.clicks ?? 0);
+  slot.days += 1;
+}
+const dowAvgRevenue = dowAgg.map(s => s.days ? s.revenue / s.days : 0);
+const dowAvgConv = dowAgg.map(s => s.days ? s.conversions / s.days : 0);
+const showDow = hasData && curr.length >= 7;
 ---
 
 <PortalLayout title={`${client.business_name} — Dashboard`} user={user} clientName={client.business_name}>
 
-  <div class="portal-page-header">
-    <h1>סקירה — {client.business_name}</h1>
-    <p>7 ימים אחרונים · השוואה לתקופה קודמת</p>
+  <!-- Header + range selector -->
+  <div class="portal-page-header" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:16px;">
+    <div>
+      <h1>סקירה — {client.business_name}</h1>
+      <p>
+        {RANGES[range].label}: <span style="font-family:monospace; color:var(--ink);">{periodStart}</span>
+        {periodStart !== periodEnd && <> → <span style="font-family:monospace; color:var(--ink);">{periodEnd}</span></>}
+        {hasPrior && <span style="color:var(--ink-mute);"> · השוואה לתקופה קודמת</span>}
+      </p>
+    </div>
+    <div class="range-pills">
+      {Object.entries(RANGES).map(([key, def]) => (
+        <a href={`?range=${key}`} class={`range-pill ${range === key ? 'is-active' : ''}`}>{def.label}</a>
+      ))}
+    </div>
   </div>
 
   {!hasData && (
     <div class="flash" style="background:rgba(255,209,102,0.06); border:1px solid rgba(255,209,102,0.3); color:var(--gold); margin-bottom:24px;">
-      אין נתוני KPI עדיין. NINJA תעלה snapshots יומיים בקרוב.
+      אין נתוני KPI לתקופה הזו.
     </div>
   )}
 
-  <div class="kpi-grid">
-    <div class="kpi-card">
-      <div class="kpi-label">קליקים</div>
-      <div class="kpi-value">{hasData ? fmtNum(kpis.clicks) : '—'}</div>
-      <div class={`kpi-delta ${deltaClass(delta(kpis.clicks, priorKpis.clicks))}`}>
-        {hasData ? `${fmtPct(delta(kpis.clicks, priorKpis.clicks))} vs קודם` : 'אין נתונים'}
-      </div>
+  <!-- Insights -->
+  {insightsToShow.length > 0 && (
+    <div class="insights-row">
+      {insightsToShow.map(ins => (
+        <div class={`insight insight-${ins.tone}`}>
+          <span class="insight-icon">{ins.icon}</span>
+          <span class="insight-text">{ins.text}</span>
+        </div>
+      ))}
     </div>
-    <div class="kpi-card">
-      <div class="kpi-label">המרות</div>
-      <div class="kpi-value">{hasData ? fmtNum(kpis.conversions) : '—'}</div>
-      <div class={`kpi-delta ${deltaClass(delta(kpis.conversions, priorKpis.conversions))}`}>
-        {hasData ? `${fmtPct(delta(kpis.conversions, priorKpis.conversions))} vs קודם` : 'אין נתונים'}
+  )}
+
+  <!-- KPI grid: 8 cards -->
+  <div class="kpi-grid-8">
+    {KPI_CARDS.map(card => (
+      <div class="kpi-card">
+        <div class="kpi-label">{card.label}</div>
+        <div class="kpi-value">{hasData ? card.value : '—'}</div>
+        <div class={`kpi-delta ${deltaClass(card.delta, card.inverse)}`}>
+          {hasData && card.delta != null ? `${fmtPct(card.delta)}` : (hasData ? 'אין השוואה' : '—')}
+        </div>
+        {hasData && range !== '1d' && card.spark && (
+          <div class="spark" set:html={card.spark} />
+        )}
       </div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">הוצאה ({currency})</div>
-      <div class="kpi-value">{hasData ? fmtMoney(kpis.cost, currency) : '—'}</div>
-      <div class={`kpi-delta ${deltaClass(delta(kpis.cost, priorKpis.cost))}`}>
-        {hasData ? `${fmtPct(delta(kpis.cost, priorKpis.cost))} vs קודם` : 'אין נתונים'}
-      </div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">CPA</div>
-      <div class="kpi-value">{hasData && kpis.cpa ? fmtMoney(kpis.cpa, currency) : '—'}</div>
-      <div class={`kpi-delta ${deltaClass(delta(kpis.cpa, priorKpis.cpa), true)}`}>
-        {hasData ? `${fmtPct(delta(kpis.cpa, priorKpis.cpa))} vs קודם` : 'אין נתונים'}
-      </div>
-    </div>
+    ))}
   </div>
 
-  {hasData && (
+  <!-- Best day highlight -->
+  {bestDay && (
+    <div class="best-day">
+      <div class="best-day-icon">🏆</div>
+      <div class="best-day-content">
+        <div class="best-day-label">היום הטוב ביותר בתקופה</div>
+        <div class="best-day-headline">
+          {new Date(bestDay.date + 'T00:00:00Z').toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })}
+        </div>
+        <div class="best-day-stats">
+          <span><strong>{fmtMoney(bestDay.revenue, currency)}</strong> מכירות</span>
+          <span><strong>{bestDay.conversions.toFixed(0)}</strong> המרות</span>
+          <span>ROAS <strong>{bestDay.roas.toFixed(2)}x</strong></span>
+        </div>
+      </div>
+    </div>
+  )}
+
+  <!-- Trend chart -->
+  {showChart && (
     <div class="portal-card" style="margin-bottom:24px;">
       <div class="portal-card-header">
-        <h2>מגמה — 30 ימים אחרונים</h2>
-        <span style="color:var(--ink-mute); font-size:0.85rem;">הוצאה והמרות יומית</span>
+        <h2>מגמה — {RANGES[range].label}</h2>
+        <span style="color:var(--ink-mute); font-size:0.85rem;">מכירות, הוצאה והמרות יומית</span>
       </div>
-      <div style="position:relative; height:300px;">
+      <div style="position:relative; height:340px;">
         <canvas id="kpiChart"></canvas>
       </div>
     </div>
   )}
 
-  <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+  <!-- Day-of-week breakdown -->
+  {showDow && (
+    <div class="portal-card" style="margin-bottom:24px;">
+      <div class="portal-card-header">
+        <h2>פילוח לפי ימי שבוע</h2>
+        <span style="color:var(--ink-mute); font-size:0.85rem;">ממוצע יומי בתקופה</span>
+      </div>
+      <div style="position:relative; height:240px;">
+        <canvas id="dowChart"></canvas>
+      </div>
+    </div>
+  )}
 
+  <!-- Two-col: Top Search Terms + Recent Reports -->
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+
+    <!-- Top wasteful search terms -->
+    <div class="portal-card">
+      <div class="portal-card-header">
+        <h2>מילות חיפוש בזבזניות</h2>
+        {searchSnapshot && (
+          <span style="color:var(--ink-mute); font-size:0.82rem;">snapshot {searchSnapshot.snapshot_date}</span>
+        )}
+      </div>
+      {topNgrams.length === 0 ? (
+        <div class="portal-empty">אין snapshot עדיין.</div>
+      ) : (
+        <ul style="list-style:none; padding:0; margin:0;">
+          {topNgrams.slice(0, 8).map((n: any) => (
+            <li class="term-row">
+              <div class="term-text">
+                <span style="font-family:monospace;">{n.ngram}</span>
+                <span class="term-meta">
+                  n={n.n} · {n.term_count} מונחים · {n.clicks} קליקים
+                </span>
+              </div>
+              <div class="term-cost">{fmtMoney(Number(n.cost), currency)}</div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+
+    <!-- Recent reports -->
     <div class="portal-card">
       <div class="portal-card-header">
         <h2>דוחות אחרונים</h2>
@@ -176,144 +379,369 @@ const changes = latestChanges ?? [];
       )}
     </div>
 
-    <div class="portal-card">
-      <div class="portal-card-header">
-        <h2>שינויים אחרונים</h2>
-        <a href="/portal/changes" class="portal-card-link">הכל →</a>
-      </div>
-      {changes.length === 0 ? (
-        <div class="portal-empty">אין שינויים עדיין</div>
-      ) : (
-        <ul style="list-style:none; padding:0; margin:0;">
-          {changes.map(c => (
-            <li style="padding: 14px 0; border-bottom: 1px solid var(--line);">
-              <div style="display: flex; justify-content: space-between; gap: 12px; align-items: baseline;">
-                <div style="font-weight: 500; color: var(--ink);">{c.description}</div>
-                <div style="color: var(--ink-mute); font-size: 0.82rem; flex-shrink: 0;">
-                  {new Date(c.occurred_at).toLocaleDateString('he-IL')}
-                </div>
-              </div>
-              <div style="color: var(--gold); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px;">
-                {c.category}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-
   </div>
 
-{hasData && (
-  <script define:vars={{ chartData: recentKpis, currency }}>
-    import('chart.js/auto').then(({ default: Chart }) => {
-      const canvas = document.getElementById('kpiChart');
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
+  <!-- Recent changes (full-width) -->
+  <div class="portal-card">
+    <div class="portal-card-header">
+      <h2>שינויים אחרונים</h2>
+      <a href="/portal/changes" class="portal-card-link">הכל →</a>
+    </div>
+    {changes.length === 0 ? (
+      <div class="portal-empty">אין שינויים עדיין</div>
+    ) : (
+      <ul style="list-style:none; padding:0; margin:0;">
+        {changes.map(c => (
+          <li style="padding: 14px 0; border-bottom: 1px solid var(--line);">
+            <div style="display: flex; justify-content: space-between; gap: 12px; align-items: baseline;">
+              <div style="font-weight: 500; color: var(--ink);">{c.description}</div>
+              <div style="color: var(--ink-mute); font-size: 0.82rem; flex-shrink: 0;">
+                {new Date(c.occurred_at).toLocaleDateString('he-IL')}
+              </div>
+            </div>
+            <div style="color: var(--gold); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px;">
+              {c.category}
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
 
-      // Build red gradient for cost area
-      const gradCost = ctx.createLinearGradient(0, 0, 0, 300);
-      gradCost.addColorStop(0, 'rgba(255,42,60,0.35)');
-      gradCost.addColorStop(1, 'rgba(255,42,60,0.02)');
-
-      const labels = chartData.map(r => r.date);
-      const cost = chartData.map(r => Number(r.cost));
-      const conversions = chartData.map(r => Number(r.conversions));
+{(showChart || showDow) && (
+  <script is:inline define:vars={{ chartData: curr, currency, dowAvgRevenue, dowAvgConv, dowLabels: DOW_LABELS, showChart, showDow }}>
+    (async () => {
+      const ChartMod = await import('https://cdn.jsdelivr.net/npm/chart.js@4.4.6/+esm');
+      const Chart = ChartMod.Chart || ChartMod.default;
+      Chart.register(...(ChartMod.registerables || []));
 
       const SYM = { USD: '$', ILS: '₪', EUR: '€', GBP: '£' };
       const sym = SYM[currency] ?? currency + ' ';
 
-      new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            {
-              label: `הוצאה (${currency})`,
-              data: cost,
-              borderColor: '#ff2a3c',
-              backgroundColor: gradCost,
-              borderWidth: 2.5,
-              fill: true,
-              tension: 0.3,
-              yAxisID: 'y',
-              pointRadius: 0,
-              pointHoverRadius: 5,
-              pointHoverBackgroundColor: '#ff2a3c',
-            },
-            {
-              label: 'המרות',
-              data: conversions,
-              borderColor: '#ffd166',
-              backgroundColor: 'transparent',
-              borderWidth: 2.5,
-              tension: 0.3,
-              yAxisID: 'y1',
-              pointRadius: 0,
-              pointHoverRadius: 5,
-              pointHoverBackgroundColor: '#ffd166',
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: {
-            legend: {
-              labels: { color: '#a8acb6', font: { family: 'Heebo' } },
-              position: 'top',
-              align: 'end',
-            },
-            tooltip: {
-              backgroundColor: '#11141b',
-              borderColor: 'rgba(255,255,255,0.14)',
-              borderWidth: 1,
-              titleColor: '#f5f5f7',
-              bodyColor: '#a8acb6',
-              padding: 12,
-              callbacks: {
-                label(ctx) {
-                  const v = ctx.parsed.y;
-                  if (ctx.datasetIndex === 0) return `הוצאה: ${sym}${Math.round(v).toLocaleString()}`;
-                  return `המרות: ${v.toFixed(1)}`;
+      // ---------- Main trend chart ----------
+      const mainCanvas = document.getElementById('kpiChart');
+      if (showChart && mainCanvas) {
+        const ctx = mainCanvas.getContext('2d');
+
+        const gradRev = ctx.createLinearGradient(0, 0, 0, 340);
+        gradRev.addColorStop(0, 'rgba(34,201,147,0.40)');
+        gradRev.addColorStop(1, 'rgba(34,201,147,0.02)');
+        const gradCost = ctx.createLinearGradient(0, 0, 0, 340);
+        gradCost.addColorStop(0, 'rgba(255,42,60,0.30)');
+        gradCost.addColorStop(1, 'rgba(255,42,60,0.02)');
+
+        const labels = chartData.map(r => r.date);
+        const revenue = chartData.map(r => Number(r.conversions_value || 0));
+        const cost = chartData.map(r => Number(r.cost || 0));
+        const conversions = chartData.map(r => Number(r.conversions || 0));
+
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: `מכירות (${currency})`,
+                data: revenue,
+                borderColor: '#22c993',
+                backgroundColor: gradRev,
+                borderWidth: 2.5,
+                fill: true,
+                tension: 0.35,
+                yAxisID: 'y',
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                pointHoverBackgroundColor: '#22c993',
+                order: 2,
+              },
+              {
+                label: `הוצאה (${currency})`,
+                data: cost,
+                borderColor: '#ff2a3c',
+                backgroundColor: gradCost,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.35,
+                yAxisID: 'y',
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                pointHoverBackgroundColor: '#ff2a3c',
+                order: 3,
+              },
+              {
+                label: 'המרות',
+                data: conversions,
+                borderColor: '#ffd166',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                borderDash: [4, 4],
+                tension: 0.35,
+                yAxisID: 'y1',
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                pointHoverBackgroundColor: '#ffd166',
+                order: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: {
+                labels: { color: '#a8acb6', font: { family: 'Heebo' }, usePointStyle: true, pointStyle: 'circle' },
+                position: 'top',
+                align: 'end',
+              },
+              tooltip: {
+                backgroundColor: '#11141b',
+                borderColor: 'rgba(255,255,255,0.14)',
+                borderWidth: 1,
+                titleColor: '#f5f5f7',
+                bodyColor: '#a8acb6',
+                padding: 12,
+                callbacks: {
+                  label(ctx) {
+                    const v = ctx.parsed.y;
+                    if (ctx.datasetIndex === 2) return `המרות: ${v.toFixed(1)}`;
+                    const lbl = ctx.dataset.label.split(' (')[0];
+                    return `${lbl}: ${sym}${Math.round(v).toLocaleString()}`;
+                  },
                 },
               },
             },
-          },
-          scales: {
-            x: {
-              grid: { color: 'rgba(255,255,255,0.04)' },
-              ticks: { color: '#6a6f7c', font: { family: 'Heebo', size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 7 },
-            },
-            y: {
-              position: 'left',
-              grid: { color: 'rgba(255,255,255,0.04)' },
-              ticks: {
-                color: '#a8acb6',
-                font: { family: 'Heebo' },
-                callback(v) { return `${sym}${Number(v).toLocaleString()}`; },
+            scales: {
+              x: {
+                grid: { color: 'rgba(255,255,255,0.04)' },
+                ticks: { color: '#6a6f7c', font: { family: 'Heebo', size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
               },
-              title: { display: false },
-            },
-            y1: {
-              position: 'right',
-              grid: { drawOnChartArea: false },
-              ticks: { color: '#ffd166', font: { family: 'Heebo' } },
+              y: {
+                position: 'left',
+                grid: { color: 'rgba(255,255,255,0.04)' },
+                ticks: {
+                  color: '#a8acb6',
+                  font: { family: 'Heebo' },
+                  callback(v) { return `${sym}${Number(v).toLocaleString()}`; },
+                },
+              },
+              y1: {
+                position: 'right',
+                grid: { drawOnChartArea: false },
+                ticks: { color: '#ffd166', font: { family: 'Heebo' } },
+              },
             },
           },
-        },
-      });
-    });
+        });
+      }
+
+      // ---------- Day-of-week chart ----------
+      const dowCanvas = document.getElementById('dowChart');
+      if (showDow && dowCanvas) {
+        const ctx2 = dowCanvas.getContext('2d');
+        new Chart(ctx2, {
+          type: 'bar',
+          data: {
+            labels: dowLabels,
+            datasets: [
+              {
+                label: `מכירות ממוצע (${currency})`,
+                data: dowAvgRevenue,
+                backgroundColor: 'rgba(34,201,147,0.55)',
+                borderColor: '#22c993',
+                borderWidth: 1,
+                borderRadius: 6,
+                yAxisID: 'y',
+              },
+              {
+                label: 'המרות ממוצע',
+                data: dowAvgConv,
+                type: 'line',
+                borderColor: '#ffd166',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                tension: 0.3,
+                yAxisID: 'y1',
+                pointRadius: 4,
+                pointBackgroundColor: '#ffd166',
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { labels: { color: '#a8acb6', font: { family: 'Heebo' }, usePointStyle: true }, position: 'top', align: 'end' },
+              tooltip: {
+                backgroundColor: '#11141b', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1,
+                titleColor: '#f5f5f7', bodyColor: '#a8acb6', padding: 12,
+                callbacks: {
+                  label(ctx) {
+                    const v = ctx.parsed.y;
+                    if (ctx.datasetIndex === 0) return `מכירות: ${sym}${Math.round(v).toLocaleString()}`;
+                    return `המרות: ${v.toFixed(1)}`;
+                  },
+                },
+              },
+            },
+            scales: {
+              x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#a8acb6', font: { family: 'Heebo' } } },
+              y: {
+                position: 'left',
+                grid: { color: 'rgba(255,255,255,0.04)' },
+                ticks: { color: '#a8acb6', font: { family: 'Heebo' }, callback(v) { return `${sym}${Number(v).toLocaleString()}`; } },
+              },
+              y1: {
+                position: 'right',
+                grid: { drawOnChartArea: false },
+                ticks: { color: '#ffd166', font: { family: 'Heebo' } },
+              },
+            },
+          },
+        });
+      }
+    })();
   </script>
 )}
 
 </PortalLayout>
 
 <style>
+  /* Date range pills */
+  .range-pills {
+    display: flex;
+    gap: 6px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 4px;
+  }
+  .range-pill {
+    padding: 7px 14px;
+    border-radius: 7px;
+    font-size: 0.85rem;
+    color: var(--ink-mute);
+    text-decoration: none;
+    transition: background 120ms, color 120ms;
+  }
+  .range-pill:hover { color: var(--ink); }
+  .range-pill.is-active {
+    background: var(--ink);
+    color: var(--bg-0);
+    font-weight: 500;
+  }
+
+  /* Insights */
+  .insights-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .insight {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,0.02);
+  }
+  .insight-good { border-color: rgba(34,201,147,0.35); background: rgba(34,201,147,0.05); }
+  .insight-bad  { border-color: rgba(255,42,60,0.35);  background: rgba(255,42,60,0.05); }
+  .insight-info { border-color: rgba(255,209,102,0.3); background: rgba(255,209,102,0.04); }
+  .insight-icon { font-size: 1.3rem; flex-shrink: 0; }
+  .insight-text { font-size: 0.92rem; color: var(--ink); line-height: 1.4; }
+
+  /* KPI grid — auto-flow handles 7 (service) or 9 (ecom) cards equally well */
+  .kpi-grid-8 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 900px) { .kpi-grid-8 { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 540px) { .kpi-grid-8 { grid-template-columns: 1fr; } }
+  .kpi-grid-8 .kpi-card {
+    padding-bottom: 12px;
+    transition: border-color 220ms ease, box-shadow 260ms ease, transform 220ms ease;
+    animation: kpi-rise 600ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-grid-8 .kpi-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 80% 0%, rgba(255,42,60,0.10), transparent 50%);
+    opacity: 0;
+    transition: opacity 260ms;
+    pointer-events: none;
+  }
+  .kpi-grid-8 .kpi-card:hover {
+    border-color: rgba(255,42,60,0.28);
+    box-shadow:
+      0 8px 28px rgba(0,0,0,0.35),
+      0 0 0 1px rgba(255,42,60,0.10),
+      0 0 26px rgba(255,42,60,0.10);
+    transform: translateY(-2px);
+  }
+  .kpi-grid-8 .kpi-card:hover::before { opacity: 1; }
+  .kpi-grid-8 .kpi-card:nth-child(1) { animation-delay: 0ms; }
+  .kpi-grid-8 .kpi-card:nth-child(2) { animation-delay: 60ms; }
+  .kpi-grid-8 .kpi-card:nth-child(3) { animation-delay: 120ms; }
+  .kpi-grid-8 .kpi-card:nth-child(4) { animation-delay: 180ms; }
+  .kpi-grid-8 .kpi-card:nth-child(5) { animation-delay: 240ms; }
+  .kpi-grid-8 .kpi-card:nth-child(6) { animation-delay: 300ms; }
+  .kpi-grid-8 .kpi-card:nth-child(7) { animation-delay: 360ms; }
+  .kpi-grid-8 .kpi-card:nth-child(8) { animation-delay: 420ms; }
+  .kpi-grid-8 .kpi-card:nth-child(9) { animation-delay: 480ms; }
+  @keyframes kpi-rise {
+    from { transform: translateY(14px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .spark { margin-top: 10px; opacity: 0.85; }
+
+  /* Best day callout */
+  .best-day {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(34,201,147,0.08) 0%, rgba(34,201,147,0.02) 100%);
+    border: 1px solid rgba(34,201,147,0.3);
+  }
+  .best-day-icon { font-size: 2.5rem; line-height: 1; flex-shrink: 0; }
+  .best-day-content { flex: 1; min-width: 0; }
+  .best-day-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #22c993;
+    margin-bottom: 4px;
+  }
+  .best-day-headline { font-size: 1.15rem; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+  .best-day-stats { display: flex; gap: 22px; flex-wrap: wrap; color: var(--ink-mute); font-size: 0.92rem; }
+  .best-day-stats strong { color: var(--ink); font-weight: 600; }
+
+  /* Search terms widget */
+  .term-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    gap: 12px;
+  }
+  .term-row:last-child { border-bottom: none; }
+  .term-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .term-meta { color: var(--ink-mute); font-size: 0.78rem; }
+  .term-cost { color: var(--red, #ff2a3c); font-weight: 600; flex-shrink: 0; }
+
   @media (max-width: 768px) {
-    div[style*="grid-template-columns: 1fr 1fr"] {
-      grid-template-columns: 1fr !important;
-    }
+    div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
   }
 </style>

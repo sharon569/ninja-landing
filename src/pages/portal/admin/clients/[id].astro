@@ -24,6 +24,10 @@ if (flashParam === 'user_added') flash = { type: 'success', msg: 'המשתמש �
 if (flashParam === 'visibility_toggled') flash = { type: 'success', msg: 'הנראות עודכנה.' };
 if (flashParam === 'password_changed') flash = { type: 'success', msg: 'הסיסמה עודכנה.' };
 if (flashParam === 'email_changed') flash = { type: 'success', msg: 'המייל עודכן.' };
+if (flashParam === 'task_added') flash = { type: 'success', msg: 'המשימה נוספה.' };
+if (flashParam === 'task_updated') flash = { type: 'success', msg: 'המשימה עודכנה.' };
+if (flashParam === 'task_deleted') flash = { type: 'success', msg: 'המשימה נמחקה.' };
+if (flashParam === 'client_updated') flash = { type: 'success', msg: 'הגדרות הלקוח עודכנו.' };
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
@@ -81,6 +85,51 @@ if (Astro.request.method === 'POST') {
       return Astro.redirect(`/portal/admin/clients/${id}?flash=visibility_toggled`);
     }
 
+    if (action === 'update_client_settings') {
+      const business_name = String(form.get('business_name') ?? '').trim();
+      const vertical = String(form.get('vertical') ?? '').trim() || null;
+      const currency_code = String(form.get('currency_code') ?? '').trim() || 'USD';
+      const status = String(form.get('status') ?? 'active');
+      if (!business_name) throw new Error('שם העסק חובה');
+      if (!['service','ecom','other'].includes(vertical ?? 'other')) throw new Error('תחום לא תקין');
+      if (!['active','paused','archived'].includes(status)) throw new Error('סטטוס לא תקין');
+      await supabase.from('clients').update({
+        business_name, vertical, currency_code, status,
+        updated_at: new Date().toISOString(),
+      }).eq('id', id);
+      return Astro.redirect(`/portal/admin/clients/${id}?flash=client_updated`);
+    }
+
+    if (action === 'add_task') {
+      const title = String(form.get('task_title') ?? '').trim();
+      const description = String(form.get('task_description') ?? '').trim() || null;
+      const priority = String(form.get('task_priority') ?? 'normal');
+      const due_raw = String(form.get('task_due') ?? '').trim();
+      const due_date = due_raw || null;
+      if (!title) throw new Error('כותרת המשימה חובה');
+      await supabase.from('strategy_tasks').insert({
+        client_id: id, title, description, priority, due_date,
+      });
+      return Astro.redirect(`/portal/admin/clients/${id}?flash=task_added`);
+    }
+
+    if (action === 'update_task_status') {
+      const task_id = String(form.get('task_id') ?? '');
+      const status = String(form.get('status') ?? 'open');
+      if (!task_id || !['open','in_progress','done'].includes(status)) throw new Error('סטטוס לא תקין');
+      const patch: any = { status, updated_at: new Date().toISOString() };
+      patch.completed_at = status === 'done' ? new Date().toISOString() : null;
+      await supabase.from('strategy_tasks').update(patch).eq('id', task_id).eq('client_id', id);
+      return Astro.redirect(`/portal/admin/clients/${id}?flash=task_updated`);
+    }
+
+    if (action === 'delete_task') {
+      const task_id = String(form.get('task_id') ?? '');
+      if (!task_id) throw new Error('חסר מזהה משימה');
+      await supabase.from('strategy_tasks').delete().eq('id', task_id).eq('client_id', id);
+      return Astro.redirect(`/portal/admin/clients/${id}?flash=task_deleted`);
+    }
+
     if (action === 'change_password' || action === 'change_email') {
       const target_user_id = String(form.get('target_user_id') ?? '');
       if (!target_user_id) throw new Error('חסר מזהה משתמש');
@@ -121,7 +170,7 @@ if (Astro.request.method === 'POST') {
 // Load all data for the client
 const { data: client } = await supabase
   .from('clients')
-  .select('id, business_name, vertical, google_ads_customer_id, primary_contact_email, status, created_at')
+  .select('id, business_name, vertical, google_ads_customer_id, primary_contact_email, status, currency_code, created_at')
   .eq('id', id).maybeSingle();
 if (!client) return Astro.redirect('/portal/admin?error=client_not_found');
 
@@ -136,6 +185,28 @@ const { data: changes } = await supabase
 const { data: reports } = await supabase
   .from('reports').select('id, type, report_date, title, visible_to_client, generated_at')
   .eq('client_id', id).order('report_date', { ascending: false });
+
+const { data: tasksRaw } = await supabase
+  .from('strategy_tasks')
+  .select('id, title, description, priority, status, due_date, created_at, completed_at')
+  .eq('client_id', id);
+type Task = {
+  id: string; title: string; description: string | null;
+  priority: 'high' | 'normal' | 'low'; status: 'open' | 'in_progress' | 'done';
+  due_date: string | null; created_at: string; completed_at: string | null;
+};
+const STATUS_RANK: Record<string, number> = { open: 0, in_progress: 1, done: 2 };
+const PRIORITY_RANK: Record<string, number> = { high: 0, normal: 1, low: 2 };
+const tasks: Task[] = ((tasksRaw ?? []) as Task[]).slice().sort((a, b) => {
+  const s = STATUS_RANK[a.status] - STATUS_RANK[b.status];
+  if (s !== 0) return s;
+  const p = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
+  if (p !== 0) return p;
+  if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
+  if (a.due_date) return -1;
+  if (b.due_date) return 1;
+  return a.created_at.localeCompare(b.created_at);
+});
 
 const { data: users } = await supabase
   .from('client_users').select('user_id, role, added_at').eq('client_id', id);
@@ -166,6 +237,50 @@ const usersWithEmail = await Promise.all(
 
   {flash && <div class={`flash ${flash.type}`}>{flash.msg}</div>}
 
+  <!-- Client settings -->
+  <div class="portal-card" style="margin-bottom:24px;">
+    <div class="portal-card-header">
+      <h2>הגדרות לקוח</h2>
+      <span style="color:var(--ink-mute); font-size:0.85rem;">סוג עסק קובע איך הדשבורד מציג נתונים</span>
+    </div>
+    <form method="POST" class="admin-form">
+      <input type="hidden" name="action" value="update_client_settings" />
+      <div class="row">
+        <div class="field">
+          <label for="business_name">שם העסק</label>
+          <input type="text" id="business_name" name="business_name" required value={client.business_name} />
+        </div>
+        <div class="field">
+          <label for="vertical">סוג עסק</label>
+          <select id="vertical" name="vertical">
+            <option value="ecom"    selected={client.vertical === 'ecom'}>eCom — מכירות באתר (Revenue, ROAS, AOV בולטים)</option>
+            <option value="service" selected={client.vertical === 'service'}>שירותי / Lead-gen — שיחות וטפסים (לידים, CPL בולטים, Revenue/ROAS מוסתרים)</option>
+            <option value="other"   selected={!client.vertical || client.vertical === 'other'}>אחר / מעורב</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="currency_code">מטבע</label>
+          <select id="currency_code" name="currency_code">
+            {['USD','ILS','EUR','GBP'].map(c => (
+              <option value={c} selected={(client.currency_code ?? 'USD') === c}>{c}</option>
+            ))}
+          </select>
+        </div>
+        <div class="field">
+          <label for="status">סטטוס</label>
+          <select id="status" name="status">
+            <option value="active"   selected={client.status === 'active'}>פעיל</option>
+            <option value="paused"   selected={client.status === 'paused'}>מושהה</option>
+            <option value="archived" selected={client.status === 'archived'}>בארכיון</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit">שמור הגדרות</button>
+    </form>
+  </div>
+
   <!-- Strategy editor -->
   <div class="portal-card" style="margin-bottom:24px;">
     <div class="portal-card-header">
@@ -188,6 +303,97 @@ const usersWithEmail = await Promise.all(
         <span class="help">תומך ב-Markdown: `**bold**`, `# כותרת`, רשימות, טבלאות</span>
       </div>
       <button type="submit">שמור אסטרטגיה</button>
+    </form>
+  </div>
+
+  <!-- Tasks for the client to know about -->
+  <div class="portal-card" style="margin-bottom:24px;">
+    <div class="portal-card-header">
+      <h2>משימות לפעולה</h2>
+      <span style="color:var(--ink-mute); font-size:0.85rem;">
+        {tasks.filter(t => t.status !== 'done').length} פתוחות · {tasks.filter(t => t.status === 'done').length} סגורות
+      </span>
+    </div>
+
+    {tasks.length > 0 && (
+      <ul class="task-list">
+        {tasks.map(t => (
+          <li class={`task-row task-${t.status} task-prio-${t.priority}`}>
+            <div class="task-main">
+              <div class="task-title-row">
+                <span class={`task-status-dot status-${t.status}`} aria-label={t.status}></span>
+                <span class="task-title">{t.title}</span>
+                <span class={`task-prio-badge prio-${t.priority}`}>
+                  {t.priority === 'high' ? 'גבוה' : t.priority === 'low' ? 'נמוך' : 'רגיל'}
+                </span>
+                {t.due_date && (
+                  <span class="task-due">📅 {new Date(t.due_date + 'T00:00:00Z').toLocaleDateString('he-IL')}</span>
+                )}
+              </div>
+              {t.description && <div class="task-desc">{t.description}</div>}
+            </div>
+            <div class="task-actions">
+              {t.status !== 'open' && (
+                <form method="POST" style="margin:0;">
+                  <input type="hidden" name="action" value="update_task_status" />
+                  <input type="hidden" name="task_id" value={t.id} />
+                  <input type="hidden" name="status" value="open" />
+                  <button type="submit" class="task-btn" title="פתח מחדש">○</button>
+                </form>
+              )}
+              {t.status !== 'in_progress' && (
+                <form method="POST" style="margin:0;">
+                  <input type="hidden" name="action" value="update_task_status" />
+                  <input type="hidden" name="task_id" value={t.id} />
+                  <input type="hidden" name="status" value="in_progress" />
+                  <button type="submit" class="task-btn" title="בעבודה">◐</button>
+                </form>
+              )}
+              {t.status !== 'done' && (
+                <form method="POST" style="margin:0;">
+                  <input type="hidden" name="action" value="update_task_status" />
+                  <input type="hidden" name="task_id" value={t.id} />
+                  <input type="hidden" name="status" value="done" />
+                  <button type="submit" class="task-btn task-btn-done" title="סיים">✓</button>
+                </form>
+              )}
+              <form method="POST" style="margin:0;" onsubmit="return confirm('למחוק את המשימה?');">
+                <input type="hidden" name="action" value="delete_task" />
+                <input type="hidden" name="task_id" value={t.id} />
+                <button type="submit" class="task-btn task-btn-del" title="מחק">🗑</button>
+              </form>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+
+    <h3 style="font-family:Rubik; font-size:1rem; margin: 18px 0 12px;">הוסף משימה</h3>
+    <form method="POST" class="admin-form">
+      <input type="hidden" name="action" value="add_task" />
+      <div class="field">
+        <label for="task_title">כותרת *</label>
+        <input type="text" id="task_title" name="task_title" required placeholder="לבדוק קופי PMax אחרי שבועיים" />
+      </div>
+      <div class="field">
+        <label for="task_description">פירוט (אופציונלי)</label>
+        <textarea id="task_description" name="task_description" style="min-height:60px;" placeholder="פירוט קצר של המשימה..."></textarea>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="task_priority">דחיפות</label>
+          <select id="task_priority" name="task_priority">
+            <option value="high">גבוה</option>
+            <option value="normal" selected>רגיל</option>
+            <option value="low">נמוך</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="task_due">תאריך יעד (אופציונלי)</label>
+          <input type="date" id="task_due" name="task_due" />
+        </div>
+      </div>
+      <button type="submit">הוסף משימה</button>
     </form>
   </div>
 
@@ -350,3 +556,61 @@ const usersWithEmail = await Promise.all(
   </div>
 
 </PortalLayout>
+
+<style>
+  .task-list { list-style: none; padding: 0; margin: 0 0 12px; }
+  .task-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: rgba(255,255,255,0.02);
+    align-items: flex-start;
+  }
+  .task-row.task-done { opacity: 0.55; }
+  .task-row.task-prio-high:not(.task-done) { border-right: 3px solid #ff2a3c; }
+  .task-row.task-prio-normal:not(.task-done) { border-right: 3px solid rgba(255,255,255,0.12); }
+  .task-row.task-prio-low:not(.task-done) { border-right: 3px solid rgba(255,255,255,0.06); }
+
+  .task-main { min-width: 0; }
+  .task-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .task-title { font-weight: 500; color: var(--ink); }
+  .task-row.task-done .task-title { text-decoration: line-through; color: var(--ink-mute); }
+  .task-desc { color: var(--ink-mute); font-size: 0.86rem; margin-top: 4px; }
+  .task-due { color: var(--ink-mute); font-size: 0.78rem; }
+
+  .task-status-dot {
+    width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+    border: 1.5px solid currentColor;
+  }
+  .task-status-dot.status-open { color: var(--ink-mute); background: transparent; }
+  .task-status-dot.status-in_progress { color: var(--gold); background: var(--gold); }
+  .task-status-dot.status-done { color: #22c993; background: #22c993; }
+
+  .task-prio-badge {
+    padding: 2px 7px; border-radius: 4px; font-size: 0.7rem; font-weight: 500;
+    letter-spacing: 0.4px; text-transform: uppercase;
+  }
+  .prio-high   { background: rgba(255,42,60,0.12);  color: #ff2a3c; border: 1px solid rgba(255,42,60,0.3); }
+  .prio-normal { background: rgba(255,255,255,0.04); color: var(--ink-mute); border: 1px solid var(--line); }
+  .prio-low    { background: rgba(255,255,255,0.02); color: var(--ink-mute); border: 1px solid var(--line); opacity: 0.7; }
+
+  .task-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .task-btn {
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    width: 30px; height: 30px;
+    cursor: pointer;
+    color: var(--ink-mute);
+    font-size: 0.95rem;
+    padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .task-btn:hover { background: rgba(255,255,255,0.04); color: var(--ink); }
+  .task-btn-done:hover { color: #22c993; border-color: rgba(34,201,147,0.4); }
+  .task-btn-del:hover { color: #ff2a3c; border-color: rgba(255,42,60,0.4); }
+</style>

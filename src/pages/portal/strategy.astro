@@ -1,7 +1,27 @@
 ---
+/**
+ * Strategy / Progress page — the central tracker for what NINJA is doing for the client.
+ * Shows three layers in order:
+ *   1. Strategy intent — the markdown doc Sharon writes (vision / KPIs / approach)
+ *   2. Progress stats + improvement trend (impact of work done so far)
+ *   3. Action board — 3 columns: Done / In progress / Pending (split by priority)
+ *
+ * Data sources:
+ *   - `strategies` table          — markdown doc (latest version per client)
+ *   - `strategy_tasks` table      — checklist items (open/in_progress/done, priority, due_date)
+ *   - `change_log` (visible_to_client=true) — actual mutations made on the campaigns
+ *   - `kpi_snapshots`             — daily metrics for before/after comparison
+ *
+ * Self-documenting note: the goal of this page is to make progress legible
+ * to Sharon, the agency assistant (Claude), and the client — all three.
+ * If you're reading this without memory, the action board + trend section
+ * tell you everything you need to pick up where things left off.
+ */
+
 import PortalLayout from '../../layouts/PortalLayout.astro';
 import { createSupabaseServerClient } from '../../lib/supabase';
 import { renderMarkdown } from '../../lib/markdown';
+import { fmtMoney } from '../../lib/format';
 
 export const prerender = false;
 
@@ -11,36 +31,322 @@ if (!user) return Astro.redirect('/portal/login');
 
 const { data: clientLink } = await supabase
   .from('client_users')
-  .select('client_id, clients!inner(id, business_name)')
+  .select('client_id, clients!inner(id, business_name, vertical, currency_code)')
   .eq('user_id', user.id).maybeSingle();
 
-const client = (clientLink?.clients ?? null) as { id: string; business_name: string } | null;
+const client = (clientLink?.clients ?? null) as
+  | { id: string; business_name: string; vertical: string | null; currency_code: string | null }
+  | null;
 if (!client) return Astro.redirect('/portal/login?error=no_client_assigned');
 
-const { data: strategy } = await supabase
-  .from('strategies')
-  .select('title, content_md, version, updated_at')
-  .eq('client_id', client.id)
-  .order('updated_at', { ascending: false })
-  .limit(1).maybeSingle();
+const currency = client.currency_code ?? 'USD';
+const isService = client.vertical === 'service';
+
+// ----- Parallel fetches -----
+const [
+  { data: strategy },
+  { data: tasksRaw },
+  { data: firstChange },
+  { data: changeRows },
+] = await Promise.all([
+  supabase.from('strategies')
+    .select('title, content_md, version, updated_at')
+    .eq('client_id', client.id)
+    .order('updated_at', { ascending: false })
+    .limit(1).maybeSingle(),
+  supabase.from('strategy_tasks')
+    .select('id, title, description, priority, status, due_date, created_at, completed_at')
+    .eq('client_id', client.id),
+  supabase.from('change_log')
+    .select('occurred_at')
+    .eq('client_id', client.id)
+    .eq('visible_to_client', true)
+    .order('occurred_at', { ascending: true })
+    .limit(1).maybeSingle(),
+  supabase.from('change_log')
+    .select('id, occurred_at, category')
+    .eq('client_id', client.id)
+    .eq('visible_to_client', true),
+]);
+
+type Task = {
+  id: string; title: string; description: string | null;
+  priority: 'high' | 'normal' | 'low'; status: 'open' | 'in_progress' | 'done';
+  due_date: string | null; created_at: string; completed_at: string | null;
+};
+const PRIORITY_RANK: Record<string, number> = { high: 0, normal: 1, low: 2 };
+
+const allTasks: Task[] = (tasksRaw ?? []) as Task[];
+const doneTasks = allTasks
+  .filter(t => t.status === 'done')
+  .sort((a, b) => (b.completed_at ?? '').localeCompare(a.completed_at ?? ''));
+const progressTasks = allTasks
+  .filter(t => t.status === 'in_progress')
+  .sort((a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]);
+const pendingTasks = allTasks
+  .filter(t => t.status === 'open')
+  .sort((a, b) => {
+    const p = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
+    if (p !== 0) return p;
+    if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
+    if (a.due_date) return -1;
+    if (b.due_date) return 1;
+    return a.created_at.localeCompare(b.created_at);
+  });
+
+const totalChanges = (changeRows ?? []).length;
+const today = new Date().toISOString().slice(0, 10);
+const isOverdue = (d: string | null) => !!d && d < today;
+
+// ----- Improvement trend -----
+function shift(yyyymmdd: string, deltaDays: number): string {
+  const d = new Date(yyyymmdd + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + deltaDays);
+  return d.toISOString().slice(0, 10);
+}
+
+let trend: any = null;
+if (firstChange?.occurred_at) {
+  const intervention = String(firstChange.occurred_at).slice(0, 10);
+  const dayDiff = Math.floor(
+    (new Date(today + 'T00:00:00Z').getTime() - new Date(intervention + 'T00:00:00Z').getTime()) / 86400000
+  );
+  const windowDays = Math.min(Math.max(dayDiff, 0), 30);
+  if (windowDays >= 1) {
+    const beforeStart = shift(intervention, -windowDays);
+    const beforeEnd   = shift(intervention, -1);
+    const afterStart  = intervention;
+    const afterEnd    = shift(intervention, windowDays - 1);
+    const [{ data: beforeRows }, { data: afterRows }] = await Promise.all([
+      supabase.from('kpi_snapshots').select('clicks, impressions, conversions, conversions_value, cost')
+        .eq('client_id', client.id).gte('date', beforeStart).lte('date', beforeEnd),
+      supabase.from('kpi_snapshots').select('clicks, impressions, conversions, conversions_value, cost')
+        .eq('client_id', client.id).gte('date', afterStart).lte('date', afterEnd),
+    ]);
+    const sum = (rows: any[], k: string) => (rows ?? []).reduce((a, r) => a + Number(r[k] ?? 0), 0);
+    const ag = (rows: any[]) => {
+      const impressions = sum(rows, 'impressions');
+      const clicks = sum(rows, 'clicks');
+      const conversions = sum(rows, 'conversions');
+      const cost = sum(rows, 'cost');
+      const conv_value = sum(rows, 'conversions_value');
+      return {
+        impressions, clicks, conversions, cost, conv_value,
+        ctr: impressions ? clicks / impressions : 0,
+        cvr: clicks ? conversions / clicks : 0,
+        cpa: conversions ? cost / conversions : 0,
+        roas: cost ? conv_value / cost : 0,
+      };
+    };
+    trend = {
+      interventionDate: intervention, daysAfter: dayDiff, windowDays,
+      before: ag(beforeRows ?? []), after: ag(afterRows ?? []),
+    };
+  } else {
+    trend = { interventionDate: intervention, daysAfter: dayDiff, windowDays: 0, before: null, after: null };
+  }
+}
 
 const html = strategy ? renderMarkdown(strategy.content_md) : '';
+
+const pctDelta = (now: number, p: number) => (!p ? null : ((now - p) / p) * 100);
+const fmtPct1 = (v: number | null) => v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
+
+// Trend metrics (vertical-aware)
+const trendMetrics = isService
+  ? [
+      { label: 'לידים',  key: 'conversions', fmt: (v: number) => v.toFixed(0), inverse: false },
+      { label: 'CTR',     key: 'ctr',         fmt: (v: number) => `${(v*100).toFixed(2)}%`, inverse: false },
+      { label: 'CvR',     key: 'cvr',         fmt: (v: number) => `${(v*100).toFixed(2)}%`, inverse: false },
+      { label: 'CPL',     key: 'cpa',         fmt: (v: number) => v ? fmtMoney(v, currency) : '—', inverse: true },
+      { label: 'הוצאה',  key: 'cost',        fmt: (v: number) => fmtMoney(v, currency), inverse: true },
+      { label: 'קליקים', key: 'clicks',      fmt: (v: number) => v.toFixed(0), inverse: false },
+    ]
+  : [
+      { label: 'מכירות', key: 'conv_value',  fmt: (v: number) => fmtMoney(v, currency), inverse: false },
+      { label: 'המרות',  key: 'conversions', fmt: (v: number) => v.toFixed(0), inverse: false },
+      { label: 'CTR',     key: 'ctr',         fmt: (v: number) => `${(v*100).toFixed(2)}%`, inverse: false },
+      { label: 'CvR',     key: 'cvr',         fmt: (v: number) => `${(v*100).toFixed(2)}%`, inverse: false },
+      { label: 'CPA',     key: 'cpa',         fmt: (v: number) => v ? fmtMoney(v, currency) : '—', inverse: true },
+      { label: 'ROAS',    key: 'roas',        fmt: (v: number) => v ? `${v.toFixed(2)}x` : '—', inverse: false },
+    ];
 ---
 
 <PortalLayout title={`אסטרטגיה — ${client.business_name}`} user={user} clientName={client.business_name}>
 
+  <!-- Header -->
   <div class="portal-page-header">
-    <h1>{strategy?.title ?? 'אסטרטגיה'}</h1>
-    {strategy ? (
-      <p>
-        גרסה {strategy.version} · עודכן {new Date(strategy.updated_at).toLocaleDateString('he-IL')}
-      </p>
-    ) : (
-      <p>טרם פורסמה אסטרטגיה</p>
-    )}
+    <h1>{strategy?.title ?? 'אסטרטגיה ומעקב'}</h1>
+    <p>
+      לוח השליטה של מה עשינו, מה בעבודה ומה הבא.
+      {strategy && (
+        <span style="color:var(--ink-mute);">
+          האסטרטגיה גרסה {strategy.version} · עודכנה {new Date(strategy.updated_at).toLocaleDateString('he-IL')}
+        </span>
+      )}
+    </p>
   </div>
 
-  <div class="portal-card">
+  <!-- Top stats -->
+  <div class="task-stats">
+    <div class="task-stat">
+      <div class="task-stat-num">{doneTasks.length}</div>
+      <div class="task-stat-label">משימות בוצעו</div>
+    </div>
+    <div class="task-stat">
+      <div class="task-stat-num task-stat-progress">{progressTasks.length}</div>
+      <div class="task-stat-label">בעבודה כרגע</div>
+    </div>
+    <div class="task-stat">
+      <div class="task-stat-num task-stat-open">{pendingTasks.length}</div>
+      <div class="task-stat-label">ממתינות לטיפול</div>
+    </div>
+    <div class="task-stat">
+      <div class="task-stat-num task-stat-changes">{totalChanges}</div>
+      <div class="task-stat-label">שינויים בקמפיינים</div>
+    </div>
+  </div>
+
+  <!-- Improvement trend -->
+  {trend && (
+    <div class="portal-card trend-card" style="margin-bottom:24px;">
+      <div class="portal-card-header">
+        <h2>השפעה — לפני vs אחרי</h2>
+        <span style="color:var(--ink-mute); font-size:0.85rem;">
+          השינוי הראשון: {new Date(trend.interventionDate + 'T00:00:00Z').toLocaleDateString('he-IL')}
+          {trend.daysAfter > 0 && ` · ${trend.daysAfter} ימים מאז`}
+        </span>
+      </div>
+      {trend.windowDays < 7 ? (
+        <div class="trend-soon">
+          <div class="trend-soon-icon">⏳</div>
+          <div>
+            <div style="font-weight:600; color:var(--ink); margin-bottom:4px;">
+              עוד {Math.max(7 - trend.daysAfter, 0)} ימים להשוואה אמינה
+            </div>
+            <div style="color:var(--ink-mute); font-size:0.92rem;">
+              ל-Smart Bidding נדרש שבוע לפחות כדי להתייצב מחדש אחרי שינוי. נחזור עם השוואה מלאה אז.
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div class="trend-grid">
+          {trendMetrics.map(m => {
+            const before = Number(trend.before[m.key] ?? 0);
+            const after  = Number(trend.after[m.key] ?? 0);
+            const d = pctDelta(after, before);
+            const isGood = d == null ? false : (m.inverse ? d < 0 : d > 0);
+            const isBad  = d == null ? false : (m.inverse ? d > 0 : d < 0);
+            const arrow = d == null ? '·' : (d > 0 ? '↑' : d < 0 ? '↓' : '·');
+            return (
+              <div class={`trend-metric ${isGood ? 'is-good' : isBad ? 'is-bad' : ''}`}>
+                <div class="trend-metric-label">{m.label}</div>
+                <div class="trend-metric-row">
+                  <span class="trend-before">{m.fmt(before)}</span>
+                  <span class="trend-arrow">{arrow}</span>
+                  <span class="trend-after">{m.fmt(after)}</span>
+                </div>
+                <div class="trend-delta">{fmtPct1(d)}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  )}
+
+  <!-- Action board — 3 columns -->
+  <div class="board">
+    <!-- DONE -->
+    <div class="board-col">
+      <div class="board-col-header board-done-header">
+        <span>✅ מה עשינו</span>
+        <span class="board-count">{doneTasks.length}</span>
+      </div>
+      {doneTasks.length === 0 ? (
+        <div class="board-empty">עדיין לא הושלמו משימות.</div>
+      ) : (
+        <ul class="board-list">
+          {doneTasks.map(t => (
+            <li class="board-item board-item-done">
+              <div class="board-item-title">{t.title}</div>
+              {t.description && <div class="board-item-desc">{t.description}</div>}
+              {t.completed_at && (
+                <div class="board-item-meta">
+                  בוצע {new Date(t.completed_at).toLocaleDateString('he-IL')}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+
+    <!-- IN PROGRESS -->
+    <div class="board-col">
+      <div class="board-col-header board-progress-header">
+        <span>⏳ אנחנו על זה</span>
+        <span class="board-count">{progressTasks.length}</span>
+      </div>
+      {progressTasks.length === 0 ? (
+        <div class="board-empty">אין משימות בעבודה כרגע.</div>
+      ) : (
+        <ul class="board-list">
+          {progressTasks.map(t => (
+            <li class={`board-item board-item-progress board-prio-${t.priority}`}>
+              <div class="board-item-title-row">
+                <span class="board-item-title">{t.title}</span>
+                {t.priority === 'high' && <span class="prio-tag prio-high">דחוף</span>}
+              </div>
+              {t.description && <div class="board-item-desc">{t.description}</div>}
+              {t.due_date && (
+                <div class={`board-item-meta ${isOverdue(t.due_date) ? 'is-overdue' : ''}`}>
+                  📅 יעד {new Date(t.due_date + 'T00:00:00Z').toLocaleDateString('he-IL')}
+                  {isOverdue(t.due_date) && ' (באיחור)'}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+
+    <!-- PENDING -->
+    <div class="board-col">
+      <div class="board-col-header board-pending-header">
+        <span>📋 ממתין לתור</span>
+        <span class="board-count">{pendingTasks.length}</span>
+      </div>
+      {pendingTasks.length === 0 ? (
+        <div class="board-empty">תור משימות ריק.</div>
+      ) : (
+        <ul class="board-list">
+          {pendingTasks.map(t => (
+            <li class={`board-item board-item-pending board-prio-${t.priority}`}>
+              <div class="board-item-title-row">
+                <span class="board-item-title">{t.title}</span>
+                {t.priority === 'high' && <span class="prio-tag prio-high">דחוף</span>}
+                {t.priority === 'low' && <span class="prio-tag prio-low">לעתיד</span>}
+              </div>
+              {t.description && <div class="board-item-desc">{t.description}</div>}
+              {t.due_date && (
+                <div class={`board-item-meta ${isOverdue(t.due_date) ? 'is-overdue' : ''}`}>
+                  📅 יעד {new Date(t.due_date + 'T00:00:00Z').toLocaleDateString('he-IL')}
+                  {isOverdue(t.due_date) && ' (באיחור)'}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </div>
+
+  <!-- Strategy markdown body -->
+  <div class="portal-card" style="margin-top:24px;">
+    <div class="portal-card-header">
+      <h2>מסמך האסטרטגיה</h2>
+    </div>
     {strategy ? (
       <div class="portal-prose" set:html={html}></div>
     ) : (
@@ -51,3 +357,151 @@ const html = strategy ? renderMarkdown(strategy.content_md) : '';
   </div>
 
 </PortalLayout>
+
+<style>
+  /* Tasks summary stats */
+  .task-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 720px) { .task-stats { grid-template-columns: repeat(2, 1fr); } }
+  .task-stat {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 16px;
+    text-align: center;
+    transition: border-color 200ms, transform 200ms;
+  }
+  .task-stat:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-2px); }
+  .task-stat-num {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #22c993;
+    font-family: Rubik, sans-serif;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .task-stat-num.task-stat-progress { color: var(--gold); }
+  .task-stat-num.task-stat-open { color: var(--ink-mute); }
+  .task-stat-num.task-stat-changes { color: #ff2a3c; }
+  .task-stat-label { color: var(--ink-mute); font-size: 0.86rem; }
+
+  /* Trend card */
+  .trend-card {
+    background: linear-gradient(135deg, rgba(34,201,147,0.04), rgba(255,42,60,0.02) 100%);
+  }
+  .trend-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 720px) { .trend-grid { grid-template-columns: repeat(2, 1fr); } }
+  .trend-metric {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .trend-metric.is-good { border-color: rgba(34,201,147,0.3); background: rgba(34,201,147,0.04); }
+  .trend-metric.is-bad  { border-color: rgba(255,42,60,0.3);  background: rgba(255,42,60,0.04); }
+  .trend-metric-label {
+    color: var(--ink-mute); font-size: 0.78rem; text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 8px;
+  }
+  .trend-metric-row {
+    display: flex; align-items: center; gap: 10px;
+    font-family: Rubik, sans-serif; font-weight: 600; color: var(--ink);
+  }
+  .trend-before { color: var(--ink-mute); font-weight: 500; }
+  .trend-arrow { color: var(--ink-mute); }
+  .trend-metric.is-good .trend-arrow { color: #22c993; }
+  .trend-metric.is-bad  .trend-arrow { color: #ff2a3c; }
+  .trend-after { color: var(--ink); }
+  .trend-delta { margin-top: 6px; font-size: 0.85rem; font-weight: 500; color: var(--ink-mute); }
+  .trend-metric.is-good .trend-delta { color: #22c993; }
+  .trend-metric.is-bad  .trend-delta { color: #ff2a3c; }
+  .trend-soon {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 16px; background: rgba(255,255,255,0.02);
+    border: 1px dashed var(--line); border-radius: 10px;
+  }
+  .trend-soon-icon { font-size: 1.6rem; flex-shrink: 0; }
+
+  /* Action board (Kanban) */
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 1024px) { .board { grid-template-columns: 1fr; } }
+
+  .board-col {
+    background: rgba(255,255,255,0.015);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+  }
+  .board-col-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 4px 14px;
+    font-weight: 600; color: var(--ink); font-size: 1rem;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 12px;
+  }
+  .board-count {
+    background: rgba(255,255,255,0.06); padding: 2px 9px;
+    border-radius: 999px; font-size: 0.78rem; color: var(--ink-mute); font-weight: 500;
+  }
+  .board-done-header     { color: #22c993; }
+  .board-progress-header { color: var(--gold); }
+  .board-pending-header  { color: var(--ink-dim); }
+
+  .board-list { list-style: none; padding: 0; margin: 0; flex: 1; }
+  .board-item {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 11px 12px;
+    margin-bottom: 8px;
+  }
+  .board-item-done { opacity: 0.7; }
+  .board-item-progress { border-color: rgba(255,209,102,0.25); }
+  .board-item-progress.board-prio-high { border-color: rgba(255,42,60,0.4); border-right: 3px solid #ff2a3c; }
+  .board-item-pending.board-prio-high  { border-right: 3px solid #ff2a3c; }
+  .board-item-pending.board-prio-low   { opacity: 0.65; }
+  .board-item-title-row {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .board-item-title { font-weight: 500; color: var(--ink); }
+  .board-item-done .board-item-title {
+    text-decoration: line-through; color: var(--ink-mute); font-weight: 400;
+  }
+  .board-item-desc {
+    color: var(--ink-mute); font-size: 0.86rem; line-height: 1.45; margin-top: 5px;
+  }
+  .board-item-meta {
+    color: var(--ink-mute); font-size: 0.78rem; margin-top: 6px;
+  }
+  .board-item-meta.is-overdue { color: #ff2a3c; }
+  .prio-tag {
+    padding: 1px 7px; border-radius: 4px; font-size: 0.7rem;
+    font-weight: 500; letter-spacing: 0.4px;
+  }
+  .prio-tag.prio-high {
+    background: rgba(255,42,60,0.12); color: #ff2a3c; border: 1px solid rgba(255,42,60,0.3);
+  }
+  .prio-tag.prio-low {
+    background: rgba(255,255,255,0.04); color: var(--ink-mute); border: 1px solid var(--line);
+  }
+  .board-empty {
+    color: var(--ink-mute); font-size: 0.88rem;
+    padding: 18px 12px; text-align: center;
+    border: 1px dashed var(--line); border-radius: 8px;
+  }
+</style>

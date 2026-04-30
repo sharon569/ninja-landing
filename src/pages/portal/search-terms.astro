@@ -1,0 +1,274 @@
+---
+import PortalLayout from '../../layouts/PortalLayout.astro';
+import { createSupabaseServerClient } from '../../lib/supabase';
+import { fmtMoney } from '../../lib/format';
+
+export const prerender = false;
+
+const supabase = createSupabaseServerClient({ cookies: Astro.cookies, request: Astro.request });
+const { data: { user } } = await supabase.auth.getUser();
+if (!user) return Astro.redirect('/portal/login');
+
+const { data: clientLink } = await supabase
+  .from('client_users')
+  .select('client_id, clients!inner(id, business_name, currency_code)')
+  .eq('user_id', user.id).maybeSingle();
+
+const client = (clientLink?.clients ?? null) as
+  | { id: string; business_name: string; currency_code: string | null } | null;
+if (!client) return Astro.redirect('/portal/login?error=no_client_assigned');
+
+const currency = client.currency_code ?? 'USD';
+
+// Latest snapshot for this client
+const { data: snapshot } = await supabase
+  .from('search_terms_snapshot')
+  .select('snapshot_date, top_ngrams, recommended_negatives')
+  .eq('client_id', client.id)
+  .order('snapshot_date', { ascending: false })
+  .limit(1).maybeSingle();
+
+interface Ngram {
+  ngram: string; n: number; cost: number; clicks: number;
+  conversions: number; term_count: number; samples: string[];
+}
+interface Negative { text: string; match_type: 'PHRASE' | 'EXACT'; cost: number; }
+
+const topNgrams = (snapshot?.top_ngrams as Ngram[] | undefined) ?? [];
+const negatives = (snapshot?.recommended_negatives as Negative[] | undefined) ?? [];
+const totalWasted = negatives.reduce((s, n) => s + Number(n.cost ?? 0), 0);
+const exactCount = negatives.filter(n => n.match_type === 'EXACT').length;
+const phraseCount = negatives.filter(n => n.match_type === 'PHRASE').length;
+
+// Snapshot freshness
+const snapDate = snapshot?.snapshot_date as string | undefined;
+const ageDays = snapDate
+  ? Math.floor((Date.now() - new Date(snapDate + 'T00:00:00Z').getTime()) / 86400000)
+  : null;
+const isStale = ageDays != null && ageDays > 7;
+---
+
+<PortalLayout title={`${client.business_name} — מילות חיפוש`} user={user} clientName={client.business_name}>
+
+  <div class="portal-page-header">
+    <h1>מילות חיפוש</h1>
+    <p>
+      ניתוח n-gram של מילות חיפוש מהקמפיינים — זיהוי דפוסים בזבזניים והמלצות ל-negatives.
+      {snapDate && (
+        <>
+          {' '}snapshot מ-<span style="font-family:monospace; color:var(--ink);">{snapDate}</span>
+          {ageDays != null && ageDays > 0 && <span style="color:var(--ink-mute);"> · לפני {ageDays} ימים</span>}
+        </>
+      )}
+    </p>
+  </div>
+
+  {!snapshot ? (
+    <div class="flash" style="background:rgba(255,209,102,0.06); border:1px solid rgba(255,209,102,0.3); color:var(--gold);">
+      אין snapshot עדיין. NINJA תעלה תמונת מצב ראשונה בקרוב.
+    </div>
+  ) : (
+    <>
+      {isStale && (
+        <div class="flash" style="background:rgba(255,209,102,0.06); border:1px solid rgba(255,209,102,0.3); color:var(--gold); margin-bottom:24px;">
+          ⚠ ה-snapshot ישן מ-7 ימים — שווה לרענן.
+        </div>
+      )}
+
+      <!-- Hero stats -->
+      <div class="kpi-grid" style="margin-bottom:32px;">
+        <div class="kpi-card">
+          <div class="kpi-label">בזבוז מזוהה</div>
+          <div class="kpi-value" style="color:var(--red, #ff2a3c);">{fmtMoney(totalWasted, currency)}</div>
+          <div class="kpi-delta flat">cost על מילים ללא המרות</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">דפוסים בזבזניים</div>
+          <div class="kpi-value">{topNgrams.length}</div>
+          <div class="kpi-delta flat">n-grams זוהו</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Negatives מומלצים</div>
+          <div class="kpi-value">{negatives.length}</div>
+          <div class="kpi-delta flat">{exactCount} EXACT · {phraseCount} PHRASE</div>
+        </div>
+      </div>
+
+      <!-- Top wasteful patterns -->
+      <div class="portal-card" style="margin-bottom:24px;">
+        <div class="portal-card-header">
+          <h2>דפוסים בזבזניים</h2>
+          <span style="color:var(--ink-mute); font-size:0.85rem;">Top {topNgrams.length} לפי הוצאה</span>
+        </div>
+        {topNgrams.length === 0 ? (
+          <div class="portal-empty">לא נמצאו דפוסי בזבוז משמעותיים.</div>
+        ) : (
+          <div class="terms-table-wrap">
+            <table class="terms-table">
+              <thead>
+                <tr>
+                  <th>n-gram</th>
+                  <th>n</th>
+                  <th style="text-align:left;">הוצאה</th>
+                  <th style="text-align:left;">קליקים</th>
+                  <th style="text-align:left;">מונחים שונים</th>
+                  <th>דוגמה</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topNgrams.map(ng => (
+                  <tr>
+                    <td style="font-family:monospace; color:var(--ink);">{ng.ngram}</td>
+                    <td><span class="n-badge">{ng.n}</span></td>
+                    <td style="text-align:left; color:var(--red, #ff2a3c); font-weight:600;">{fmtMoney(Number(ng.cost), currency)}</td>
+                    <td style="text-align:left;">{ng.clicks}</td>
+                    <td style="text-align:left;">{ng.term_count}</td>
+                    <td style="color:var(--ink-mute); font-size:0.85rem;">{ng.samples?.[0] ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <!-- Recommended negatives -->
+      <div class="portal-card">
+        <div class="portal-card-header">
+          <h2>Negatives מומלצים</h2>
+          <button id="copyAllBtn" class="secondary" style="font-size:0.82rem;">העתק הכל</button>
+        </div>
+        {negatives.length === 0 ? (
+          <div class="portal-empty">אין המלצות.</div>
+        ) : (
+          <ul style="list-style:none; padding:0; margin:0;">
+            {negatives.map(neg => (
+              <li class="neg-row">
+                <div class="neg-text">
+                  <span class="neg-keyword">{neg.text}</span>
+                  <span class={`neg-tag neg-tag-${neg.match_type.toLowerCase()}`}>{neg.match_type}</span>
+                </div>
+                <div class="neg-cost">{fmtMoney(Number(neg.cost), currency)}</div>
+                <button class="neg-copy" data-copy={`${neg.match_type}\t${neg.text}`} aria-label="העתק">📋</button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p style="color:var(--ink-mute); font-size:0.85rem; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+          העתק (כל אחד או הכל), הדבק ב-Google Ads → Tools → Shared library → Negative keyword lists.
+          MATCH TYPE קובע את ה-scope של החסימה — PHRASE חוסם כל variation, EXACT חוסם רק את הטקסט המדויק.
+        </p>
+      </div>
+    </>
+  )}
+
+</PortalLayout>
+
+<script>
+  // Per-row copy
+  document.querySelectorAll<HTMLButtonElement>('.neg-copy').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const txt = btn.dataset.copy ?? '';
+      try {
+        await navigator.clipboard.writeText(txt);
+        btn.textContent = '✓';
+        setTimeout(() => { btn.textContent = '📋'; }, 1200);
+      } catch {
+        alert('לא הצליח להעתיק');
+      }
+    });
+  });
+
+  // Copy-all
+  const copyAll = document.getElementById('copyAllBtn');
+  if (copyAll) {
+    copyAll.addEventListener('click', async () => {
+      const lines = Array.from(document.querySelectorAll<HTMLButtonElement>('.neg-copy'))
+        .map(b => b.dataset.copy ?? '');
+      try {
+        await navigator.clipboard.writeText(lines.join('\n'));
+        const orig = copyAll.textContent;
+        copyAll.textContent = '✓ הועתק';
+        setTimeout(() => { copyAll.textContent = orig ?? 'העתק הכל'; }, 1500);
+      } catch {
+        alert('לא הצליח להעתיק');
+      }
+    });
+  }
+</script>
+
+<style>
+  .terms-table-wrap { overflow-x: auto; }
+  .terms-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  .terms-table th {
+    text-align: right;
+    color: var(--ink-mute);
+    font-weight: 500;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .terms-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-dim);
+  }
+  .terms-table tr:last-child td { border-bottom: none; }
+  .terms-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .n-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    color: var(--ink-mute);
+    font-family: monospace;
+    font-size: 0.78rem;
+  }
+
+  /* Negatives list */
+  .neg-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .neg-row:last-child { border-bottom: none; }
+  .neg-text { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .neg-keyword {
+    font-family: monospace;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .neg-tag {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.4px;
+  }
+  .neg-tag-exact  { background: rgba(91,141,239,0.12);  color: #5b8def; border: 1px solid rgba(91,141,239,0.3); }
+  .neg-tag-phrase { background: rgba(255,209,102,0.12); color: var(--gold); border: 1px solid rgba(255,209,102,0.3); }
+  .neg-cost { color: var(--red, #ff2a3c); font-weight: 600; flex-shrink: 0; }
+  .neg-copy {
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--ink-mute);
+    transition: background 120ms, color 120ms, border-color 120ms;
+  }
+  .neg-copy:hover { background: rgba(255,255,255,0.04); color: var(--ink); border-color: rgba(255,255,255,0.2); }
+</style>
