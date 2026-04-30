@@ -1,0 +1,73 @@
+---
+import PortalLayout from '../../../layouts/PortalLayout.astro';
+import { createSupabaseServerClient } from '../../../lib/supabase';
+
+export const prerender = false;
+
+const supabase = createSupabaseServerClient({ cookies: Astro.cookies, request: Astro.request });
+const { data: { user } } = await supabase.auth.getUser();
+if (!user) return Astro.redirect('/portal/login');
+
+const { data: clientLink } = await supabase
+  .from('client_users')
+  .select('client_id, clients!inner(id, business_name)')
+  .eq('user_id', user.id).maybeSingle();
+
+const client = (clientLink?.clients ?? null) as { id: string; business_name: string } | null;
+if (!client) return Astro.redirect('/portal/login?error=no_client_assigned');
+
+// Filter by type if specified
+const typeFilter = Astro.url.searchParams.get('type');
+let query = supabase
+  .from('reports')
+  .select('id, type, report_date, title, generated_at')
+  .eq('client_id', client.id)
+  .eq('visible_to_client', true)
+  .order('report_date', { ascending: false });
+if (typeFilter) query = query.eq('type', typeFilter);
+const { data: reports } = await query;
+
+// Distinct types for filter chips
+const allTypes = [...new Set((reports ?? []).map(r => r.type))];
+---
+
+<PortalLayout title={`דוחות — ${client.business_name}`} user={user} clientName={client.business_name}>
+
+  <div class="portal-page-header">
+    <h1>דוחות</h1>
+    <p>{reports?.length ?? 0} דוחות זמינים</p>
+  </div>
+
+  {allTypes.length > 1 && (
+    <div style="display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap;">
+      <a href="/portal/reports" class={`portal-nav-link ${!typeFilter ? 'active' : ''}`}>הכל</a>
+      {allTypes.map(t => (
+        <a href={`/portal/reports?type=${t}`} class={`portal-nav-link ${typeFilter === t ? 'active' : ''}`}>{t}</a>
+      ))}
+    </div>
+  )}
+
+  <div class="portal-card">
+    {reports && reports.length > 0 ? (
+      <ul style="list-style:none; padding:0; margin:0;">
+        {reports.map(r => (
+          <li style="padding:18px 0; border-bottom:1px solid var(--line);">
+            <a href={`/portal/reports/${r.id}`} style="display:flex; justify-content:space-between; align-items:center; gap:12px; color:var(--ink); text-decoration:none;">
+              <div>
+                <div style="font-weight:600; font-size:1.05rem;">{r.title}</div>
+                <div style="color:var(--ink-mute); font-size:0.85rem; margin-top:4px;">
+                  <span style="color:var(--gold); font-family:monospace; font-size:0.78rem; text-transform:uppercase;">{r.type}</span>
+                  · {r.report_date}
+                </div>
+              </div>
+              <span style="color:var(--ink-mute); font-size:1.2rem;">←</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <div class="portal-empty">אין דוחות עדיין</div>
+    )}
+  </div>
+
+</PortalLayout>

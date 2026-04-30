@@ -1,0 +1,663 @@
+/* ============================================================================
+   NINJA Digital — Client Portal Styles
+   Reuses tokens from global.css. Dark-only, RTL Hebrew.
+   ============================================================================ */
+
+/* Restore native cursor in the portal (the public site's custom cursor JS
+   isn't loaded here — the portal is a utility area, not a marketing surface). */
+.portal-shell,
+.portal-shell *,
+.portal-shell button,
+.portal-shell a,
+.portal-shell input,
+.portal-shell textarea,
+.portal-shell select {
+  cursor: auto;
+}
+.portal-shell a,
+.portal-shell button,
+.portal-shell input[type="submit"],
+.portal-shell .auth-button,
+.portal-shell .portal-signout,
+.portal-shell .portal-card-link {
+  cursor: pointer;
+}
+.portal-shell input[type="text"],
+.portal-shell input[type="email"],
+.portal-shell input[type="password"],
+.portal-shell input[type="tel"],
+.portal-shell textarea {
+  cursor: text;
+}
+
+/* ---------------------------- LAYOUT SHELL ---------------------------- */
+
+.portal-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: var(--bg-0);
+  color: var(--ink);
+}
+
+.portal-shell main {
+  padding: 100px 0 80px;
+}
+
+/* ---------------------------- PORTAL NAV ---------------------------- */
+
+.portal-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: linear-gradient(180deg, rgba(8,9,12,0.92), rgba(8,9,12,0.78));
+  backdrop-filter: blur(24px) saturate(160%);
+  border-bottom: 1px solid var(--line);
+  padding: 18px 0;
+}
+
+.portal-nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.portal-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.portal-nav-brand .logo-mark {
+  width: 32px;
+  height: 32px;
+}
+
+.portal-nav-brand .brand-text {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.portal-nav-brand .brand-text small {
+  display: block;
+  font-family: 'Heebo', sans-serif;
+  font-weight: 400;
+  font-size: 0.7rem;
+  color: var(--ink-mute);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.portal-nav-links {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.portal-nav-link {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  color: var(--ink-dim);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: var(--t-fast);
+}
+
+.portal-nav-link:hover {
+  color: var(--ink);
+  background: rgba(255,255,255,0.04);
+}
+
+.portal-nav-link.active {
+  color: var(--ink);
+  background: rgba(255,42,60,0.10);
+  border: 1px solid rgba(255,42,60,0.3);
+}
+
+.portal-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink-dim);
+  font-size: 0.9rem;
+}
+
+.portal-user strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.portal-signout {
+  background: transparent;
+  border: 0;
+  color: var(--ink-mute);
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: none;
+  padding: 4px 8px;
+  transition: var(--t-fast);
+}
+
+.portal-signout:hover {
+  color: var(--red);
+}
+
+/* ---------------------------- PAGE HEADER ---------------------------- */
+
+.portal-page-header {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.portal-page-header h1 {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 900;
+  font-size: 2.2rem;
+  margin: 0 0 8px;
+  color: var(--ink);
+}
+
+.portal-page-header p {
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: 1rem;
+}
+
+/* ---------------------------- AUTH SCREENS ---------------------------- */
+
+.auth-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 200px);
+  padding: 40px 20px;
+  position: relative;
+}
+
+.auth-screen .auth-decor-kanji {
+  position: absolute;
+  top: 50%;
+  right: 50%;
+  transform: translate(50%, -50%);
+  font-family: 'Noto Serif JP', serif;
+  font-weight: 900;
+  font-size: 32rem;
+  color: rgba(255,42,60,0.025);
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+.auth-card {
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(135deg, rgba(15,17,22,0.96), rgba(8,9,12,0.96));
+  backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-lg);
+  padding: 48px 40px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 40px 120px rgba(0,0,0,0.6), 0 0 80px rgba(255,42,60,0.06);
+}
+
+.auth-eyebrow {
+  display: inline-block;
+  font-family: 'Heebo', sans-serif;
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 14px;
+}
+
+.auth-title {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 900;
+  font-size: 2rem;
+  line-height: 1.15;
+  margin: 0 0 8px;
+  background: linear-gradient(135deg, #fff, var(--gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.auth-subtitle {
+  color: var(--ink-dim);
+  font-size: 0.98rem;
+  margin: 0 0 32px;
+}
+
+.auth-field {
+  margin-bottom: 20px;
+}
+
+.auth-field label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.88rem;
+  color: var(--ink-dim);
+  font-weight: 500;
+}
+
+.auth-field input {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--bg-0);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 1rem;
+  transition: var(--t-fast);
+}
+
+.auth-field input:focus {
+  outline: none;
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px var(--red-glow);
+}
+
+.auth-button {
+  width: 100%;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, var(--red), var(--red-deep));
+  color: #fff;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-family: 'Rubik', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: none;
+  transition: var(--t-base);
+  box-shadow: 0 8px 24px rgba(255,42,60,0.25);
+}
+
+.auth-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 32px rgba(255,42,60,0.35);
+}
+
+.auth-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-status {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.92rem;
+}
+
+.auth-status.success {
+  background: rgba(46,230,133,0.08);
+  border: 1px solid rgba(46,230,133,0.3);
+  color: var(--green);
+}
+
+.auth-status.error {
+  background: rgba(255,42,60,0.08);
+  border: 1px solid rgba(255,42,60,0.3);
+  color: var(--red);
+}
+
+.auth-tagline {
+  margin-top: 32px;
+  text-align: center;
+  font-size: 0.78rem;
+  letter-spacing: 1px;
+  color: var(--gold);
+  opacity: 0.7;
+}
+
+/* ---------------------------- KPI CARDS ---------------------------- */
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.kpi-card {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+  transition: var(--t-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card:hover {
+  border-color: var(--line-2);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(to left, var(--red), transparent);
+  opacity: 0.6;
+}
+
+.kpi-label {
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-bottom: 8px;
+}
+
+.kpi-value {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 900;
+  font-size: 2.4rem;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.kpi-delta {
+  margin-top: 8px;
+  font-size: 0.88rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.kpi-delta.up { color: var(--green); }
+.kpi-delta.down { color: var(--red); }
+.kpi-delta.flat { color: var(--ink-mute); }
+
+/* ---------------------------- CARDS ---------------------------- */
+
+.portal-card {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.portal-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.portal-card-header h2 {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 800;
+  font-size: 1.25rem;
+  margin: 0;
+  color: var(--ink);
+}
+
+.portal-card-link {
+  color: var(--ink-dim);
+  font-size: 0.88rem;
+  text-decoration: none;
+  transition: var(--t-fast);
+}
+
+.portal-card-link:hover {
+  color: var(--red);
+}
+
+/* ---------------------------- EMPTY STATES ---------------------------- */
+
+.portal-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--ink-mute);
+  font-size: 0.95rem;
+}
+
+/* ---------------------------- MARKDOWN PROSE ---------------------------- */
+
+.portal-prose {
+  color: var(--ink);
+  line-height: 1.7;
+  font-size: 1rem;
+}
+.portal-prose h1, .portal-prose h2, .portal-prose h3, .portal-prose h4 {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 800;
+  margin-top: 1.6em;
+  margin-bottom: 0.6em;
+  color: var(--ink);
+}
+.portal-prose h1 { font-size: 1.8rem; }
+.portal-prose h2 { font-size: 1.4rem; border-bottom: 1px solid var(--line); padding-bottom: 0.4em; }
+.portal-prose h3 { font-size: 1.15rem; color: var(--gold); }
+.portal-prose p { margin: 1em 0; }
+.portal-prose strong { color: var(--ink); font-weight: 700; }
+.portal-prose em { color: var(--gold); font-style: normal; font-weight: 600; }
+.portal-prose code {
+  background: var(--bg-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  color: var(--gold);
+  direction: ltr;
+  display: inline-block;
+}
+.portal-prose pre {
+  background: var(--bg-2);
+  padding: 16px 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  overflow-x: auto;
+  direction: ltr;
+}
+.portal-prose pre code {
+  background: none;
+  padding: 0;
+  color: var(--ink);
+}
+.portal-prose ul, .portal-prose ol {
+  margin: 1em 0;
+  padding-right: 24px;
+}
+.portal-prose li { margin: 0.4em 0; }
+.portal-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.2em 0;
+  font-size: 0.92rem;
+}
+.portal-prose th, .portal-prose td {
+  padding: 10px 14px;
+  text-align: right;
+  border-bottom: 1px solid var(--line);
+}
+.portal-prose th {
+  font-weight: 700;
+  color: var(--gold);
+  background: var(--bg-2);
+}
+.portal-prose blockquote {
+  border-right: 3px solid var(--red);
+  margin: 1em 0;
+  padding: 0.4em 1em;
+  color: var(--ink-dim);
+}
+.portal-prose hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 2em 0;
+}
+.portal-prose a {
+  color: var(--red);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------------------------- ADMIN FORMS ---------------------------- */
+
+.admin-form {
+  display: grid;
+  gap: 18px;
+  max-width: 640px;
+}
+.admin-form .field {
+  display: grid;
+  gap: 6px;
+}
+.admin-form label {
+  font-size: 0.88rem;
+  color: var(--ink-dim);
+  font-weight: 500;
+}
+.admin-form input,
+.admin-form select,
+.admin-form textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--bg-0);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: var(--t-fast);
+}
+.admin-form textarea { min-height: 200px; resize: vertical; font-family: 'Heebo', monospace; line-height: 1.6; }
+.admin-form input:focus,
+.admin-form select:focus,
+.admin-form textarea:focus {
+  outline: none;
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px var(--red-glow);
+}
+.admin-form .row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.admin-form .help {
+  font-size: 0.82rem;
+  color: var(--ink-mute);
+}
+.admin-form button[type="submit"] {
+  padding: 14px 24px;
+  background: linear-gradient(135deg, var(--red), var(--red-deep));
+  color: #fff;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-family: 'Rubik', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--t-base);
+  font-size: 0.95rem;
+}
+.admin-form button[type="submit"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(255,42,60,0.3);
+}
+.admin-form button.secondary {
+  background: var(--bg-2);
+  color: var(--ink-dim);
+  border: 1px solid var(--line-2);
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.admin-form button.secondary:hover { color: var(--ink); border-color: var(--ink-dim); }
+
+.flash {
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.92rem;
+  margin-bottom: 16px;
+}
+.flash.success { background: rgba(46,230,133,0.08); border: 1px solid rgba(46,230,133,0.3); color: var(--green); }
+.flash.error { background: rgba(255,42,60,0.08); border: 1px solid rgba(255,42,60,0.3); color: var(--red); }
+
+/* ---------------------------- TIMELINE ---------------------------- */
+
+.timeline {
+  position: relative;
+  padding-right: 28px;
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  right: 7px;
+  width: 1px;
+  background: var(--line-2);
+}
+.timeline-entry {
+  position: relative;
+  padding-bottom: 24px;
+}
+.timeline-entry::before {
+  content: '';
+  position: absolute;
+  right: -25px;
+  top: 8px;
+  width: 12px;
+  height: 12px;
+  background: var(--red);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--red-glow);
+}
+.timeline-entry .date {
+  font-size: 0.82rem;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.timeline-entry .desc {
+  font-weight: 500;
+  color: var(--ink);
+}
+.timeline-entry .category {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 0.78rem;
+  color: var(--ink-dim);
+}
+
+/* ---------------------------- RESPONSIVE ---------------------------- */
+
+@media (max-width: 768px) {
+  .portal-nav-links {
+    display: none;
+  }
+  .auth-card {
+    padding: 32px 24px;
+  }
+  .auth-title {
+    font-size: 1.6rem;
+  }
+  .kpi-value {
+    font-size: 2rem;
+  }
+}

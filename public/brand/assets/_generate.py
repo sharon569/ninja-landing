@@ -3,7 +3,8 @@ NINJA brand asset generator.
 Creates animated GIFs and PNGs for use in emails and brand materials.
 """
 import math
-from PIL import Image, ImageDraw, ImageFilter
+import os
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 # ============================================================
 # CORE: Draw shuriken on transparent canvas
@@ -109,11 +110,106 @@ def build_static_png(out_path: str, size: int = 1024):
 
 
 # ============================================================
+# Personal mark — shuriken with initial letter in the center
+# Designed for Gmail/Slack profile pictures (circle-cropped).
+# Center disc enlarged so the letter reads at thumbnail sizes.
+# ============================================================
+
+def _find_bold_font(target_px: int):
+    """Pick the heaviest available font on the system at the requested pixel size."""
+    candidates = [
+        "C:/Windows/Fonts/ariblk.ttf",      # Arial Black
+        "C:/Windows/Fonts/seguibl.ttf",     # Segoe UI Black
+        "C:/Windows/Fonts/impact.ttf",      # Impact
+        "C:/Windows/Fonts/arialbd.ttf",     # Arial Bold
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            try:
+                return ImageFont.truetype(path, target_px)
+            except Exception:
+                continue
+    return ImageFont.load_default()
+
+
+def draw_personal_mark(size: int, letter: str = "S", bg_color=(255, 255, 255, 0)):
+    """Shuriken mark with a bold initial in the (enlarged) center disc."""
+    img = Image.new("RGBA", (size, size), bg_color)
+    draw = ImageDraw.Draw(img)
+
+    cx = cy = size / 2
+    outer_r = size * 0.42
+    inner_r = size * 0.165
+
+    # Same 4-pointed star geometry as the standard mark
+    points = []
+    for i in range(8):
+        angle = -math.pi / 2 + i * math.pi / 4
+        r = outer_r if i % 2 == 0 else inner_r
+        points.append((cx + r * math.cos(angle), cy + r * math.sin(angle)))
+
+    # Solid red fill
+    draw.polygon(points, fill=(255, 42, 60))
+
+    # Inner darker accent
+    inner_pts = []
+    for i in range(8):
+        angle = -math.pi / 2 + i * math.pi / 4
+        r = (outer_r * 0.85) if i % 2 == 0 else (inner_r * 0.7)
+        inner_pts.append((cx + r * math.cos(angle), cy + r * math.sin(angle)))
+    draw.polygon(inner_pts, fill=(180, 0, 27))
+
+    # Gold outline around the star
+    draw.polygon(points, outline=(255, 209, 102), width=max(2, int(size * 0.012)))
+
+    # ENLARGED center disc — hosts the initial
+    disc_r = size * 0.25
+    draw.ellipse(
+        (cx - disc_r, cy - disc_r, cx + disc_r, cy + disc_r),
+        fill=(10, 10, 10),
+        outline=(255, 209, 102),
+        width=max(2, int(size * 0.012)),
+    )
+
+    # Inner subtle ring (decorative)
+    inset = size * 0.018
+    draw.ellipse(
+        (cx - disc_r + inset, cy - disc_r + inset, cx + disc_r - inset, cy + disc_r - inset),
+        outline=(160, 123, 0),  # gold-deep
+        width=max(1, int(size * 0.005)),
+    )
+
+    # The letter — sized to fill ~75% of the disc diameter
+    target_letter_height = int(disc_r * 1.35)
+    font = _find_bold_font(target_letter_height)
+
+    # Measure and center
+    bbox = draw.textbbox((0, 0), letter, font=font)
+    w = bbox[2] - bbox[0]
+    h = bbox[3] - bbox[1]
+    tx = cx - w / 2 - bbox[0]
+    ty = cy - h / 2 - bbox[1]
+    # Slight optical adjustment (typeface metrics often need a nudge up)
+    ty -= size * 0.012
+
+    draw.text((tx, ty), letter, fill=(255, 209, 102), font=font)
+
+    return img
+
+
+def build_personal_mark(out_path: str, size: int = 1024, letter: str = "S"):
+    img = draw_personal_mark(size, letter=letter)
+    img.save(out_path, "PNG", optimize=True)
+    print(f"[ok] {out_path} - {size}x{size} personal mark ({letter})")
+
+
+# ============================================================
 # RUN
 # ============================================================
 
 if __name__ == "__main__":
-    import os
     HERE = os.path.dirname(__file__)
 
     # Animated GIFs
@@ -125,5 +221,10 @@ if __name__ == "__main__":
     build_static_png(os.path.join(HERE, "shuriken-mark-1024.png"), size=1024)
     build_static_png(os.path.join(HERE, "shuriken-mark-512.png"), size=512)
     build_static_png(os.path.join(HERE, "shuriken-mark-256.png"), size=256)
+
+    # Personal marks (Gmail / Slack profile)
+    build_personal_mark(os.path.join(HERE, "shuriken-s-1024.png"), size=1024, letter="S")
+    build_personal_mark(os.path.join(HERE, "shuriken-s-512.png"), size=512, letter="S")
+    build_personal_mark(os.path.join(HERE, "shuriken-s-256.png"), size=256, letter="S")
 
     print("\nAll assets generated successfully.")

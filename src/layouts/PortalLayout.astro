@@ -1,0 +1,102 @@
+---
+import '../styles/global.css';
+import '../styles/portal.css';
+import type { User } from '@supabase/supabase-js';
+
+interface Props {
+  title?: string;
+  user?: User | null;
+  clientName?: string | null;
+  isAdmin?: boolean;
+  hideNav?: boolean;
+}
+
+const {
+  title = 'Client Portal — NINJA Digital',
+  user = null,
+  clientName = null,
+  isAdmin = false,
+  hideNav = false,
+} = Astro.props;
+
+const path = Astro.url.pathname;
+const isActive = (p: string) => path === p || path.startsWith(p + '/') ? 'active' : '';
+---
+
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>{title}</title>
+<meta name="theme-color" content="#08090c" />
+<meta name="robots" content="noindex, nofollow" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Rubik:wght@400;500;600;700;800;900&family=Noto+Serif+JP:wght@900&display=swap" rel="stylesheet">
+
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z' fill='%23ff2a3c' stroke='%23ffd166' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%23000'/%3E%3C/svg%3E">
+</head>
+<body class="portal-shell">
+
+<div class="noise"></div>
+
+{!hideNav && user && (
+  <header class="portal-nav">
+    <div class="container portal-nav-inner">
+      <a href={isAdmin ? "/portal/admin" : "/portal/dashboard"} class="portal-nav-brand">
+        <svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="ploglg" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0" stop-color="#ff2a3c"/>
+              <stop offset="1" stop-color="#8b0000"/>
+            </linearGradient>
+          </defs>
+          <g class="shuriken-rotate">
+            <path d="M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z" fill="url(#ploglg)" stroke="#ffd166" stroke-width="1.2"/>
+            <circle cx="32" cy="32" r="4" fill="#0a0a0a" stroke="#ffd166" stroke-width="1"/>
+          </g>
+        </svg>
+        <div class="brand-text">
+          NINJA<small>{clientName ?? 'Client Portal'}</small>
+        </div>
+      </a>
+
+      <nav class="portal-nav-links">
+        {isAdmin ? (
+          <>
+            <a href="/portal/admin" class={`portal-nav-link ${isActive('/portal/admin') && !path.includes('/clients/') ? 'active' : ''}`}>סקירה</a>
+            <a href="/portal/admin#clients" class="portal-nav-link">לקוחות</a>
+          </>
+        ) : (
+          <>
+            <a href="/portal/dashboard" class={`portal-nav-link ${isActive('/portal/dashboard')}`}>סקירה</a>
+            <a href="/portal/strategy" class={`portal-nav-link ${isActive('/portal/strategy')}`}>אסטרטגיה</a>
+            <a href="/portal/reports" class={`portal-nav-link ${isActive('/portal/reports')}`}>דוחות</a>
+            <a href="/portal/changes" class={`portal-nav-link ${isActive('/portal/changes')}`}>שינויים</a>
+            <a href="/portal/search-terms" class={`portal-nav-link ${isActive('/portal/search-terms')}`}>מילות חיפוש</a>
+          </>
+        )}
+      </nav>
+
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="portal-user">
+          <strong>{user.email}</strong>
+        </div>
+        <form method="POST" action="/portal/auth/signout">
+          <button type="submit" class="portal-signout">יציאה</button>
+        </form>
+      </div>
+    </div>
+  </header>
+)}
+
+<main>
+  <div class="container">
+    <slot />
+  </div>
+</main>
+
+</body>
+</html>

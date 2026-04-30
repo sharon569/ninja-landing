@@ -1,0 +1,319 @@
+---
+import PortalLayout from '../../layouts/PortalLayout.astro';
+import { createSupabaseServerClient } from '../../lib/supabase';
+import { fmtMoney, fmtNum, fmtPct, deltaClass } from '../../lib/format';
+
+export const prerender = false;
+
+const supabase = createSupabaseServerClient({ cookies: Astro.cookies, request: Astro.request });
+const { data: { user } } = await supabase.auth.getUser();
+
+// Middleware should have caught this, but defense in depth:
+if (!user) return Astro.redirect('/portal/login');
+
+// Find the client this user is associated with (assumes 1:1 for MVP; multi-client support later).
+const { data: clientLink } = await supabase
+  .from('client_users')
+  .select('client_id, clients!inner(id, business_name, vertical, google_ads_customer_id, currency_code)')
+  .eq('user_id', user.id)
+  .maybeSingle();
+
+const client = (clientLink?.clients ?? null) as
+  | { id: string; business_name: string; vertical: string | null; google_ads_customer_id: string | null; currency_code: string | null }
+  | null;
+
+if (!client) {
+  // User is logged in but not linked to any client — possible after sign-in but before Sharon assigns them
+  return Astro.redirect('/portal/login?error=no_client_assigned');
+}
+
+// Pull last 30 days for chart, last 7 + prior 7 for KPI deltas
+const today = new Date();
+const sevenDaysAgo = new Date(today);
+sevenDaysAgo.setDate(today.getDate() - 7);
+const fourteenDaysAgo = new Date(today);
+fourteenDaysAgo.setDate(today.getDate() - 14);
+const thirtyDaysAgo = new Date(today);
+thirtyDaysAgo.setDate(today.getDate() - 30);
+
+const fmt = (d: Date) => d.toISOString().slice(0, 10);
+
+const { data: chartKpis } = await supabase
+  .from('kpi_snapshots')
+  .select('date, clicks, impressions, conversions, conversions_value, cost')
+  .eq('client_id', client.id)
+  .gte('date', fmt(thirtyDaysAgo))
+  .order('date', { ascending: true });
+
+const recentKpis = chartKpis ?? [];
+const last7 = recentKpis.filter(r => r.date >= fmt(sevenDaysAgo));
+const prior7 = recentKpis.filter(r => r.date >= fmt(fourteenDaysAgo) && r.date < fmt(sevenDaysAgo));
+
+const sum = (rows: any[], k: string) => rows.reduce((a, r) => a + Number(r[k] ?? 0), 0);
+
+const kpis = {
+  clicks: sum(last7, 'clicks'),
+  conversions: sum(last7, 'conversions'),
+  cost: sum(last7, 'cost'),
+  cpa: sum(last7, 'conversions') ? sum(last7, 'cost') / sum(last7, 'conversions') : 0,
+};
+const priorKpis = {
+  clicks: sum(prior7, 'clicks'),
+  conversions: sum(prior7, 'conversions'),
+  cost: sum(prior7, 'cost'),
+  cpa: sum(prior7, 'conversions') ? sum(prior7, 'cost') / sum(prior7, 'conversions') : 0,
+};
+
+const delta = (now: number, prior: number) => {
+  if (!prior) return null;
+  return ((now - prior) / prior) * 100;
+};
+
+const currency = client.currency_code ?? 'USD';
+const hasData = (recentKpis?.length ?? 0) > 0;
+
+// Latest 5 reports (only those Sharon has marked visible_to_client)
+const { data: latestReports } = await supabase
+  .from('reports')
+  .select('id, type, report_date, title, generated_at')
+  .eq('client_id', client.id)
+  .eq('visible_to_client', true)
+  .order('report_date', { ascending: false })
+  .limit(5);
+
+// Last 5 changes (visible to client)
+const { data: latestChanges } = await supabase
+  .from('change_log')
+  .select('id, occurred_at, category, description')
+  .eq('client_id', client.id)
+  .eq('visible_to_client', true)
+  .order('occurred_at', { ascending: false })
+  .limit(5);
+
+const reports = latestReports ?? [];
+const changes = latestChanges ?? [];
+---
+
+<PortalLayout title={`${client.business_name} — Dashboard`} user={user} clientName={client.business_name}>
+
+  <div class="portal-page-header">
+    <h1>סקירה — {client.business_name}</h1>
+    <p>7 ימים אחרונים · השוואה לתקופה קודמת</p>
+  </div>
+
+  {!hasData && (
+    <div class="flash" style="background:rgba(255,209,102,0.06); border:1px solid rgba(255,209,102,0.3); color:var(--gold); margin-bottom:24px;">
+      אין נתוני KPI עדיין. NINJA תעלה snapshots יומיים בקרוב.
+    </div>
+  )}
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">קליקים</div>
+      <div class="kpi-value">{hasData ? fmtNum(kpis.clicks) : '—'}</div>
+      <div class={`kpi-delta ${deltaClass(delta(kpis.clicks, priorKpis.clicks))}`}>
+        {hasData ? `${fmtPct(delta(kpis.clicks, priorKpis.clicks))} vs קודם` : 'אין נתונים'}
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">המרות</div>
+      <div class="kpi-value">{hasData ? fmtNum(kpis.conversions) : '—'}</div>
+      <div class={`kpi-delta ${deltaClass(delta(kpis.conversions, priorKpis.conversions))}`}>
+        {hasData ? `${fmtPct(delta(kpis.conversions, priorKpis.conversions))} vs קודם` : 'אין נתונים'}
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">הוצאה ({currency})</div>
+      <div class="kpi-value">{hasData ? fmtMoney(kpis.cost, currency) : '—'}</div>
+      <div class={`kpi-delta ${deltaClass(delta(kpis.cost, priorKpis.cost))}`}>
+        {hasData ? `${fmtPct(delta(kpis.cost, priorKpis.cost))} vs קודם` : 'אין נתונים'}
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">CPA</div>
+      <div class="kpi-value">{hasData && kpis.cpa ? fmtMoney(kpis.cpa, currency) : '—'}</div>
+      <div class={`kpi-delta ${deltaClass(delta(kpis.cpa, priorKpis.cpa), true)}`}>
+        {hasData ? `${fmtPct(delta(kpis.cpa, priorKpis.cpa))} vs קודם` : 'אין נתונים'}
+      </div>
+    </div>
+  </div>
+
+  {hasData && (
+    <div class="portal-card" style="margin-bottom:24px;">
+      <div class="portal-card-header">
+        <h2>מגמה — 30 ימים אחרונים</h2>
+        <span style="color:var(--ink-mute); font-size:0.85rem;">הוצאה והמרות יומית</span>
+      </div>
+      <div style="position:relative; height:300px;">
+        <canvas id="kpiChart"></canvas>
+      </div>
+    </div>
+  )}
+
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+
+    <div class="portal-card">
+      <div class="portal-card-header">
+        <h2>דוחות אחרונים</h2>
+        <a href="/portal/reports" class="portal-card-link">הכל →</a>
+      </div>
+      {reports.length === 0 ? (
+        <div class="portal-empty">אין דוחות עדיין</div>
+      ) : (
+        <ul style="list-style:none; padding:0; margin:0;">
+          {reports.map(r => (
+            <li style="padding: 14px 0; border-bottom: 1px solid var(--line);">
+              <a href={`/portal/reports/${r.id}`} style="color: var(--ink); text-decoration: none; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                <div>
+                  <div style="font-weight: 600;">{r.title}</div>
+                  <div style="color: var(--ink-mute); font-size: 0.85rem;">{r.type} · {r.report_date}</div>
+                </div>
+                <span style="color: var(--ink-mute);">←</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+
+    <div class="portal-card">
+      <div class="portal-card-header">
+        <h2>שינויים אחרונים</h2>
+        <a href="/portal/changes" class="portal-card-link">הכל →</a>
+      </div>
+      {changes.length === 0 ? (
+        <div class="portal-empty">אין שינויים עדיין</div>
+      ) : (
+        <ul style="list-style:none; padding:0; margin:0;">
+          {changes.map(c => (
+            <li style="padding: 14px 0; border-bottom: 1px solid var(--line);">
+              <div style="display: flex; justify-content: space-between; gap: 12px; align-items: baseline;">
+                <div style="font-weight: 500; color: var(--ink);">{c.description}</div>
+                <div style="color: var(--ink-mute); font-size: 0.82rem; flex-shrink: 0;">
+                  {new Date(c.occurred_at).toLocaleDateString('he-IL')}
+                </div>
+              </div>
+              <div style="color: var(--gold); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px;">
+                {c.category}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+
+  </div>
+
+{hasData && (
+  <script define:vars={{ chartData: recentKpis, currency }}>
+    import('chart.js/auto').then(({ default: Chart }) => {
+      const canvas = document.getElementById('kpiChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      // Build red gradient for cost area
+      const gradCost = ctx.createLinearGradient(0, 0, 0, 300);
+      gradCost.addColorStop(0, 'rgba(255,42,60,0.35)');
+      gradCost.addColorStop(1, 'rgba(255,42,60,0.02)');
+
+      const labels = chartData.map(r => r.date);
+      const cost = chartData.map(r => Number(r.cost));
+      const conversions = chartData.map(r => Number(r.conversions));
+
+      const SYM = { USD: '$', ILS: '₪', EUR: '€', GBP: '£' };
+      const sym = SYM[currency] ?? currency + ' ';
+
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: `הוצאה (${currency})`,
+              data: cost,
+              borderColor: '#ff2a3c',
+              backgroundColor: gradCost,
+              borderWidth: 2.5,
+              fill: true,
+              tension: 0.3,
+              yAxisID: 'y',
+              pointRadius: 0,
+              pointHoverRadius: 5,
+              pointHoverBackgroundColor: '#ff2a3c',
+            },
+            {
+              label: 'המרות',
+              data: conversions,
+              borderColor: '#ffd166',
+              backgroundColor: 'transparent',
+              borderWidth: 2.5,
+              tension: 0.3,
+              yAxisID: 'y1',
+              pointRadius: 0,
+              pointHoverRadius: 5,
+              pointHoverBackgroundColor: '#ffd166',
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              labels: { color: '#a8acb6', font: { family: 'Heebo' } },
+              position: 'top',
+              align: 'end',
+            },
+            tooltip: {
+              backgroundColor: '#11141b',
+              borderColor: 'rgba(255,255,255,0.14)',
+              borderWidth: 1,
+              titleColor: '#f5f5f7',
+              bodyColor: '#a8acb6',
+              padding: 12,
+              callbacks: {
+                label(ctx) {
+                  const v = ctx.parsed.y;
+                  if (ctx.datasetIndex === 0) return `הוצאה: ${sym}${Math.round(v).toLocaleString()}`;
+                  return `המרות: ${v.toFixed(1)}`;
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255,255,255,0.04)' },
+              ticks: { color: '#6a6f7c', font: { family: 'Heebo', size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 7 },
+            },
+            y: {
+              position: 'left',
+              grid: { color: 'rgba(255,255,255,0.04)' },
+              ticks: {
+                color: '#a8acb6',
+                font: { family: 'Heebo' },
+                callback(v) { return `${sym}${Number(v).toLocaleString()}`; },
+              },
+              title: { display: false },
+            },
+            y1: {
+              position: 'right',
+              grid: { drawOnChartArea: false },
+              ticks: { color: '#ffd166', font: { family: 'Heebo' } },
+            },
+          },
+        },
+      });
+    });
+  </script>
+)}
+
+</PortalLayout>
+
+<style>
+  @media (max-width: 768px) {
+    div[style*="grid-template-columns: 1fr 1fr"] {
+      grid-template-columns: 1fr !important;
+    }
+  }
+</style>
