@@ -22,6 +22,8 @@ if (flashParam === 'strategy_saved') flash = { type: 'success', msg: 'האסטר
 if (flashParam === 'change_added') flash = { type: 'success', msg: 'השינוי נרשם.' };
 if (flashParam === 'user_added') flash = { type: 'success', msg: 'המשתמש נוסף.' };
 if (flashParam === 'visibility_toggled') flash = { type: 'success', msg: 'הנראות עודכנה.' };
+if (flashParam === 'password_changed') flash = { type: 'success', msg: 'הסיסמה עודכנה.' };
+if (flashParam === 'email_changed') flash = { type: 'success', msg: 'המייל עודכן.' };
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
@@ -78,6 +80,39 @@ if (Astro.request.method === 'POST') {
       await supabase.from('reports').update({ visible_to_client: visible }).eq('id', report_id);
       return Astro.redirect(`/portal/admin/clients/${id}?flash=visibility_toggled`);
     }
+
+    if (action === 'change_password' || action === 'change_email') {
+      const target_user_id = String(form.get('target_user_id') ?? '');
+      if (!target_user_id) throw new Error('חסר מזהה משתמש');
+      // Security: target user must already be a client_user of THIS client
+      const { data: belongsRow } = await supabase
+        .from('client_users').select('user_id')
+        .eq('client_id', id).eq('user_id', target_user_id).maybeSingle();
+      if (!belongsRow) throw new Error('המשתמש לא משויך ללקוח הזה');
+
+      const adminClient = createServiceClient(
+        import.meta.env.PUBLIC_SUPABASE_URL!,
+        import.meta.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+
+      if (action === 'change_password') {
+        const new_password = String(form.get('new_password') ?? '');
+        if (new_password.length < 6) throw new Error('סיסמה חייבת להיות 6+ תווים');
+        const { error } = await adminClient.auth.admin.updateUserById(target_user_id, { password: new_password });
+        if (error) throw error;
+        return Astro.redirect(`/portal/admin/clients/${id}?flash=password_changed`);
+      }
+
+      // change_email
+      const new_email = String(form.get('new_email') ?? '').trim().toLowerCase();
+      if (!new_email || !new_email.includes('@')) throw new Error('מייל לא תקין');
+      const { error } = await adminClient.auth.admin.updateUserById(target_user_id, {
+        email: new_email,
+        email_confirm: true,
+      });
+      if (error) throw error;
+      return Astro.redirect(`/portal/admin/clients/${id}?flash=email_changed`);
+    }
   } catch (err: any) {
     flash = { type: 'error', msg: err.message ?? 'שגיאה' };
   }
@@ -104,6 +139,18 @@ const { data: reports } = await supabase
 
 const { data: users } = await supabase
   .from('client_users').select('user_id, role, added_at').eq('client_id', id);
+
+// Enrich with email from auth.users via the service-role admin client
+const adminClientForList = createServiceClient(
+  import.meta.env.PUBLIC_SUPABASE_URL!,
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+const usersWithEmail = await Promise.all(
+  (users ?? []).map(async (u) => {
+    const { data } = await adminClientForList.auth.admin.getUserById(u.user_id!);
+    return { ...u, email: data?.user?.email ?? '(לא נמצא)' };
+  })
+);
 ---
 
 <PortalLayout title={`${client.business_name} — Admin`} user={user} isAdmin={true} clientName="Admin">
@@ -241,11 +288,45 @@ const { data: users } = await supabase
       <span style="color:var(--ink-mute); font-size:0.85rem;">{users?.length ?? 0} משתמשים</span>
     </div>
 
-    {users && users.length > 0 && (
-      <ul style="list-style:none; padding:0; margin:0 0 20px;">
-        {users.map(u => (
-          <li style="padding:10px 0; border-bottom:1px solid var(--line); font-family:monospace; font-size:0.85rem; color:var(--ink-dim);">
-            {u.user_id} · {u.role}
+    {usersWithEmail.length > 0 && (
+      <ul style="list-style:none; padding:0; margin:0 0 24px;">
+        {usersWithEmail.map(u => (
+          <li style="padding:14px; border:1px solid var(--line); border-radius:6px; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px;">
+              <div>
+                <div style="font-weight:600;">{u.email}</div>
+                <div style="color:var(--ink-mute); font-size:0.82rem;">
+                  {u.role} · נוסף {u.added_at ? new Date(u.added_at).toLocaleDateString('he-IL') : '—'}
+                </div>
+              </div>
+              <code style="font-size:0.72rem; color:var(--ink-mute); white-space:nowrap;">{u.user_id?.slice(0, 8)}…</code>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <form method="POST" class="admin-form" style="margin:0;">
+                <input type="hidden" name="action" value="change_email" />
+                <input type="hidden" name="target_user_id" value={u.user_id} />
+                <div class="field" style="margin:0;">
+                  <label style="font-size:0.82rem;">החלפת מייל</label>
+                  <div style="display:flex; gap:6px;">
+                    <input type="email" name="new_email" required placeholder="new@email.com" style="flex:1;" />
+                    <button type="submit" class="secondary" style="font-size:0.82rem;">החלף</button>
+                  </div>
+                </div>
+              </form>
+              <form method="POST" class="admin-form" style="margin:0;"
+                    onsubmit="return confirm('לאפס את הסיסמה של ' + this.dataset.email + '?');"
+                    data-email={u.email}>
+                <input type="hidden" name="action" value="change_password" />
+                <input type="hidden" name="target_user_id" value={u.user_id} />
+                <div class="field" style="margin:0;">
+                  <label style="font-size:0.82rem;">איפוס סיסמה</label>
+                  <div style="display:flex; gap:6px;">
+                    <input type="text" name="new_password" minlength="6" required placeholder="6+ תווים" style="flex:1;" />
+                    <button type="submit" class="secondary" style="font-size:0.82rem;">אפס</button>
+                  </div>
+                </div>
+              </form>
+            </div>
           </li>
         ))}
       </ul>
