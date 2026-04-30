@@ -42,6 +42,12 @@ const serviceList = Object.values(services);
       <a href="/work" class={isActive('/work')} data-cursor="link">עבודות</a>
       <a href="/about" class={isActive('/about')} data-cursor="link">אודות</a>
       <a href="/blog" class={isActive('/blog')} data-cursor="link">בלוג</a>
+      <a href="/portal/login" class="nav-portal" data-cursor="link" aria-label="כניסת לקוחות">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="vertical-align:-3px; margin-left:6px;">
+          <path fill="currentColor" d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/>
+        </svg>
+        כניסת לקוחות
+      </a>
       <a href="/contact" class={`cta-mini ${isActive('/contact')}`} data-cursor="link" data-magnetic>דברו איתנו</a>
     </nav>
 
@@ -134,4 +140,24 @@ const serviceList = Object.values(services);
     opacity: 0.6;
   }
   .nav-dd:hover .nav-caret { transform: rotate(180deg); opacity: 1; color: var(--red); }
+
+  /* Client portal login link — distinct from main nav, before the contact CTA */
+  .nav-portal {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    border: 1px solid var(--line-2);
+    border-radius: var(--radius-sm);
+    color: var(--ink-dim);
+    font-size: 0.92rem;
+    font-weight: 500;
+    transition: var(--t-fast);
+    text-decoration: none;
+  }
+  .nav-portal:hover {
+    color: var(--gold);
+    border-color: var(--gold);
+    background: rgba(255,209,102,0.06);
+  }
+  .nav-portal::after { display: none !important; }
 </style>
