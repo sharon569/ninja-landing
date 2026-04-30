@@ -6,14 +6,24 @@ import '../styles/global.css';
 interface Props {
   title?: string;
   description?: string;
+  image?: string;
+  ogType?: 'website' | 'article';
+  noindex?: boolean;
   hideFloatWA?: boolean;
 }
 
 const {
   title = 'NINJA Digital — שיווק שמכה בדיוק במטרה',
-  description = 'סוכנות הביצועים #1 בישראל. גוגל אדס, SEO, בניית אתרים, פלאשי, מועדוני לקוחות.',
+  description = 'סוכנות שיווק דיגיטלי בישראל: גוגל אדס, SEO, בניית אתרים, פלאשי ומועדוני לקוחות. אסטרטגיית ביצועים מלאה למותגים שרוצים לגדול.',
+  image = '/og-default.png',
+  ogType = 'website',
+  noindex = false,
   hideFloatWA = false,
 } = Astro.props;
+
+const SITE = 'https://www.samp.ninja';
+const canonical = new URL(Astro.url.pathname, SITE).href;
+const imageAbs = image.startsWith('http') ? image : new URL(image, SITE).href;
 ---
 
 <!DOCTYPE html>
@@ -24,17 +34,34 @@ const {
 <title>{title}</title>
 <meta name="description" content={description} />
 <meta name="theme-color" content="#08090c" />
+<link rel="canonical" href={canonical} />
+{noindex && <meta name="robots" content="noindex, nofollow" />}
+{!noindex && <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />}
 
+<!-- Open Graph -->
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
-<meta property="og:type" content="website" />
-<meta property="og:url" content="https://www.samp.ninja" />
+<meta property="og:type" content={ogType} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={imageAbs} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:locale" content="he_IL" />
+<meta property="og:site_name" content="NINJA Digital" />
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={imageAbs} />
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Rubik:wght@400;500;600;700;800;900&family=Noto+Serif+JP:wght@900&display=swap" rel="stylesheet">
 
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z' fill='%23ff2a3c' stroke='%23ffd166' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%23000'/%3E%3C/svg%3E">
+
+<slot name="head" />
 
 <!-- Skip loader on subsequent pages within the session -->
 <script is:inline>

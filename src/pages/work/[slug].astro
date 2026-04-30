@@ -17,9 +17,43 @@ const { caseStudy } = Astro.props;
 const linkedServices = caseStudy.services.map((s: string) => (services as any)[s]).filter(Boolean);
 const clientUrl = (caseStudy as any).url;
 const clientName = (caseStudy as any).client || caseStudy.testimonialAuthor;
+const metaDescription = caseStudy.summary.length > 155
+  ? caseStudy.summary.slice(0, 152) + '...'
+  : caseStudy.summary;
+const ogImage = (caseStudy as any).screenshot ?? '/og-default.png';
 ---
 
-<Layout title={`${caseStudy.headline} | NINJA Digital`}>
+<Layout
+  title={`${caseStudy.headline} — ${caseStudy.industry} | NINJA Digital`}
+  description={metaDescription}
+  image={ogImage}
+  ogType="article"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": caseStudy.headline,
+      "description": caseStudy.summary,
+      "author": { "@type": "Organization", "name": "NINJA Digital" },
+      "publisher": {
+        "@type": "Organization",
+        "name": "NINJA Digital",
+        "logo": { "@type": "ImageObject", "url": "https://www.samp.ninja/og-default.png" }
+      },
+      "image": ogImage.startsWith('http') ? ogImage : `https://www.samp.ninja${ogImage}`,
+      "articleSection": caseStudy.industry
+    })} />
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "בית", "item": "https://www.samp.ninja/" },
+        { "@type": "ListItem", "position": 2, "name": "עבודות", "item": "https://www.samp.ninja/work" },
+        { "@type": "ListItem", "position": 3, "name": caseStudy.headline }
+      ]
+    })} />
+  </Fragment>
 
 <section class="page-hero">
   <div class="container">

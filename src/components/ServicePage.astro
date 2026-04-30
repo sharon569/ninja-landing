@@ -19,9 +19,41 @@ interface Props {
 }
 
 const { service, pageTitle } = Astro.props;
+const metaDescription = service.description.length > 155
+  ? service.description.slice(0, 152) + '...'
+  : service.description;
 ---
 
-<Layout title={pageTitle || `${service.title} — NINJA Digital`}>
+<Layout
+  title={pageTitle || `${service.title} — ${service.tagline} | NINJA Digital`}
+  description={metaDescription}
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Service",
+      "name": service.title,
+      "description": service.description,
+      "provider": {
+        "@type": "Organization",
+        "name": "NINJA Digital",
+        "url": "https://www.samp.ninja"
+      },
+      "areaServed": "IL",
+      "serviceType": service.subtitle
+    })} />
+    {service.faq && service.faq.length > 0 && (
+      <script type="application/ld+json" set:html={JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": service.faq.map(item => ({
+          "@type": "Question",
+          "name": item.q,
+          "acceptedAnswer": { "@type": "Answer", "text": item.a }
+        }))
+      })} />
+    )}
+  </Fragment>
 
 <section class="page-hero">
   <div class="container">

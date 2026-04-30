@@ -9,7 +9,10 @@ const posts = (await getCollection('blog')).sort(
 const categories = [...new Set(posts.map(p => p.data.category))];
 ---
 
-<Layout title="בלוג — תובנות שיווק דיגיטלי | NINJA Digital">
+<Layout
+  title="בלוג שיווק דיגיטלי — מדריכים מקצועיים | NINJA Digital"
+  description="מדריכי גוגל אדס, SEO, CRO, אוטומציות פלאשי ובניית אתרים — מהשטח. מאמרים מעשיים שמבוססים על קמפיינים אמיתיים, לא על תיאוריה."
+>
 
 <section class="page-hero">
   <div class="container">

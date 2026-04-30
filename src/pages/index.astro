@@ -13,7 +13,40 @@ try {
 }
 ---
 
-<Layout title="NINJA Digital — שיווק שמכה בדיוק במטרה">
+<Layout
+  title="NINJA Digital — סוכנות שיווק דיגיטלי וביצועים בישראל"
+  description="סוכנות שיווק דיגיטלי בישראל מתמחה בגוגל אדס, SEO, בניית אתרים, אוטומציות פלאשי ומועדוני לקוחות. אסטרטגיית ביצועים שמכניסה ROAS אמיתי. דברו איתנו לאסטרטגיה חינם."
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "NINJA Digital",
+      "alternateName": "נינג'ה דיגיטל",
+      "url": "https://www.samp.ninja",
+      "logo": "https://www.samp.ninja/og-default.png",
+      "description": "סוכנות שיווק דיגיטלי בישראל המתמחה בגוגל אדס, SEO, בניית אתרים, פלאשי ומועדוני לקוחות.",
+      "email": "sharon@samp.ninja",
+      "telephone": "+972-54-582-2451",
+      "areaServed": "IL",
+      "knowsLanguage": ["he", "en"],
+      "sameAs": ["https://wa.me/972545822451"],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+972-54-582-2451",
+        "contactType": "sales",
+        "areaServed": "IL",
+        "availableLanguage": ["Hebrew", "English"]
+      }
+    })} />
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "NINJA Digital",
+      "url": "https://www.samp.ninja",
+      "inLanguage": "he-IL"
+    })} />
+  </Fragment>
 
 <!-- HERO -->
 <section class="hero" id="hero">
