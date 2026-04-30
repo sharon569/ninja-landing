@@ -4,6 +4,8 @@ import CaseShowcase from '../../components/CaseShowcase.astro';
 import { cases } from '../../data/cases';
 import { services } from '../../data/services';
 
+export const prerender = true;
+
 export function getStaticPaths() {
   return Object.values(cases).map((c) => ({
     params: { slug: c.slug },
