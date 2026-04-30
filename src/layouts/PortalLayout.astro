@@ -68,7 +68,7 @@ const isActive = (p: string) => path === p || path.startsWith(p + '/') ? 'active
         </div>
       </a>
 
-      <nav class="portal-nav-links">
+      <nav class="portal-nav-links" id="portalNavLinks">
         {isAdmin ? (
           <>
             <a href="/portal/admin" class={`portal-nav-link ${isActive('/portal/admin') && !path.includes('/clients/') ? 'active' : ''}`}>סקירה</a>
@@ -85,18 +85,55 @@ const isActive = (p: string) => path === p || path.startsWith(p + '/') ? 'active
             <a href="/portal/search-terms" class={`portal-nav-link ${isActive('/portal/search-terms')}`}>מילות חיפוש</a>
           </>
         )}
+        <form method="POST" action="/portal/auth/signout" class="portal-nav-signout-mobile">
+          <button type="submit" class="portal-nav-link portal-nav-link-signout">יציאה</button>
+        </form>
       </nav>
 
-      <div style="display:flex; align-items:center; gap:12px;">
+      <div class="portal-nav-actions">
         <div class="portal-user">
           <strong>{user.email}</strong>
         </div>
-        <form method="POST" action="/portal/auth/signout">
+        <form method="POST" action="/portal/auth/signout" class="portal-nav-signout-desktop">
           <button type="submit" class="portal-signout">יציאה</button>
         </form>
+        <button
+          type="button"
+          class="portal-nav-toggle"
+          aria-label="פתיחת תפריט"
+          aria-controls="portalNavLinks"
+          aria-expanded="false"
+          id="portalNavToggle"
+        >
+          <span></span><span></span><span></span>
+        </button>
       </div>
     </div>
+    <div class="portal-nav-backdrop" id="portalNavBackdrop" aria-hidden="true"></div>
   </header>
+)}
+
+{!hideNav && user && (
+  <script is:inline>
+    (() => {
+      const btn = document.getElementById('portalNavToggle');
+      const links = document.getElementById('portalNavLinks');
+      const backdrop = document.getElementById('portalNavBackdrop');
+      if (!btn || !links) return;
+      const close = () => {
+        document.body.classList.remove('portal-nav-open');
+        btn.setAttribute('aria-expanded', 'false');
+      };
+      const toggle = () => {
+        const open = document.body.classList.toggle('portal-nav-open');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      };
+      btn.addEventListener('click', toggle);
+      backdrop?.addEventListener('click', close);
+      links.querySelectorAll('a, button').forEach(el => el.addEventListener('click', close));
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+    })();
+  </script>
 )}
 
 <main>
