@@ -1,0 +1,271 @@
+---
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { createSupabaseServerClient } from '../../../../lib/supabase';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect('/portal/admin');
+
+const supabase = createSupabaseServerClient({ cookies: Astro.cookies, request: Astro.request });
+const { data: { user } } = await supabase.auth.getUser();
+if (!user) return Astro.redirect('/portal/login');
+
+const { data: adminRow } = await supabase.from('admin_users').select('user_id').eq('user_id', user.id).maybeSingle();
+if (!adminRow) return Astro.redirect('/portal/dashboard');
+
+let flash: { type: 'success' | 'error'; msg: string } | null = null;
+const flashParam = Astro.url.searchParams.get('flash');
+if (flashParam === 'created') flash = { type: 'success', msg: 'הלקוח נוצר.' };
+if (flashParam === 'strategy_saved') flash = { type: 'success', msg: 'האסטרטגיה עודכנה.' };
+if (flashParam === 'change_added') flash = { type: 'success', msg: 'השינוי נרשם.' };
+if (flashParam === 'user_added') flash = { type: 'success', msg: 'המשתמש נוסף.' };
+if (flashParam === 'visibility_toggled') flash = { type: 'success', msg: 'הנראות עודכנה.' };
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('action') ?? '');
+
+  try {
+    if (action === 'save_strategy') {
+      const title = String(form.get('strategy_title') ?? '').trim() || 'אסטרטגיה';
+      const content_md = String(form.get('strategy_content') ?? '');
+      // Get existing strategy if any
+      const { data: existing } = await supabase
+        .from('strategies').select('id, version').eq('client_id', id)
+        .order('updated_at', { ascending: false }).limit(1).maybeSingle();
+      if (existing) {
+        await supabase.from('strategies')
+          .update({ title, content_md, version: (existing.version ?? 1) + 1, updated_at: new Date().toISOString() })
+          .eq('id', existing.id);
+      } else {
+        await supabase.from('strategies').insert({ client_id: id, title, content_md });
+      }
+      return Astro.redirect(`/portal/admin/clients/${id}?flash=strategy_saved`);
+    }
+
+    if (action === 'post_change') {
+      const description = String(form.get('description') ?? '').trim();
+      const category = String(form.get('category') ?? 'other');
+      const details_md = String(form.get('details_md') ?? '').trim() || null;
+      if (!description) throw new Error('תיאור השינוי חובה');
+      await supabase.from('change_log').insert({
+        client_id: id, description, category, details_md, by_user: user.id,
+      });
+      return Astro.redirect(`/portal/admin/clients/${id}?flash=change_added`);
+    }
+
+    if (action === 'add_user') {
+      const email = String(form.get('user_email') ?? '').trim();
+      const password = String(form.get('user_password') ?? '');
+      if (!email || password.length < 6) throw new Error('מייל וסיסמה (6+ תווים) חובה');
+      const adminClient = createServiceClient(
+        import.meta.env.PUBLIC_SUPABASE_URL!,
+        import.meta.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      const { data: userRes, error: userErr } = await adminClient.auth.admin.createUser({
+        email, password, email_confirm: true,
+      });
+      if (userErr) throw userErr;
+      await supabase.from('client_users').insert({ user_id: userRes.user!.id, client_id: id, role: 'viewer' });
+      return Astro.redirect(`/portal/admin/clients/${id}?flash=user_added`);
+    }
+
+    if (action === 'toggle_visibility') {
+      const report_id = String(form.get('report_id') ?? '');
+      const visible = form.get('visible') === '1';
+      await supabase.from('reports').update({ visible_to_client: visible }).eq('id', report_id);
+      return Astro.redirect(`/portal/admin/clients/${id}?flash=visibility_toggled`);
+    }
+  } catch (err: any) {
+    flash = { type: 'error', msg: err.message ?? 'שגיאה' };
+  }
+}
+
+// Load all data for the client
+const { data: client } = await supabase
+  .from('clients')
+  .select('id, business_name, vertical, google_ads_customer_id, primary_contact_email, status, created_at')
+  .eq('id', id).maybeSingle();
+if (!client) return Astro.redirect('/portal/admin?error=client_not_found');
+
+const { data: latestStrategy } = await supabase
+  .from('strategies').select('id, title, content_md, version, updated_at')
+  .eq('client_id', id).order('updated_at', { ascending: false }).limit(1).maybeSingle();
+
+const { data: changes } = await supabase
+  .from('change_log').select('id, occurred_at, category, description, visible_to_client')
+  .eq('client_id', id).order('occurred_at', { ascending: false }).limit(20);
+
+const { data: reports } = await supabase
+  .from('reports').select('id, type, report_date, title, visible_to_client, generated_at')
+  .eq('client_id', id).order('report_date', { ascending: false });
+
+const { data: users } = await supabase
+  .from('client_users').select('user_id, role, added_at').eq('client_id', id);
+---
+
+<PortalLayout title={`${client.business_name} — Admin`} user={user} isAdmin={true} clientName="Admin">
+
+  <div class="portal-page-header">
+    <a href="/portal/admin" style="color:var(--ink-mute); font-size:0.88rem; text-decoration:none;">← כל הלקוחות</a>
+    <h1 style="margin-top:8px;">{client.business_name}</h1>
+    <p>
+      {client.vertical ?? '—'}
+      {client.google_ads_customer_id && (<> · Customer ID <span style="font-family:monospace;">{client.google_ads_customer_id}</span></>)}
+    </p>
+  </div>
+
+  {flash && <div class={`flash ${flash.type}`}>{flash.msg}</div>}
+
+  <!-- Strategy editor -->
+  <div class="portal-card" style="margin-bottom:24px;">
+    <div class="portal-card-header">
+      <h2>אסטרטגיה</h2>
+      {latestStrategy && (
+        <span style="color:var(--ink-mute); font-size:0.85rem;">
+          גרסה {latestStrategy.version} · עודכן {new Date(latestStrategy.updated_at).toLocaleDateString('he-IL')}
+        </span>
+      )}
+    </div>
+    <form method="POST" class="admin-form">
+      <input type="hidden" name="action" value="save_strategy" />
+      <div class="field">
+        <label for="strategy_title">כותרת</label>
+        <input type="text" id="strategy_title" name="strategy_title" value={latestStrategy?.title ?? 'אסטרטגיה'} />
+      </div>
+      <div class="field">
+        <label for="strategy_content">תוכן (Markdown)</label>
+        <textarea id="strategy_content" name="strategy_content" placeholder={'# מטרת הקמפיין\n\n- מה הלקוח רוצה להשיג\n- KPI יעדים\n\n## מבנה\n\n...'}>{latestStrategy?.content_md ?? ''}</textarea>
+        <span class="help">תומך ב-Markdown: `**bold**`, `# כותרת`, רשימות, טבלאות</span>
+      </div>
+      <button type="submit">שמור אסטרטגיה</button>
+    </form>
+  </div>
+
+  <!-- Reports list with visibility toggle -->
+  <div class="portal-card" style="margin-bottom:24px;">
+    <div class="portal-card-header">
+      <h2>דוחות</h2>
+      <span style="color:var(--ink-mute); font-size:0.85rem;">דוחות נכנסים מ-push_to_portal skill</span>
+    </div>
+    {reports && reports.length > 0 ? (
+      <ul style="list-style:none; padding:0; margin:0;">
+        {reports.map(r => (
+          <li style="padding:14px 0; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; justify-content:space-between;">
+            <div>
+              <div style="font-weight:600;">{r.title}</div>
+              <div style="color:var(--ink-mute); font-size:0.85rem;">
+                <span style="font-family:monospace;">{r.type}</span> · {r.report_date}
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <form method="POST" style="margin:0;">
+                <input type="hidden" name="action" value="toggle_visibility" />
+                <input type="hidden" name="report_id" value={r.id} />
+                <input type="hidden" name="visible" value={r.visible_to_client ? '0' : '1'} />
+                <button type="submit" class="secondary" style="font-size:0.82rem;">
+                  {r.visible_to_client ? '👁 גלוי' : '🚫 מוסתר'}
+                </button>
+              </form>
+            </div>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <div class="portal-empty">
+        <p>אין דוחות עדיין. הרץ סקיל מ-google-ads-api → push_to_portal לשליחת דוח לכאן.</p>
+      </div>
+    )}
+  </div>
+
+  <!-- Post change -->
+  <div class="portal-card" style="margin-bottom:24px;">
+    <div class="portal-card-header">
+      <h2>רישום שינוי</h2>
+    </div>
+    <form method="POST" class="admin-form">
+      <input type="hidden" name="action" value="post_change" />
+      <div class="row">
+        <div class="field">
+          <label for="description">תיאור קצר *</label>
+          <input type="text" id="description" name="description" required placeholder="הוספת negatives ל-search terms בתחום lockout" />
+        </div>
+        <div class="field">
+          <label for="category">קטגוריה</label>
+          <select id="category" name="category">
+            <option value="keywords">Keywords</option>
+            <option value="bidding">Bidding</option>
+            <option value="ads">Ads / Copy</option>
+            <option value="budget">Budget</option>
+            <option value="audience">Audience</option>
+            <option value="settings">Settings</option>
+            <option value="other" selected>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="details_md">פירוט (אופציונלי, Markdown)</label>
+        <textarea id="details_md" name="details_md" style="min-height:120px;" placeholder="פירוט מלא של השינוי..."></textarea>
+      </div>
+      <button type="submit">רשום שינוי</button>
+    </form>
+  </div>
+
+  <!-- Recent changes preview -->
+  <div class="portal-card" style="margin-bottom:24px;">
+    <div class="portal-card-header">
+      <h2>שינויים אחרונים (20)</h2>
+    </div>
+    {changes && changes.length > 0 ? (
+      <div class="timeline">
+        {changes.map(c => (
+          <div class="timeline-entry">
+            <div class="date">{new Date(c.occurred_at).toLocaleDateString('he-IL')} · {new Date(c.occurred_at).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}</div>
+            <div class="desc">{c.description}</div>
+            <span class="category">{c.category}</span>
+            {!c.visible_to_client && <span class="category" style="margin-right:8px; color:var(--red);">מוסתר מהלקוח</span>}
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div class="portal-empty">אין שינויים עדיין.</div>
+    )}
+  </div>
+
+  <!-- User management -->
+  <div class="portal-card">
+    <div class="portal-card-header">
+      <h2>משתמשי הלקוח</h2>
+      <span style="color:var(--ink-mute); font-size:0.85rem;">{users?.length ?? 0} משתמשים</span>
+    </div>
+
+    {users && users.length > 0 && (
+      <ul style="list-style:none; padding:0; margin:0 0 20px;">
+        {users.map(u => (
+          <li style="padding:10px 0; border-bottom:1px solid var(--line); font-family:monospace; font-size:0.85rem; color:var(--ink-dim);">
+            {u.user_id} · {u.role}
+          </li>
+        ))}
+      </ul>
+    )}
+
+    <h3 style="font-family:Rubik; font-size:1.05rem; margin: 0 0 12px;">הוספת משתמש חדש</h3>
+    <form method="POST" class="admin-form">
+      <input type="hidden" name="action" value="add_user" />
+      <div class="row">
+        <div class="field">
+          <label for="user_email_add">אימייל</label>
+          <input type="email" id="user_email_add" name="user_email" required placeholder="login@business.com" />
+        </div>
+        <div class="field">
+          <label for="user_password_add">סיסמה זמנית</label>
+          <input type="text" id="user_password_add" name="user_password" minlength="6" required placeholder="לפחות 6 תווים" />
+        </div>
+      </div>
+      <button type="submit">צור משתמש</button>
+    </form>
+  </div>
+
+</PortalLayout>

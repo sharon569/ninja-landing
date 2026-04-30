@@ -1,0 +1,55 @@
+---
+import PortalLayout from '../../layouts/PortalLayout.astro';
+import { createSupabaseServerClient } from '../../lib/supabase';
+import { renderMarkdown } from '../../lib/markdown';
+
+export const prerender = false;
+
+const supabase = createSupabaseServerClient({ cookies: Astro.cookies, request: Astro.request });
+const { data: { user } } = await supabase.auth.getUser();
+if (!user) return Astro.redirect('/portal/login');
+
+const { data: clientLink } = await supabase
+  .from('client_users')
+  .select('clients!inner(id, business_name)')
+  .eq('user_id', user.id).maybeSingle();
+const client = (clientLink?.clients ?? null) as { id: string; business_name: string } | null;
+if (!client) return Astro.redirect('/portal/login?error=no_client_assigned');
+
+const { data: changes } = await supabase
+  .from('change_log')
+  .select('id, occurred_at, category, description, details_md')
+  .eq('client_id', client.id)
+  .eq('visible_to_client', true)
+  .order('occurred_at', { ascending: false });
+---
+
+<PortalLayout title={`שינויים — ${client.business_name}`} user={user} clientName={client.business_name}>
+
+  <div class="portal-page-header">
+    <h1>היסטוריית שינויים</h1>
+    <p>{changes?.length ?? 0} שינויים</p>
+  </div>
+
+  <div class="portal-card">
+    {changes && changes.length > 0 ? (
+      <div class="timeline">
+        {changes.map(c => (
+          <div class="timeline-entry">
+            <div class="date">
+              {new Date(c.occurred_at).toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+            </div>
+            <div class="desc">{c.description}</div>
+            <span class="category">{c.category}</span>
+            {c.details_md && (
+              <div class="portal-prose" style="margin-top:12px; font-size:0.92rem;" set:html={renderMarkdown(c.details_md)}></div>
+            )}
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div class="portal-empty">אין שינויים עדיין</div>
+    )}
+  </div>
+
+</PortalLayout>

@@ -1,0 +1,116 @@
+---
+import PortalLayout from '../../../layouts/PortalLayout.astro';
+import { createSupabaseServerClient } from '../../../lib/supabase';
+
+export const prerender = false;
+
+const supabase = createSupabaseServerClient({ cookies: Astro.cookies, request: Astro.request });
+const { data: { user } } = await supabase.auth.getUser();
+if (!user) return Astro.redirect('/portal/login');
+
+// Verify admin (middleware already checks but defense in depth)
+const { data: adminRow } = await supabase
+  .from('admin_users')
+  .select('user_id')
+  .eq('user_id', user.id)
+  .maybeSingle();
+if (!adminRow) return Astro.redirect('/portal/dashboard');
+
+// Pull all clients (RLS allows admin to see all)
+const { data: clients } = await supabase
+  .from('clients')
+  .select('id, business_name, vertical, google_ads_customer_id, status, created_at')
+  .order('created_at', { ascending: false });
+
+// Count of users + reports for quick overview
+const { count: userCount } = await supabase
+  .from('client_users')
+  .select('*', { count: 'exact', head: true });
+
+const { count: reportCount } = await supabase
+  .from('reports')
+  .select('*', { count: 'exact', head: true });
+
+const total = clients?.length ?? 0;
+---
+
+<PortalLayout title="Admin — NINJA Digital" user={user} isAdmin={true} clientName="Admin">
+
+  <div class="portal-page-header">
+    <h1>Admin — סקירה</h1>
+    <p>ניהול לקוחות, אסטרטגיות, דוחות ושינויים</p>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">לקוחות</div>
+      <div class="kpi-value">{total}</div>
+      <div class="kpi-delta flat">בחשבון</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">משתמשי לקוח</div>
+      <div class="kpi-value">{userCount ?? 0}</div>
+      <div class="kpi-delta flat">פעילים</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">דוחות</div>
+      <div class="kpi-value">{reportCount ?? 0}</div>
+      <div class="kpi-delta flat">סך הכל</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">המייל שלך</div>
+      <div style="font-size:0.95rem; font-weight:600; color:var(--ink); padding-top:8px;">{user.email}</div>
+      <div class="kpi-delta flat">Admin</div>
+    </div>
+  </div>
+
+  <div class="portal-card" id="clients">
+    <div class="portal-card-header">
+      <h2>לקוחות</h2>
+      <a href="/portal/admin/clients/new" style="color:var(--red); font-weight:600; text-decoration:none;">+ הוסף לקוח</a>
+    </div>
+
+    {total === 0 ? (
+      <div class="portal-empty">
+        <p style="margin:0 0 12px;">אין לקוחות עדיין.</p>
+        <a href="/portal/admin/clients/new" style="color:var(--red); font-weight:600;">צור לקוח ראשון →</a>
+      </div>
+    ) : (
+      <ul style="list-style:none; padding:0; margin:0;">
+        {clients!.map(c => (
+          <li style="padding:14px 0; border-bottom:1px solid var(--line);">
+            <a href={`/portal/admin/clients/${c.id}`} style="display:flex; justify-content:space-between; align-items:center; gap:12px; text-decoration:none; color:var(--ink);">
+              <div>
+                <div style="font-weight:600; font-size:1.05rem;">{c.business_name}</div>
+                <div style="color:var(--ink-mute); font-size:0.85rem; margin-top:2px;">
+                  {c.vertical ?? '—'} · Customer ID: <span style="font-family:monospace;">{c.google_ads_customer_id ?? 'not set'}</span>
+                </div>
+              </div>
+              <div style="text-align:left;">
+                <div style="color:var(--green); font-size:0.78rem; font-weight:600;">{c.status}</div>
+                <div style="color:var(--ink-mute); font-size:0.78rem; margin-top:2px;">
+                  {new Date(c.created_at).toLocaleDateString('he-IL')}
+                </div>
+              </div>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+
+  <div class="portal-card" style="margin-top:24px;">
+    <div class="portal-card-header">
+      <h2>שלבים הבאים (Phase 2)</h2>
+    </div>
+    <ul style="line-height:1.8; color:var(--ink-dim); padding-right:20px;">
+      <li>UI להוספת/עריכת לקוחות (במקום SQL)</li>
+      <li>UI להעלאת/כתיבת אסטרטגיה לכל לקוח</li>
+      <li>UI לרישום שינויים (change log) עם תאריך וקטגוריה</li>
+      <li>סקיל <code>push_to_portal</code> שמעלה דוחות מ-Google Ads אוטומטית</li>
+      <li>גרפי KPI היסטוריים</li>
+      <li>ניהול הרשאות (יצירת user-לקוח, קישור ללקוח)</li>
+    </ul>
+  </div>
+
+</PortalLayout>

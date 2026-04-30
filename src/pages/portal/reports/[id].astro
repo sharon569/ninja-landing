@@ -1,0 +1,51 @@
+---
+import PortalLayout from '../../../layouts/PortalLayout.astro';
+import { createSupabaseServerClient } from '../../../lib/supabase';
+import { renderMarkdown } from '../../../lib/markdown';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect('/portal/reports');
+
+const supabase = createSupabaseServerClient({ cookies: Astro.cookies, request: Astro.request });
+const { data: { user } } = await supabase.auth.getUser();
+if (!user) return Astro.redirect('/portal/login');
+
+const { data: clientLink } = await supabase
+  .from('client_users')
+  .select('clients!inner(id, business_name)')
+  .eq('user_id', user.id).maybeSingle();
+const client = (clientLink?.clients ?? null) as { id: string; business_name: string } | null;
+if (!client) return Astro.redirect('/portal/login?error=no_client_assigned');
+
+// RLS will auto-block reports from other clients or invisible
+const { data: report } = await supabase
+  .from('reports')
+  .select('id, type, report_date, title, content_md, generated_at, client_id')
+  .eq('id', id).maybeSingle();
+
+if (!report || report.client_id !== client.id) {
+  return Astro.redirect('/portal/reports');
+}
+
+const html = renderMarkdown(report.content_md);
+---
+
+<PortalLayout title={`${report.title} — ${client.business_name}`} user={user} clientName={client.business_name}>
+
+  <div class="portal-page-header">
+    <a href="/portal/reports" style="color:var(--ink-mute); font-size:0.88rem; text-decoration:none;">← כל הדוחות</a>
+    <h1 style="margin-top:8px;">{report.title}</h1>
+    <p>
+      <span style="color:var(--gold); font-family:monospace; font-size:0.82rem; text-transform:uppercase;">{report.type}</span>
+      · {report.report_date}
+      · נוצר {new Date(report.generated_at).toLocaleDateString('he-IL')}
+    </p>
+  </div>
+
+  <div class="portal-card">
+    <div class="portal-prose" set:html={html}></div>
+  </div>
+
+</PortalLayout>

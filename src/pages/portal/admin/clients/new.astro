@@ -1,0 +1,152 @@
+---
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { createSupabaseServerClient } from '../../../../lib/supabase';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
+
+export const prerender = false;
+
+const supabase = createSupabaseServerClient({ cookies: Astro.cookies, request: Astro.request });
+const { data: { user } } = await supabase.auth.getUser();
+if (!user) return Astro.redirect('/portal/login');
+
+const { data: adminRow } = await supabase
+  .from('admin_users')
+  .select('user_id')
+  .eq('user_id', user.id)
+  .maybeSingle();
+if (!adminRow) return Astro.redirect('/portal/dashboard');
+
+let flash: { type: 'success' | 'error'; msg: string } | null = null;
+let createdClientId: string | null = null;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const business_name = String(form.get('business_name') ?? '').trim();
+  const google_ads_customer_id = String(form.get('google_ads_customer_id') ?? '').replace(/\D/g, '') || null;
+  const vertical = String(form.get('vertical') ?? '').trim() || null;
+  const currency_code = String(form.get('currency_code') ?? 'USD').trim() || 'USD';
+  const primary_contact_email = String(form.get('primary_contact_email') ?? '').trim() || null;
+  const user_email = String(form.get('user_email') ?? '').trim();
+  const user_password = String(form.get('user_password') ?? '');
+
+  try {
+    if (!business_name) throw new Error('שם העסק חובה');
+
+    // Insert client (admin via RLS)
+    const { data: client, error: clientErr } = await supabase
+      .from('clients')
+      .insert({ business_name, google_ads_customer_id, vertical, currency_code, primary_contact_email })
+      .select('id')
+      .single();
+    if (clientErr) throw clientErr;
+    createdClientId = client.id;
+
+    // Optionally create first user + link
+    if (user_email && user_password) {
+      if (user_password.length < 6) throw new Error('סיסמת משתמש חייבת לפחות 6 תווים');
+      const adminClient = createServiceClient(
+        import.meta.env.PUBLIC_SUPABASE_URL!,
+        import.meta.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      const { data: userRes, error: userErr } = await adminClient.auth.admin.createUser({
+        email: user_email,
+        password: user_password,
+        email_confirm: true,
+      });
+      if (userErr) throw userErr;
+
+      const { error: linkErr } = await supabase
+        .from('client_users')
+        .insert({ user_id: userRes.user!.id, client_id: client.id, role: 'viewer' });
+      if (linkErr) throw linkErr;
+    }
+
+    return Astro.redirect(`/portal/admin/clients/${client.id}?flash=created`);
+  } catch (err: any) {
+    flash = { type: 'error', msg: err.message ?? 'שגיאה' };
+  }
+}
+---
+
+<PortalLayout title="לקוח חדש — Admin" user={user} isAdmin={true} clientName="Admin">
+
+  <div class="portal-page-header">
+    <h1>הוספת לקוח חדש</h1>
+    <p>פרטי העסק + (אופציונלי) משתמש ראשון לכניסה</p>
+  </div>
+
+  {flash && <div class={`flash ${flash.type}`}>{flash.msg}</div>}
+
+  <form method="POST" class="admin-form">
+    <div class="portal-card">
+      <h2 style="margin: 0 0 16px; font-family: Rubik; font-size: 1.2rem;">פרטי העסק</h2>
+
+      <div class="field">
+        <label for="business_name">שם העסק *</label>
+        <input type="text" id="business_name" name="business_name" required placeholder="West Coast Carpet Pros" />
+      </div>
+
+      <div class="row" style="margin-top:16px;">
+        <div class="field">
+          <label for="google_ads_customer_id">Customer ID (Google Ads)</label>
+          <input type="text" id="google_ads_customer_id" name="google_ads_customer_id" placeholder="1230389197" />
+          <span class="help">10 ספרות, ניתן עם או בלי מקפים</span>
+        </div>
+        <div class="field">
+          <label for="vertical">תחום</label>
+          <select id="vertical" name="vertical">
+            <option value="">בחר…</option>
+            <option value="service">שירות (locksmith / plumber / carpet / וכו')</option>
+            <option value="ecom">eCommerce</option>
+            <option value="other">אחר</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:16px;">
+        <label for="currency_code">מטבע (לפי הגדרת הקמפיין ב-Google Ads)</label>
+        <select id="currency_code" name="currency_code">
+          <option value="USD">USD — דולר</option>
+          <option value="ILS">ILS — שקל</option>
+          <option value="EUR">EUR — אירו</option>
+          <option value="GBP">GBP — לירה</option>
+          <option value="CAD">CAD — דולר קנדי</option>
+          <option value="AUD">AUD — דולר אוסטרלי</option>
+        </select>
+        <span class="help">השפעה: KPI cost ו-CPA יוצגו בסימן הנכון</span>
+      </div>
+
+      <div class="field" style="margin-top:16px;">
+        <label for="primary_contact_email">אימייל איש קשר</label>
+        <input type="email" id="primary_contact_email" name="primary_contact_email" placeholder="contact@business.com" />
+        <span class="help">לתיעוד בלבד — לא מחבר אוטומטית למשתמש</span>
+      </div>
+    </div>
+
+    <div class="portal-card" style="margin-top:24px;">
+      <h2 style="margin: 0 0 4px; font-family: Rubik; font-size: 1.2rem;">משתמש ראשון (אופציונלי)</h2>
+      <p style="color:var(--ink-mute); font-size:0.88rem; margin: 0 0 16px;">
+        אם תמלא — המשתמש יוכל מיד להיכנס לפורטל עם המייל והסיסמה הזו.
+        אפשר גם להשאיר ריק ולהוסיף משתמשים מאוחר יותר.
+      </p>
+
+      <div class="row">
+        <div class="field">
+          <label for="user_email">אימייל משתמש</label>
+          <input type="email" id="user_email" name="user_email" placeholder="login@business.com" />
+        </div>
+        <div class="field">
+          <label for="user_password">סיסמה זמנית</label>
+          <input type="text" id="user_password" name="user_password" minlength="6" placeholder="לפחות 6 תווים" />
+          <span class="help">תעביר ללקוח. הוא יוכל לשנות אחר כך.</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:12px; align-items:center; margin-top:24px;">
+      <button type="submit">צור לקוח</button>
+      <a href="/portal/admin" class="portal-card-link">ביטול</a>
+    </div>
+  </form>
+
+</PortalLayout>

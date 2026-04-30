@@ -1,0 +1,154 @@
+---
+import PortalLayout from '../../layouts/PortalLayout.astro';
+import { createSupabaseServerClient } from '../../lib/supabase';
+
+// If already signed in, skip the login screen
+const supabase = createSupabaseServerClient({ cookies: Astro.cookies, request: Astro.request });
+const { data: { user } } = await supabase.auth.getUser();
+if (user) {
+  const { data: adminRow } = await supabase
+    .from('admin_users')
+    .select('user_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  return Astro.redirect(adminRow ? '/portal/admin' : '/portal/dashboard');
+}
+
+const next = Astro.url.searchParams.get('next') ?? '/portal/dashboard';
+const urlError = Astro.url.searchParams.get('error');
+const errorMessages: Record<string, string> = {
+  no_client_assigned: 'התחברת בהצלחה, אבל המייל שלך עדיין לא מקושר ללקוח. צור קשר עם sharon@samp.ninja.',
+  missing_code: 'חסר קוד אימות בכתובת.',
+};
+const errorText = urlError ? (errorMessages[urlError] ?? urlError) : null;
+---
+
+<PortalLayout title="כניסה — NINJA Digital" hideNav={true}>
+
+<section class="auth-screen">
+  <div class="auth-decor-kanji" aria-hidden="true">忍</div>
+
+  <div class="auth-card">
+    <span class="auth-eyebrow">CLIENT PORTAL</span>
+    <h1 class="auth-title" id="title">כניסה ללקוחות NINJA</h1>
+    <p class="auth-subtitle" id="subtitle">
+      הזן מייל וסיסמה כדי להיכנס.
+    </p>
+
+    <input type="hidden" id="next" value={next} />
+
+    <form id="authForm" novalidate>
+      <div class="auth-field">
+        <label for="email">אימייל</label>
+        <input type="email" id="email" name="email" required autocomplete="email" placeholder="name@business.com" />
+      </div>
+      <div class="auth-field">
+        <label for="password">סיסמה</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password" minlength="6" placeholder="לפחות 6 תווים" />
+      </div>
+      <button type="submit" id="submitBtn" class="auth-button">כניסה</button>
+    </form>
+
+    {errorText && (
+      <div class="auth-status error" style="margin-top: 16px;">{errorText}</div>
+    )}
+    <div id="status" class="auth-status" style="display:none" aria-live="polite"></div>
+
+    <div style="text-align:center; margin-top:24px;">
+      <button type="button" id="toggleMode" class="portal-card-link" style="background:none; border:0; font-family:inherit; font-size:0.92rem; cursor:pointer;">
+        אין לך חשבון? צור חשבון חדש
+      </button>
+    </div>
+
+    <div class="auth-tagline">שקטים בעבודה. קולניים בתוצאות.</div>
+  </div>
+</section>
+
+<script>
+  import { createSupabaseBrowserClient } from '../../lib/supabase';
+
+  const supabase = createSupabaseBrowserClient();
+
+  const title = document.getElementById('title') as HTMLElement;
+  const subtitle = document.getElementById('subtitle') as HTMLElement;
+  const form = document.getElementById('authForm') as HTMLFormElement;
+  const emailInput = document.getElementById('email') as HTMLInputElement;
+  const passwordInput = document.getElementById('password') as HTMLInputElement;
+  const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
+  const toggleBtn = document.getElementById('toggleMode') as HTMLButtonElement;
+  const nextInput = document.getElementById('next') as HTMLInputElement;
+  const status = document.getElementById('status') as HTMLDivElement;
+
+  let mode: 'login' | 'signup' = 'login';
+
+  function setMode(m: 'login' | 'signup') {
+    mode = m;
+    if (m === 'login') {
+      title.textContent = 'כניסה ללקוחות NINJA';
+      subtitle.textContent = 'הזן מייל וסיסמה כדי להיכנס.';
+      submitBtn.textContent = 'כניסה';
+      toggleBtn.textContent = 'אין לך חשבון? צור חשבון חדש';
+      passwordInput.autocomplete = 'current-password';
+    } else {
+      title.textContent = 'יצירת חשבון';
+      subtitle.textContent = 'צור סיסמה לכניסה לפורטל.';
+      submitBtn.textContent = 'צור חשבון';
+      toggleBtn.textContent = 'יש לך חשבון? כניסה';
+      passwordInput.autocomplete = 'new-password';
+    }
+    hideStatus();
+  }
+
+  function showStatus(msg: string, type: 'success' | 'error') {
+    status.textContent = msg;
+    status.className = `auth-status ${type}`;
+    status.style.display = 'block';
+  }
+  function hideStatus() { status.style.display = 'none'; }
+
+  toggleBtn.addEventListener('click', () => {
+    setMode(mode === 'login' ? 'signup' : 'login');
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
+    if (!email || !email.includes('@')) {
+      showStatus('הזן כתובת אימייל תקינה', 'error');
+      return;
+    }
+    if (password.length < 6) {
+      showStatus('סיסמה חייבת להיות לפחות 6 תווים', 'error');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = mode === 'login' ? 'בודק…' : 'יוצר…';
+    hideStatus();
+
+    try {
+      const { error } = mode === 'login'
+        ? await supabase.auth.signInWithPassword({ email, password })
+        : await supabase.auth.signUp({ email, password });
+
+      if (error) throw error;
+      // Auth cookie set — full reload so server sees the session
+      window.location.href = nextInput.value || '/portal/dashboard';
+    } catch (err: any) {
+      const msg = err.message ?? 'שגיאה';
+      // Friendlier Hebrew for the most common errors
+      let friendly = msg;
+      if (/invalid login/i.test(msg)) friendly = 'מייל או סיסמה שגויים';
+      else if (/already registered/i.test(msg)) friendly = 'משתמש קיים — נסה כניסה במקום הרשמה';
+      else if (/user not found/i.test(msg)) friendly = 'משתמש לא קיים — צור חשבון תחילה';
+      else if (/weak/i.test(msg)) friendly = 'סיסמה חלשה מדי';
+      showStatus(friendly, 'error');
+      submitBtn.disabled = false;
+      submitBtn.textContent = mode === 'login' ? 'כניסה' : 'צור חשבון';
+    }
+  });
+</script>
+
+</PortalLayout>

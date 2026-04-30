@@ -1,0 +1,53 @@
+---
+import PortalLayout from '../../layouts/PortalLayout.astro';
+import { createSupabaseServerClient } from '../../lib/supabase';
+import { renderMarkdown } from '../../lib/markdown';
+
+export const prerender = false;
+
+const supabase = createSupabaseServerClient({ cookies: Astro.cookies, request: Astro.request });
+const { data: { user } } = await supabase.auth.getUser();
+if (!user) return Astro.redirect('/portal/login');
+
+const { data: clientLink } = await supabase
+  .from('client_users')
+  .select('client_id, clients!inner(id, business_name)')
+  .eq('user_id', user.id).maybeSingle();
+
+const client = (clientLink?.clients ?? null) as { id: string; business_name: string } | null;
+if (!client) return Astro.redirect('/portal/login?error=no_client_assigned');
+
+const { data: strategy } = await supabase
+  .from('strategies')
+  .select('title, content_md, version, updated_at')
+  .eq('client_id', client.id)
+  .order('updated_at', { ascending: false })
+  .limit(1).maybeSingle();
+
+const html = strategy ? renderMarkdown(strategy.content_md) : '';
+---
+
+<PortalLayout title={`אסטרטגיה — ${client.business_name}`} user={user} clientName={client.business_name}>
+
+  <div class="portal-page-header">
+    <h1>{strategy?.title ?? 'אסטרטגיה'}</h1>
+    {strategy ? (
+      <p>
+        גרסה {strategy.version} · עודכן {new Date(strategy.updated_at).toLocaleDateString('he-IL')}
+      </p>
+    ) : (
+      <p>טרם פורסמה אסטרטגיה</p>
+    )}
+  </div>
+
+  <div class="portal-card">
+    {strategy ? (
+      <div class="portal-prose" set:html={html}></div>
+    ) : (
+      <div class="portal-empty">
+        <p>האסטרטגיה תופיע כאן ברגע ש-NINJA תפרסם אותה.</p>
+      </div>
+    )}
+  </div>
+
+</PortalLayout>
