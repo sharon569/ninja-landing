@@ -32,13 +32,34 @@ if (Astro.request.method === 'POST') {
   try {
     if (!business_name) throw new Error('שם העסק חובה');
 
+    // Pre-check: customer_id already taken? Show a friendly message with the existing client.
+    if (google_ads_customer_id) {
+      const { data: existing } = await supabase
+        .from('clients')
+        .select('id, business_name')
+        .eq('google_ads_customer_id', google_ads_customer_id)
+        .maybeSingle();
+      if (existing) {
+        throw new Error(
+          `Customer ID ${google_ads_customer_id} כבר משויך ללקוח "${existing.business_name}". ` +
+          `פתח אותו ב-/portal/admin/clients/${existing.id} או הזן Customer ID אחר.`
+        );
+      }
+    }
+
     // Insert client (admin via RLS)
     const { data: client, error: clientErr } = await supabase
       .from('clients')
       .insert({ business_name, google_ads_customer_id, vertical, currency_code, primary_contact_email })
       .select('id')
       .single();
-    if (clientErr) throw clientErr;
+    if (clientErr) {
+      // Fallback if a race or non-customer-id constraint fires
+      if ((clientErr as any).code === '23505') {
+        throw new Error('כבר קיים לקוח עם השדות האלה (ייתכן Customer ID כפול).');
+      }
+      throw clientErr;
+    }
     createdClientId = client.id;
 
     // Optionally create first user + link
