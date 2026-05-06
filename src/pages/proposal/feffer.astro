@@ -1,0 +1,1253 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+// Sections — content + matching screenshot for the proposal
+const sections = [
+  {
+    n: '01',
+    slug: 'home',
+    title: 'עמוד הבית',
+    subtitle: 'הפנים של י.פפר באתר',
+    image: '/proposal/feffer/home-hero.png',
+    bullets: [
+      'באנר עליון נע אוטומטית עם 5 שקפים: כל אחד מציג ליין מוצרים אחר עם תמונת אווירה ייעודית, כותרת, תיאור וכפתור פעולה.',
+      'כותרת ראשית עם הצגה של החברה והמוצר הנבחר, אזור פרטי דגם נבחר, ארבעה מספרי שיא (60+ שנים, 120+ מדינות, 40K התקנות, יבוא רשמי).',
+      'רצועת מותגי טכנולוגיה גוללת אופקית (ADAPTIVE.Cooking, MIND.Maps, STEAM.Maxi וכו׳).',
+      'בלוק תכנים על UNOX וי.פפר עם הפרדה ברורה בין הסיפורים.',
+      'בלוק שלוש טכנולוגיות מרכזיות בכרטיסים גדולים עם תמונות (אחידות אפייה, בקרת לחות, ניהול ענני).',
+      'רשת הליינים: 6 כרטיסי ליין במקום קטלוג מלא, פחות עומס בעין, ניתן ללחוץ ולהיכנס לסדרה.',
+      'בלוק "בעבודה עם" עם 15 לוגויים אמיתיים של רשתות ולקוחות (אסם, שופרסל, ROLADIN, ארומה, אנג׳ל, ישרוטל, יינות ביתן, שטראוס ועוד).',
+      'בלוק סגירה: דברו איתנו עם CTA ראשי.',
+    ],
+  },
+  {
+    n: '02',
+    slug: 'series',
+    title: 'סדרות מוצרים',
+    subtitle: 'תפריט נפתח חכם + עמוד קטלוג + עמוד סדרה ועמוד דגם',
+    image: '/proposal/feffer/mega-menu.png',
+    bullets: [
+      'תפריט mega-menu שנפתח בריחוף על "סדרות". עיצוב 3 עמודות בסגנון unox.com: רשימת ליינים בצד, סדרות באמצע, וכרטיס הדגמה גדול עם תמונה ושני כפתורי פעולה בצד השני.',
+      'אינטראקציה: ריחוף על ליין מחליף בזמן אמת את הצגה של הסדרות והכרטיס, כולל תג "Digital.ID" לליינים שמתחברים לאפליקציה.',
+      'עמוד קטלוג כללי עם 9 סדרות, מסונן לפי קטגוריה.',
+      'עמוד סדרה: hero, רשימת דגמים, מפרט, יתרונות, אזור הצעת מחיר.',
+      'עמוד דגם בודד עם גלריית מוצר דינמית (תמונה ראשית + ממוזערות), פרטי דגם, יתרונות מרכזיים, טבלת מפרט מלאה, תג "Digital.ID" אם רלוונטי.',
+      '32 דגמים נפרדים, 9 סדרות, 6 ליינים, מבוסס על הרשימה הרשמית של רויטל מ-י.פפר.',
+    ],
+  },
+  {
+    n: '03',
+    slug: 'app',
+    title: 'אפליקציה ופלטפורמת ענן',
+    subtitle: 'עמוד ייעודי על Digital.ID OS + DDC.Cloud',
+    image: '/proposal/feffer/app.png',
+    bullets: [
+      'הסבר מלא בעברית על MIND.Maps, DDC.Cloud, התראות שירות מקדימות וניהול ענני של ריבוי סניפים.',
+      'תמונות מסכים אמיתיים מתנור UNOX מחובר.',
+      'בלוק רב-סניפי: שלושה יתרונות לבעלי רשת (תפריט אחיד, ניתוח ביצועים, ניהול שירות מרוכז).',
+      'בלוק הפרדה: אילו דגמים מתחברים לאפליקציה ואילו לא.',
+      'מתחברים: CHEFTOP MIND.Maps ONE+PLUS, BAKERTOP MIND.Maps ONE+PLUS, SPEED.Pro, SPEED.Compact ECO (21 דגמים).',
+      'לא מתחברים: BAKERLUX SHOP.Pro LED (LED בלבד), LINEMISS Manual (אנלוגי), LINEMICRO Manual (אנלוגי) — 11 דגמים.',
+      'תג "Digital.ID" אוטומטי על כל עמוד מוצר של דגם מתחבר.',
+      'FAQ של 6 שאלות בעברית על שפת התפעול, אבטחת מידע, חיבור Wi-Fi, ועוד.',
+    ],
+  },
+  {
+    n: '04',
+    slug: 'blog',
+    title: 'בלוג',
+    subtitle: '16 כתבות מקצועיות בעברית, מותאם SEO',
+    image: '/proposal/feffer/blog.png',
+    bullets: [
+      'עמוד אינדקס עם כתבת שער, רצועת קטגוריות, ורשת 15 כתבות אחרונות.',
+      '7 קטגוריות: שפים ומסעדות, מאפיות, קונדיטוריה, קייטרינג, טכנולוגיה, תפעול, אנרגיה.',
+      '16 פוסטים שלמים בעברית, ~600-1,200 מילים כל אחד, נכתבו בליווי שפים ויועצי תכנון מטבח.',
+      'עמוד פוסט עם hero, תוכן עניינים דביק (TOC), אזורי callout, תגיות, על הכותב, פוסטים קשורים.',
+      'עמודי קטגוריה ייעודיים, breadcrumbs.',
+      'אופטימיזציית SEO מלאה: JSON-LD Article, BreadcrumbList, OG, Twitter Cards, sitemap.xml אוטומטי, RSS feed.',
+      'תמונת hero ייחודית לכל פוסט, נמשכה מהבלוג של UNOX איטליה והותאמה לקטגוריה.',
+    ],
+  },
+  {
+    n: '05',
+    slug: 'about',
+    title: 'אודות',
+    subtitle: 'הסיפור של UNOX, של י.פפר, ושל המותגים הנוספים',
+    image: '/proposal/feffer/about.png',
+    bullets: [
+      'בלוק UNOX: היסטוריה מקדונאגו, פדואה, שלושה עשורים של מחקר תרמודינמי, 40K התקנות.',
+      'בלוק י.פפר: חברה משפחתית מאז 1965, יורם ורועי פפר, מערך מכירות והתקנה ושירות מקומי.',
+      'בלוק נוסף: כל המותגים שי.פפר מיבאים נוסף ל-UNOX (PIETRO BERTO, OEM, STM, Rpro, JURA), כל אחד עם תיאור קצר.',
+      'תמונות אווירה אמיתיות מהמפעל בקדונאגו ומשטח השירות בישראל.',
+    ],
+  },
+  {
+    n: '06',
+    slug: 'contact',
+    title: 'יצירת קשר',
+    subtitle: 'טופס מלא + מענה ישיר + WhatsApp',
+    image: '/proposal/feffer/contact.png',
+    bullets: [
+      'טופס בקשת הצעה עם 5 שדות: שם, טלפון, אימייל, שם עסק, הודעה.',
+      'תמיכה בבקשה ייעודית לדגם מסוים (prefill אוטומטי כשמגיעים מעמוד מוצר).',
+      'אזור מידע ישיר: טלפון, אימייל, כתובת, כפתור WhatsApp.',
+      'מסך הצלחה עם הודעת תודה אחרי שליחה.',
+      'API Endpoint שמקבל את הבקשה ומעביר לטיפול (חיבור למייל פנימי / CRM נעשה בהמשך).',
+    ],
+  },
+  {
+    n: '07',
+    slug: 'byo',
+    title: 'בנו בעצמכם · קונפיגורטור',
+    subtitle: 'מערכת הזמנה אינטראקטיבית בחמישה שלבים',
+    image: '/proposal/feffer/byo-stage.png',
+    bullets: [
+      'דף לבן ייעודי בקצב משלו, נפרד משאר האתר הכהה. פותחים אותו דרך כפתור "בנו בעצמכם" שבולט בקצה התפריט הראשי.',
+      'שורת התקדמות עליונה עם 5 שלבים: בחירת תנור, סידור, אביזרי עמודה, אביזרים נוספים, סיכום.',
+      'שלב 1: בחירת קטגוריה (קומבי / מהיר / קונבקציה עם לחות / קונבקציה אנלוגית), ואז סדרה ספציפית, ואז דגם. 32 דגמים זמינים.',
+      'שלב 2: בחירת סידור (על דלפק, סטנד נמוך, סטנד גבוה, ארון אולטרה גבוה, ערימה של שני תנורים, מנדף).',
+      'שלב 3: אביזרי עמודה — סטנדים, מנדפים, ערכות חיבור, רגליים. בחירה יחידה לכל קטגוריה.',
+      'שלב 4: אביזרים נוספים — מגשים, חיישנים, מסנני מים, דטרגנט, מעשנים. בחירה מרובה.',
+      'שלב 5: סיכום — תצוגה מקדימה של הקונפיגורציה עם תמונה דינמית, רשימת פריטים, וקריאה לפעולה.',
+      'תצוגת stage תלת-מימדית: התנור עם סטנד מתחת, מנדף מעל ואביזרים על הצד. parallax בריחוף עם העכבר. אנימציית כניסה רכה.',
+      'יצירת PDF: לחיצה על "הורדת PDF" פותחת תצוגה מותאמת להדפסה ושמירה ל-PDF דרך הדפדפן.',
+      'טופס בקשת הצעה עם prefill של הקונפיגורציה המלאה. נשלח אוטומטית למייל פנימי של י.פפר.',
+      '189 אביזרים אמיתיים שנשאבו מהאתר של UNOX איטליה, עם תמונות, מפרטים אמיתיים (קיבולת, מימדים, משקל) ותיאורים מתורגמים לעברית.',
+      'מטריצת התאמה חכמה: כל אביזר מוצע רק לדגמים שהוא באמת תואם להם (לפי גודל מגש, סוג סדרה, יכולת קישוריות).',
+    ],
+  },
+];
+
+const services = [
+  {
+    icon: '⌬',
+    title: 'רספונסיביות מלאה',
+    body: 'כל עמוד עובד באופן מושלם בנייד, טאבלט ודסקטופ. תפריט המבורגר במובייל, רשתות שמתפרקות לעמודה אחת, תמונות שמותאמות לרזולוציה.',
+  },
+  {
+    icon: '◇',
+    title: 'מערכת ניהול תוכן (CMS)',
+    body: 'עורך ויזואלי מותאם אישית לכל סוגי התוכן: עדכון מוצרים, עריכת פוסטים בבלוג, ניהול ליינים, ניהול אביזרים, ניהול לוגויים של לקוחות. בלי קוד, בלי מפתח.',
+  },
+  {
+    icon: '◈',
+    title: 'דשבורד למנהל האתר',
+    body: 'לוח בקרה אישי: כמה פניות הגיעו השבוע, אילו דגמים נצפו הכי הרבה, איזה פוסטים בבלוג מקבלים הכי הרבה תנועה, אילו קונפיגורציות שלחו לקוחות מ-BYO.',
+  },
+];
+
+const free = [
+  'הדרכה מלאה לכל מי שיעבוד עם המערכת.',
+  'כל חיבור או צורך טכני שנובע ישירות מהאתר ללא תוספת תשלום.',
+  'תמיכה שוטפת בשאלות תפעוליות.',
+];
+
+const smartCards = [
+  {
+    id: 'website',
+    icon: 'website',
+    title: 'בניית אתר מהיר ומודרני',
+    eng: 'Website Foundation',
+    desc: 'אתר מהיר, נקי ומותאם המרות עם תשתית מוכנה לצמיחה עתידית.',
+    you_get: [
+      'אתר מהיר על Vercel',
+      'התאמה למובייל',
+      'SEO technical foundation',
+      'מבנה מותאם להמרות',
+      'תשתית מוכנה להרחבות',
+    ],
+    smart: 'האתר מוכן להתחבר בעתיד למערכות tracking, analytics ו-AI optimization.',
+    future: ['A/B testing', 'Heatmaps', 'AI optimization', 'Smart analytics'],
+  },
+  {
+    id: 'seo',
+    icon: 'seo',
+    title: 'קידום אורגני חכם',
+    eng: 'Smart SEO System',
+    desc: 'מערכת SEO חכמה שמנטרת ביצועים ומזהה הזדמנויות לאורך זמן.',
+    you_get: [
+      'Google Search Console integration',
+      'מעקב מיקומים',
+      'ניטור CTR',
+      'זיהוי עמודים חלשים',
+      'SEO monitoring',
+    ],
+    smart: 'המערכת מזהה ירידות ביצועים ומציעה שיפורים אפשריים.',
+    future: ['AI SEO recommendations', 'Content optimization', 'Intent analysis'],
+  },
+  {
+    id: 'ads',
+    icon: 'ads',
+    title: 'ניהול Google Ads חכם',
+    eng: 'Google Ads Intelligence',
+    desc: 'קמפיינים מנוהלים עם שכבת ניתוח חכמה לזיהוי בעיות והזדמנויות.',
+    you_get: [
+      'ניהול קמפיינים',
+      'Conversion tracking',
+      'CPA monitoring',
+      'Search terms analysis',
+      'Budget insights',
+    ],
+    smart: 'המערכת מזהה אנומליות, בזבוז תקציב והזדמנויות שיפור.',
+    future: ['Smart automation', 'AI optimization', 'Cross-campaign intelligence'],
+  },
+  {
+    id: 'tracking',
+    icon: 'tracking',
+    title: 'מעקב חכם אחרי משתמשים באתר',
+    eng: 'Smart Website Tracking',
+    desc: 'להבין מה באמת קורה באתר. לא רק כמה אנשים נכנסו.',
+    you_get: [
+      'Click tracking',
+      'Form tracking',
+      'לחיצות טלפון ו-WhatsApp',
+      'Conversion tracking',
+      'Session insights',
+    ],
+    smart: 'המערכת מזהה איפה משתמשים נוטשים ומה באמת ממיר.',
+    future: ['Heatmaps', 'Funnel analysis', 'UX optimization', 'A/B testing'],
+  },
+  {
+    id: 'dashboard',
+    icon: 'dashboard',
+    title: 'Dashboard חכם לעסק',
+    eng: 'Business Dashboard',
+    desc: 'מרכז שליטה שמחבר את כל הנתונים במקום אחד.',
+    you_get: [
+      'נתוני אתר',
+      'נתוני Google Ads',
+      'SEO performance',
+      'Conversion overview',
+      'Tracking insights',
+    ],
+    smart: 'המערכת עוזרת להבין איפה הבעיה ומה עובד טוב.',
+    future: ['Cross-system intelligence', 'Business insights', 'Smart reports'],
+  },
+  {
+    id: 'calls',
+    icon: 'calls',
+    title: 'מעקב שיחות חכם',
+    eng: 'Smart Call Tracking',
+    desc: 'להבין אילו שיחות באמת הופכות ללקוחות.',
+    you_get: [
+      'Call tracking',
+      'שיוך שיחות לקמפיינים',
+      'תמלול שיחות',
+      'Lead source tracking',
+    ],
+    smart: 'המערכת יכולה לזהות שיחת מכירה, שיחת שירות, איכות ליד ומקור ליד איכותי.',
+    future: ['AI call analysis', 'Sales scoring', 'Lead intent analysis'],
+  },
+  {
+    id: 'club',
+    icon: 'club',
+    title: 'מועדון לקוחות ודיוור חכם',
+    eng: 'Customer Club & Newsletters',
+    desc: 'בניית קשר רציף עם לקוחות דרך אוטומציות ודיוור.',
+    you_get: [
+      'Newsletter system',
+      'Customer club',
+      'Email automations',
+      'SMS / WhatsApp flows',
+      'Segmentation',
+    ],
+    smart: 'המערכת מזהה לקוחות חוזרים, נטישות ומוצרים חזקים.',
+    future: ['AI campaign suggestions', 'Smart segmentation', 'Predictive marketing'],
+  },
+  {
+    id: 'ai',
+    icon: 'ai',
+    title: 'Future AI Business Layer',
+    eng: 'שכבת AI עתידית',
+    desc: 'שכבת AI עתידית שמחברת בין כל המערכות ומייצרת תובנות עסקיות.',
+    you_get: [],
+    smart: '',
+    future: ['Business Brain', 'AI recommendations', 'Workflow automation', 'Smart optimization', 'Decision support'],
+    isFuture: true,
+  },
+];
+---
+<Layout
+  title="הצעת מחיר · UNOX × י.פפר בע״מ — NINJA Digital"
+  description="בניית אתר תאגידי + קונפיגורטור הזמנה + בלוג + מערכת ניהול תוכן ל-י.פפר בע״מ, היבואן הרשמי של תנורי UNOX איטליה לישראל."
+  noindex={true}
+  hideFloatWA={true}
+  hideNav={true}
+>
+<section class="proposal-hero">
+  <div class="container">
+    <span class="eyebrow">הצעת מחיר · NINJA Digital</span>
+    <h1>
+      אתר התאגידי של <em>UNOX × י.פפר בע&quot;מ.</em>
+    </h1>
+    <p class="lede">
+      פירוט מלא של מה שנבנה, מה כלול במחיר, ומה תקבלי מעבר לאתר עצמו.
+      ההצעה תקפה ל-30 יום מתאריך השליחה.
+    </p>
+
+    <div class="meta">
+      <div>
+        <span>לקוח</span>
+        <strong>י. פפר בע&quot;מ</strong>
+      </div>
+      <div>
+        <span>פרויקט</span>
+        <strong>אתר תאגידי + קונפיגורטור</strong>
+      </div>
+      <div>
+        <span>תאריך</span>
+        <strong>{new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' })}</strong>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="overview">
+  <div class="container">
+    <span class="eyebrow">סקירה מהירה</span>
+    <h2>שבעה עמודי תוכן + קונפיגורטור הזמנה.</h2>
+    <p class="lede">
+      האתר נבנה בארכיטקטורת Next.js מודרנית, עם שפה עברית מלאה (RTL), אופטימיזציית SEO,
+      גישה רב-מכשירית, ומערכת ניהול תוכן שמאפשרת לכם לעדכן הכל בעצמכם.
+    </p>
+
+    <div class="stats">
+      <div class="stat"><strong>7</strong><span>עמודי תוכן</span></div>
+      <div class="stat"><strong>32</strong><span>דגמי מוצרים</span></div>
+      <div class="stat"><strong>9</strong><span>סדרות בקטלוג</span></div>
+      <div class="stat"><strong>16</strong><span>כתבות בלוג</span></div>
+      <div class="stat"><strong>189</strong><span>אביזרים בקונפיגורטור</span></div>
+      <div class="stat"><strong>15</strong><span>לוגויי לקוחות</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="chapters">
+  <div class="container">
+    <span class="eyebrow">פירוט עמוד-עמוד</span>
+    <h2>מה את מקבלת בכל אזור באתר.</h2>
+
+    {sections.map((s) => (
+      <article class="chapter">
+        <header class="chapter-head">
+          <span class="chapter-num">{s.n}</span>
+          <div>
+            <h3>{s.title}</h3>
+            <p>{s.subtitle}</p>
+          </div>
+        </header>
+        <div class="chapter-body">
+          <ul class="chapter-list">
+            {s.bullets.map((b) => <li>{b}</li>)}
+          </ul>
+          <div class="chapter-shot">
+            <img src={s.image} alt={`תצוגה של ${s.title}`} loading="lazy" />
+          </div>
+        </div>
+      </article>
+    ))}
+  </div>
+</section>
+
+<section class="includes">
+  <div class="container">
+    <span class="eyebrow">מעבר לאתר עצמו, כלול בהצעה</span>
+    <h2>שלוש מערכות נוספות.</h2>
+    <p class="lede">
+      את לא מקבלת רק אתר. את מקבלת את כל התשתית סביבו, כך שתוכלי לתפעל אותו לבד מהיום הראשון.
+    </p>
+    <div class="includes-grid">
+      {services.map((it) => (
+        <div class="include-card">
+          <div class="include-icon">{it.icon}</div>
+          <h3>{it.title}</h3>
+          <p>{it.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="free">
+  <div class="container">
+    <span class="eyebrow">ללא תשלום</span>
+    <h2>מה כלול לאורך זמן.</h2>
+    <ul class="free-list">
+      {free.map((f) => <li>{f}</li>)}
+    </ul>
+  </div>
+</section>
+
+<section class="hosting">
+  <div class="container hosting-card">
+    <div>
+      <span class="eyebrow">אחסון שנתי</span>
+      <h3>850 ש&quot;ח לשנה <span style="font-weight:400;font-size:0.7em;opacity:0.7;">+ מע&quot;מ</span></h3>
+      <p>אחסון מקצועי ב-Vercel עם CDN גלובלי, SSL, גיבויים אוטומטיים, וזמני טעינה מהירים גם בשעות עומס.</p>
+    </div>
+    <div class="hosting-price">
+      <strong>850</strong>
+      <span>₪ + מע&quot;מ / שנה</span>
+    </div>
+  </div>
+</section>
+
+<section class="price">
+  <div class="container">
+    <span class="eyebrow">סיכום עלות</span>
+    <h2>מחיר חד-פעמי לבנייה ולמערכת.</h2>
+    <div class="price-card">
+      <div class="price-row">
+        <span>בניית אתר תאגידי + קונפיגורטור הזמנה + בלוג</span>
+        <strong>9,000 ₪</strong>
+      </div>
+      <div class="price-row sub">
+        <span>מערכת ניהול תוכן + דשבורד מנהל</span>
+        <strong>כלול</strong>
+      </div>
+      <div class="price-row sub">
+        <span>הדרכה ותמיכה שוטפת</span>
+        <strong>כלול</strong>
+      </div>
+      <div class="price-row sub timeline">
+        <span>זמן ביצוע</span>
+        <strong>עד שבוע ממועד אישור ההצעה</strong>
+      </div>
+      <div class="price-row total">
+        <span>סה&quot;כ לפני מע&quot;מ</span>
+        <strong>9,000 ₪</strong>
+      </div>
+      <p class="price-note">תוספת מע&quot;מ כחוק. תשלום במזומן או בהעברה בנקאית. אחסון שנתי 850 ₪ + מע&quot;מ נגבה בנפרד.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sign">
+  <div class="container">
+    <span class="eyebrow">אישור הצעה</span>
+    <h2>אם המחיר ותיאור העבודה מקובלים, חתמי כאן.</h2>
+    <p class="lede">אישור ההצעה ישלח התראה במייל ואני אחזור אליך לתיאום העבודה.</p>
+
+    <form id="proposal-sign" class="sign-card">
+      <div class="field-row">
+        <div class="field">
+          <label for="name">שם מלא</label>
+          <input id="name" name="name" type="text" required autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="email">אימייל</label>
+          <input id="email" name="email" type="email" required autocomplete="email" dir="ltr" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="phone">טלפון</label>
+          <input id="phone" name="phone" type="tel" autocomplete="tel" dir="ltr" />
+        </div>
+        <div class="field">
+          <label for="title">תפקיד</label>
+          <input id="title" name="title" type="text" placeholder="לדוגמה: מנכ&quot;לית, סמנכ&quot;ל מסחר" />
+        </div>
+      </div>
+
+      <fieldset class="confirms">
+        <label class="check">
+          <input type="checkbox" name="confirm_scope" required />
+          <span>אני מאשרת את היקף העבודה שתואר בהצעה.</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="confirm_price" required />
+          <span>אני מאשרת את המחיר: 9,000 ₪ + מע&quot;מ עבור בניית האתר והמערכת, ואחסון שנתי של 850 ₪ + מע&quot;מ לשנה.</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="confirm_terms" required />
+          <span>אני מאשרת שעם תחילת העבודה תיגבה מקדמה של 50% וייתרת התשלום במסירה.</span>
+        </label>
+      </fieldset>
+
+      <div class="signature-block">
+        <label for="signature">חתימה דיגיטלית</label>
+        <p class="hint">לחצי בתוך הריבוע וצירי את שמך כחתימה.</p>
+        <div class="sig-wrap">
+          <canvas id="signature" aria-label="אזור חתימה"></canvas>
+          <span class="sig-line" aria-hidden="true"></span>
+          <span class="sig-x" aria-hidden="true">×</span>
+        </div>
+        <div class="sig-actions">
+          <button type="button" id="sig-clear" class="btn-ghost">נקה חתימה</button>
+        </div>
+      </div>
+
+      <div class="sign-actions">
+        <button type="submit" class="btn-primary">
+          אישור ושליחה
+          <span aria-hidden="true">←</span>
+        </button>
+        <p class="legal">בלחיצה על האישור, אני מקבלת את התנאים המופיעים בהצעה זו ומסמיכה את NINJA Digital להתחיל בעבודה.</p>
+      </div>
+    </form>
+
+    <div id="sign-success" class="sign-success" hidden>
+      <h3>התקבל. תודה.</h3>
+      <p>שמחים לבנות אתכם. שרון יחזור אליך עם פרטי תחילת העבודה ועם פרטי תשלום המקדמה תוך יום עסקים אחד.</p>
+    </div>
+  </div>
+</section>
+
+<div class="smart-divider" aria-hidden="true">
+  <span></span>
+</div>
+
+<section class="smart-systems">
+  <div class="container">
+    <header class="smart-head">
+      <span class="eyebrow">Smart Business Systems</span>
+      <h2>לא רק אתר. תשתית חכמה לצמיחת העסק.</h2>
+      <p class="lede">
+        השירותים האלה לא נכללים בהצעת המחיר הנוכחית. הם מודולים נפרדים שמתחברים לאתר כשהעסק מוכן לצעד הבא.
+        אפשר להפעיל כל שירות בנפרד, וכולם מדברים ביניהם דרך שכבת נתונים אחת.
+      </p>
+    </header>
+
+    <div class="smart-grid">
+      {smartCards.map((c) => (
+        <article class={`smart-card${c.isFuture ? ' is-future' : ''}`} data-id={c.id}>
+          <div class="smart-card-top">
+            <div class="smart-icon" aria-hidden="true">
+              {c.icon === 'website' && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><circle cx="6" cy="6.5" r="0.6" fill="currentColor"/><circle cx="8" cy="6.5" r="0.6" fill="currentColor"/></svg>
+              )}
+              {c.icon === 'seo' && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.35-4.35"/><path d="M9 11h4M11 9v4"/></svg>
+              )}
+              {c.icon === 'ads' && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11v2a4 4 0 0 0 4 4l5 4V7L7 11H3z"/><path d="M16 8a5 5 0 0 1 0 8"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>
+              )}
+              {c.icon === 'tracking' && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+              )}
+              {c.icon === 'dashboard' && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg>
+              )}
+              {c.icon === 'calls' && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.8 12.8 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.8 12.8 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              )}
+              {c.icon === 'club' && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h16v12H5.17L4 17.17V4z"/><path d="M8 9h8M8 12h5"/></svg>
+              )}
+              {c.icon === 'ai' && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
+              )}
+            </div>
+            <span class="smart-eng">{c.eng}</span>
+          </div>
+
+          <h3 class="smart-title">{c.title}</h3>
+          <p class="smart-desc">{c.desc}</p>
+
+          {c.you_get.length > 0 && (
+            <div class="smart-block">
+              <span class="smart-label">What You Get</span>
+              <ul>
+                {c.you_get.map((item) => <li>{item}</li>)}
+              </ul>
+            </div>
+          )}
+
+          {c.smart && (
+            <div class="smart-block smart-block-glow">
+              <span class="smart-label">Smart Layer</span>
+              <p>{c.smart}</p>
+            </div>
+          )}
+
+          {c.future.length > 0 && (
+            <div class="smart-block smart-block-future">
+              <span class="smart-label">{c.isFuture ? 'Future Vision' : 'Future Expansion'}</span>
+              <ul class="smart-tags">
+                {c.future.map((item) => <li>{item}</li>)}
+              </ul>
+            </div>
+          )}
+
+          <button type="button" class="smart-toggle" aria-pressed="false" data-smart-toggle>
+            <span class="smart-toggle-mark" aria-hidden="true"></span>
+            <span class="smart-toggle-label">סמני אם זה מעניין אותך</span>
+          </button>
+        </article>
+      ))}
+    </div>
+
+    <p class="smart-foot-note">
+      כל שירות מותאם אישית לעסק בהתאם לצרכים, למערכות הקיימות ולמטרות העסק.
+      תמחור מלא ניתן לאחר אפיון.
+    </p>
+  </div>
+</section>
+
+<section class="smart-orbit">
+  <div class="container">
+    <header class="smart-head">
+      <span class="eyebrow">All systems work together</span>
+      <h2>שכבת נתונים אחת. כל המערכות מדברות.</h2>
+      <p class="lede">
+        כל מודול שמופעל מצטרף למאגר נתונים משותף. ככל שיותר מערכות מחוברות, התובנות העסקיות מדויקות יותר.
+      </p>
+    </header>
+
+    <div class="orbit-stage" aria-hidden="true">
+      <div class="orbit-core">
+        <span>Business<br/>Brain</span>
+      </div>
+      <div class="orbit-ring"></div>
+      <div class="orbit-node n1"><span>Website</span></div>
+      <div class="orbit-node n2"><span>SEO</span></div>
+      <div class="orbit-node n3"><span>Google Ads</span></div>
+      <div class="orbit-node n4"><span>Tracking</span></div>
+      <div class="orbit-node n5"><span>Calls</span></div>
+      <div class="orbit-node n6"><span>Dashboard</span></div>
+      <svg class="orbit-lines" viewBox="0 0 600 600" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="orbitGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="rgba(255,209,102,0.5)"/>
+            <stop offset="1" stop-color="rgba(255,209,102,0)"/>
+          </linearGradient>
+        </defs>
+        <g stroke="url(#orbitGrad)" stroke-width="1" fill="none">
+          <line x1="300" y1="300" x2="300" y2="60"/>
+          <line x1="300" y1="300" x2="510" y2="180"/>
+          <line x1="300" y1="300" x2="510" y2="420"/>
+          <line x1="300" y1="300" x2="300" y2="540"/>
+          <line x1="300" y1="300" x2="90" y2="420"/>
+          <line x1="300" y1="300" x2="90" y2="180"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<script is:inline>
+(() => {
+  const form = document.getElementById('proposal-sign');
+  const success = document.getElementById('sign-success');
+  const canvas = /** @type {HTMLCanvasElement} */(document.getElementById('signature'));
+  const ctx = canvas?.getContext('2d');
+  let drawing = false;
+  let hasInk = false;
+
+  if (canvas && ctx) {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    function setupCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#1a1a1a';
+    }
+    setupCanvas();
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const data = canvas.toDataURL();
+        setupCanvas();
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, 0, 0, canvas.width / dpr, canvas.height / dpr);
+        img.src = data;
+      }, 150);
+    });
+
+    function pos(e) {
+      const r = canvas.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+    function onDown(e) {
+      drawing = true;
+      canvas.setPointerCapture?.(e.pointerId);
+      const { x, y } = pos(e);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      e.preventDefault();
+    }
+    function onMove(e) {
+      if (!drawing) return;
+      const { x, y } = pos(e);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      hasInk = true;
+      e.preventDefault();
+    }
+    function onUp(e) {
+      if (!drawing) return;
+      drawing = false;
+      canvas.releasePointerCapture?.(e.pointerId);
+    }
+    canvas.addEventListener('pointerdown', onDown);
+    canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointercancel', onUp);
+    canvas.addEventListener('pointerleave', onUp);
+
+    document.getElementById('sig-clear')?.addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasInk = false;
+    });
+  }
+
+  // Smart cards: toggle interest. Selected ids flow into the signature payload.
+  const interested = new Set();
+  document.querySelectorAll('[data-smart-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const card = btn.closest('.smart-card');
+      const id = card?.getAttribute('data-id');
+      if (!id) return;
+      const pressed = btn.getAttribute('aria-pressed') === 'true';
+      if (pressed) {
+        btn.setAttribute('aria-pressed', 'false');
+        btn.querySelector('.smart-toggle-label').textContent = 'סמני אם זה מעניין אותך';
+        interested.delete(id);
+      } else {
+        btn.setAttribute('aria-pressed', 'true');
+        btn.querySelector('.smart-toggle-label').textContent = 'סומן כמעניין ✓';
+        interested.add(id);
+      }
+    });
+  });
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!hasInk) {
+      alert('נדרשת חתימה לפני האישור.');
+      return;
+    }
+    const data = Object.fromEntries(new FormData(form).entries());
+    const signature = canvas?.toDataURL('image/png');
+    const interest = Array.from(interested);
+    try {
+      const res = await fetch('/api/proposal-sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proposal: 'feffer-unox', ...data, signature, interest, signedAt: new Date().toISOString() }),
+      });
+      if (res.ok || res.status === 202) {
+        form.style.display = 'none';
+        success.removeAttribute('hidden');
+        success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        alert('משהו השתבש. נסי שוב או שלחי לי במייל ישירות.');
+      }
+    } catch {
+      alert('משהו השתבש בחיבור. נסי שוב.');
+    }
+  });
+})();
+</script>
+
+<style>
+.proposal-hero { padding: 120px 0 70px; position: relative; z-index: 2; }
+.proposal-hero h1 { font-size: clamp(2.4rem, 5.5vw, 4.4rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; line-height: 1.05; }
+.proposal-hero h1 em { font-style: normal; color: var(--gold, #ffd166); }
+.lede { color: rgba(255,255,255,0.78); max-width: 720px; margin-top: 18px; font-size: 1.05rem; line-height: 1.7; }
+.meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 48px; padding: 22px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+.meta > div { display: flex; flex-direction: column; gap: 4px; }
+.meta span { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+.meta strong { font-size: 1.05rem; color: #fff; }
+
+section { padding: 60px 0; }
+section.overview { padding-top: 30px; padding-bottom: 30px; }
+section.overview h2 { font-size: clamp(1.8rem, 3.6vw, 2.6rem); font-weight: 700; letter-spacing: -0.02em; margin-top: 12px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 30px; }
+@media (min-width: 768px) { .stats { grid-template-columns: repeat(6, 1fr); } }
+.stat { padding: 22px 14px; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(255,255,255,0.02); text-align: center; }
+.stat strong { display: block; font-size: 2rem; color: var(--gold, #ffd166); font-weight: 800; }
+.stat span { font-size: 0.78rem; color: rgba(255,255,255,0.6); }
+
+.chapters h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; margin-bottom: 36px; }
+.chapter { padding: 38px 0; border-top: 1px solid rgba(255,255,255,0.08); }
+.chapter:first-of-type { border-top: 1px solid rgba(255,255,255,0.16); }
+.chapter-head { display: flex; align-items: flex-start; gap: 22px; margin-bottom: 22px; }
+.chapter-num { font-family: 'Rubik', sans-serif; font-size: 1.6rem; font-weight: 700; color: var(--gold, #ffd166); min-width: 64px; padding-top: 4px; }
+.chapter-head h3 { font-size: 1.7rem; font-weight: 700; letter-spacing: -0.01em; }
+.chapter-head p { color: rgba(255,255,255,0.6); margin-top: 4px; }
+.chapter-body { display: grid; grid-template-columns: 1fr; gap: 28px; }
+@media (min-width: 992px) { .chapter-body { grid-template-columns: 1fr 1fr; align-items: start; } }
+.chapter-list { list-style: none; padding: 0; display: grid; gap: 12px; }
+.chapter-list li { position: relative; padding-inline-start: 22px; color: rgba(255,255,255,0.85); line-height: 1.65; }
+.chapter-list li::before { content: ''; position: absolute; inset-inline-start: 0; top: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--gold, #ffd166); }
+.chapter-shot { position: relative; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 24px 60px -28px rgba(0,0,0,0.6); }
+.chapter-shot img { display: block; width: 100%; height: auto; }
+
+.includes h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; }
+.includes-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 36px; }
+@media (min-width: 768px) { .includes-grid { grid-template-columns: repeat(3, 1fr); } }
+.include-card { padding: 28px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+.include-icon { font-size: 1.8rem; color: var(--gold, #ffd166); margin-bottom: 14px; }
+.include-card h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 8px; }
+.include-card p { color: rgba(255,255,255,0.7); line-height: 1.6; }
+
+.free h2 { font-size: clamp(1.8rem, 3.6vw, 2.4rem); font-weight: 700; letter-spacing: -0.02em; margin-top: 12px; }
+.free-list { list-style: none; padding: 0; margin-top: 24px; display: grid; gap: 14px; }
+.free-list li { padding: 18px 22px; border: 1px solid rgba(34,197,94,0.18); border-radius: 14px; background: rgba(34,197,94,0.06); position: relative; padding-inline-start: 50px; line-height: 1.6; }
+.free-list li::before { content: '✓'; position: absolute; inset-inline-start: 18px; top: 16px; color: rgb(74, 222, 128); font-weight: 700; font-size: 1.1rem; }
+
+.hosting-card { display: flex; align-items: center; justify-content: space-between; gap: 22px; padding: 30px 36px; border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; background: rgba(255,255,255,0.02); flex-wrap: wrap; }
+.hosting-card h3 { font-size: 1.6rem; font-weight: 700; margin: 8px 0; }
+.hosting-card p { color: rgba(255,255,255,0.7); max-width: 480px; line-height: 1.6; }
+.hosting-price { display: flex; align-items: baseline; gap: 6px; color: var(--gold, #ffd166); }
+.hosting-price strong { font-size: 3rem; font-weight: 800; }
+.hosting-price span { font-size: 0.95rem; }
+
+.price h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; margin-bottom: 28px; }
+.price-card { border: 1px solid rgba(255,255,255,0.12); border-radius: 22px; padding: 30px 36px; background: linear-gradient(180deg, rgba(255,209,102,0.08), rgba(255,255,255,0.02)); }
+.price-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-top: 1px solid rgba(255,255,255,0.06); gap: 14px; }
+.price-row:first-of-type { border-top: none; }
+.price-row strong { font-weight: 700; color: #fff; font-size: 1.05rem; }
+.price-row.sub { color: rgba(255,255,255,0.7); }
+.price-row.sub strong { color: rgba(74, 222, 128, 1); font-size: 0.95rem; }
+.price-row.timeline strong { color: var(--gold, #ffd166); font-size: 0.95rem; }
+.price-row.total { border-top: 1px solid rgba(255,209,102,0.4); padding-top: 22px; margin-top: 12px; }
+.price-row.total strong { font-size: 2rem; color: var(--gold, #ffd166); }
+.price-note { color: rgba(255,255,255,0.55); font-size: 0.85rem; margin-top: 14px; }
+
+.sign h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; }
+.sign-card { margin-top: 32px; padding: 32px; border: 1px solid rgba(255,255,255,0.12); border-radius: 22px; background: rgba(255,255,255,0.03); display: grid; gap: 20px; }
+.field-row { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 768px) { .field-row { grid-template-columns: 1fr 1fr; } }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+.field input { height: 48px; padding: 0 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: #fff; font-size: 1rem; transition: border-color 0.2s; }
+.field input:focus { outline: none; border-color: var(--gold, #ffd166); }
+.confirms { display: grid; gap: 8px; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(0,0,0,0.2); }
+.check {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 12px;
+  align-items: start;
+  cursor: pointer;
+  padding: 10px 8px;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+.check:hover { background: rgba(255,255,255,0.04); }
+.check input[type=checkbox] {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--gold, #ffd166);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.check span {
+  line-height: 1.55;
+  color: rgba(255,255,255,0.88);
+  font-size: 0.95rem;
+}
+
+.signature-block { display: grid; gap: 10px; padding: 18px 20px; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; background: rgba(0,0,0,0.25); }
+.signature-block label { font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.65); }
+.signature-block .hint { font-size: 0.85rem; color: rgba(255,255,255,0.55); margin: 0; }
+.sig-wrap { position: relative; width: 100%; }
+canvas#signature {
+  display: block;
+  width: 100%;
+  height: 200px;
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.16);
+  cursor: crosshair;
+  touch-action: none;
+}
+.sig-line {
+  position: absolute;
+  inset-inline: 24px;
+  bottom: 38px;
+  height: 1px;
+  background: rgba(0,0,0,0.18);
+  pointer-events: none;
+}
+.sig-x {
+  position: absolute;
+  inset-inline-start: 24px;
+  bottom: 26px;
+  font-size: 0.85rem;
+  color: rgba(0,0,0,0.45);
+  letter-spacing: 0.05em;
+  pointer-events: none;
+  font-family: 'Rubik', sans-serif;
+}
+.sig-actions { display: flex; justify-content: flex-end; }
+.btn-ghost { background: transparent; border: 1px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.7); padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: border-color 0.2s; }
+.btn-ghost:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
+
+.sign-actions { margin-top: 12px; display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
+.btn-primary { height: 56px; background: linear-gradient(135deg, var(--gold, #ffd166), #d4a534); color: #0a0a0a; border: none; font-size: 1.05rem; font-weight: 700; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.2s, box-shadow 0.2s; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 30px -10px rgba(255,209,102,0.3); }
+.legal { color: rgba(255,255,255,0.5); font-size: 0.82rem; text-align: center; }
+
+.sign-success { margin-top: 32px; padding: 36px; border: 1px solid rgba(74,222,128,0.3); background: rgba(74,222,128,0.06); border-radius: 22px; text-align: center; }
+.sign-success h3 { font-size: 1.8rem; font-weight: 700; color: rgb(134, 239, 172); margin-bottom: 10px; }
+.sign-success p { color: rgba(255,255,255,0.85); line-height: 1.6; }
+
+.eyebrow { font-size: 0.78rem; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.55); display: inline-block; }
+
+/* ============================ */
+/*  Smart Business Systems      */
+/* ============================ */
+.smart-divider {
+  position: relative;
+  height: 1px;
+  margin: 50px auto 0;
+  max-width: 1200px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent);
+}
+.smart-divider span {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--gold, #ffd166);
+  box-shadow: 0 0 0 4px rgba(255,209,102,0.12);
+}
+
+.smart-systems { padding: 80px 0 40px; }
+.smart-head { max-width: 760px; }
+.smart-head h2 {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-top: 12px;
+  background: linear-gradient(180deg, #fff 60%, rgba(255,209,102,0.55) 130%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.smart-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  margin-top: 44px;
+}
+@media (min-width: 720px) { .smart-grid { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1100px) { .smart-grid { grid-template-columns: 1fr 1fr 1fr; } }
+
+.smart-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 26px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  background:
+    radial-gradient(140% 80% at 10% 0%, rgba(255,209,102,0.06), transparent 55%),
+    linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.01));
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  isolation: isolate;
+  overflow: hidden;
+}
+.smart-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255,209,102,0.18), transparent 40%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  z-index: -1;
+}
+.smart-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255,209,102,0.28);
+  box-shadow: 0 28px 60px -36px rgba(255,209,102,0.35);
+}
+.smart-card:hover::before { opacity: 1; }
+
+.smart-card.is-future {
+  background:
+    radial-gradient(120% 80% at 80% 0%, rgba(120,180,255,0.1), transparent 55%),
+    linear-gradient(180deg, rgba(120,180,255,0.04), rgba(255,255,255,0.01));
+  border-color: rgba(120,180,255,0.2);
+}
+.smart-card.is-future:hover { border-color: rgba(120,180,255,0.4); box-shadow: 0 28px 60px -36px rgba(120,180,255,0.35); }
+
+.smart-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.smart-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: var(--gold, #ffd166);
+  background: rgba(255,209,102,0.1);
+  border: 1px solid rgba(255,209,102,0.18);
+}
+.smart-icon svg { width: 22px; height: 22px; }
+.smart-card.is-future .smart-icon {
+  color: rgb(170, 200, 255);
+  background: rgba(120,180,255,0.1);
+  border-color: rgba(120,180,255,0.22);
+}
+.smart-eng {
+  font-family: 'Rubik', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  direction: ltr;
+}
+.smart-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+  color: #fff;
+}
+.smart-desc {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.7);
+  margin: 0 0 18px;
+}
+.smart-block {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.18);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.smart-block-glow {
+  background: linear-gradient(180deg, rgba(255,209,102,0.08), rgba(255,209,102,0.02));
+  border-color: rgba(255,209,102,0.18);
+}
+.smart-block-future {
+  background: rgba(255,255,255,0.02);
+  border-style: dashed;
+}
+.smart-card.is-future .smart-block-future {
+  background: linear-gradient(180deg, rgba(120,180,255,0.06), rgba(120,180,255,0.02));
+  border-color: rgba(120,180,255,0.22);
+  border-style: solid;
+}
+.smart-label {
+  display: block;
+  font-family: 'Rubik', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,209,102,0.85);
+  margin-bottom: 8px;
+}
+.smart-card.is-future .smart-label { color: rgba(170,200,255,0.9); }
+.smart-block ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.smart-block li {
+  position: relative;
+  padding-inline-start: 18px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.82);
+}
+.smart-block li::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  top: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255,209,102,0.7);
+}
+.smart-card.is-future .smart-block li::before { background: rgba(170,200,255,0.7); }
+.smart-block p {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.78);
+  margin: 0;
+}
+.smart-tags {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 6px !important;
+}
+.smart-tags li {
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  border: 1px solid rgba(255,209,102,0.2);
+  border-radius: 999px;
+  background: rgba(255,209,102,0.05);
+  color: rgba(255,255,255,0.85);
+}
+.smart-tags li::before { display: none; }
+.smart-card.is-future .smart-tags li {
+  border-color: rgba(120,180,255,0.28);
+  background: rgba(120,180,255,0.06);
+}
+
+.smart-toggle {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  color: rgba(255,255,255,0.65);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  align-self: stretch;
+  justify-content: center;
+}
+.smart-toggle:hover { border-color: rgba(255,209,102,0.3); color: #fff; background: rgba(255,209,102,0.04); }
+.smart-toggle-mark {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  position: relative;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.smart-toggle[aria-pressed="true"] {
+  border-color: rgba(255,209,102,0.5);
+  background: rgba(255,209,102,0.08);
+  color: var(--gold, #ffd166);
+}
+.smart-toggle[aria-pressed="true"] .smart-toggle-mark {
+  background: var(--gold, #ffd166);
+  border-color: var(--gold, #ffd166);
+}
+.smart-toggle[aria-pressed="true"] .smart-toggle-mark::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 2px;
+  background: #0a0a0a;
+  clip-path: polygon(14% 50%, 0 64%, 36% 100%, 100% 18%, 86% 4%, 36% 70%);
+}
+
+.smart-foot-note {
+  margin-top: 36px;
+  padding: 18px 22px;
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: rgba(255,255,255,0.6);
+  border-inline-start: 2px solid rgba(255,209,102,0.4);
+  background: rgba(255,255,255,0.02);
+  border-radius: 0 10px 10px 0;
+}
+
+/* ============================ */
+/*  Orbit / Systems together    */
+/* ============================ */
+.smart-orbit { padding: 60px 0 80px; }
+.orbit-stage {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 50px auto 0;
+  aspect-ratio: 1 / 1;
+}
+.orbit-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(255,209,102,0.12), transparent 60%);
+  pointer-events: none;
+}
+.orbit-core {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255,209,102,0.25), rgba(255,209,102,0.05));
+  border: 1.5px solid rgba(255,209,102,0.5);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  font-family: 'Rubik', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  color: var(--gold, #ffd166);
+  z-index: 3;
+  box-shadow: 0 0 60px -10px rgba(255,209,102,0.4);
+}
+.orbit-ring {
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  border: 1px dashed rgba(255,255,255,0.12);
+  z-index: 1;
+}
+.orbit-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+.orbit-node {
+  position: absolute;
+  width: 110px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(15,15,15,0.85);
+  border: 1px solid rgba(255,255,255,0.12);
+  text-align: center;
+  font-family: 'Rubik', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  letter-spacing: 0.02em;
+  z-index: 4;
+  backdrop-filter: blur(6px);
+  transition: border-color 0.25s, color 0.25s, transform 0.25s;
+}
+.orbit-node:hover { border-color: rgba(255,209,102,0.6); color: #fff; transform: scale(1.05); }
+.orbit-node.n1 { top: 0%; left: 50%; transform: translate(-50%, 0); }
+.orbit-node.n1:hover { transform: translate(-50%, 0) scale(1.05); }
+.orbit-node.n2 { top: 22%; right: -2%; }
+.orbit-node.n3 { bottom: 22%; right: -2%; }
+.orbit-node.n4 { bottom: 0%; left: 50%; transform: translate(-50%, 0); }
+.orbit-node.n4:hover { transform: translate(-50%, 0) scale(1.05); }
+.orbit-node.n5 { bottom: 22%; left: -2%; }
+.orbit-node.n6 { top: 22%; left: -2%; }
+
+@media (max-width: 720px) {
+  .orbit-stage { max-width: 380px; }
+  .orbit-core { width: 100px; height: 100px; font-size: 0.82rem; }
+  .orbit-node { width: 88px; padding: 8px 10px; font-size: 0.72rem; }
+}
+</style>
+
+<style is:global>
+/* Fail-safe override: site.js raises a TypeError on this page (looks for
+ * the regular nav that we hid) which breaks the IntersectionObserver
+ * that adds the `.in` class. Force every element visible so
+ * the page renders even when the script throws. */
+[data-reveal] { opacity: 1 !important; transform: none !important; }
+</style>
+</Layout>

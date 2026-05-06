@@ -7,18 +7,26 @@ interface Props {
   title?: string;
   description?: string;
   image?: string;
+  imageAlt?: string;
   ogType?: 'website' | 'article';
   noindex?: boolean;
   hideFloatWA?: boolean;
+  hideNav?: boolean;
+  publishedTime?: string;
+  modifiedTime?: string;
 }
 
 const {
   title = 'NINJA Digital — שיווק שמכה בדיוק במטרה',
   description = 'סוכנות שיווק דיגיטלי בישראל: גוגל אדס, SEO, בניית אתרים, פלאשי ומועדוני לקוחות. אסטרטגיית ביצועים מלאה למותגים שרוצים לגדול.',
   image = '/og-default.png',
+  imageAlt = 'NINJA Digital — סוכנות שיווק דיגיטלי בישראל',
   ogType = 'website',
   noindex = false,
   hideFloatWA = false,
+  hideNav = false,
+  publishedTime,
+  modifiedTime,
 } = Astro.props;
 
 const SITE = 'https://www.samp.ninja';
@@ -34,9 +42,11 @@ const imageAbs = image.startsWith('http') ? image : new URL(image, SITE).href;
 <title>{title}</title>
 <meta name="description" content={description} />
 <meta name="theme-color" content="#08090c" />
+<meta name="author" content="NINJA Digital" />
+<meta name="format-detection" content="telephone=yes" />
 <link rel="canonical" href={canonical} />
 {noindex && <meta name="robots" content="noindex, nofollow" />}
-{!noindex && <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />}
+{!noindex && <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />}
 
 <!-- Open Graph -->
 <meta property="og:title" content={title} />
@@ -46,15 +56,20 @@ const imageAbs = image.startsWith('http') ? image : new URL(image, SITE).href;
 <meta property="og:image" content={imageAbs} />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content={imageAlt} />
 <meta property="og:locale" content="he_IL" />
 <meta property="og:site_name" content="NINJA Digital" />
+{ogType === 'article' && publishedTime && <meta property="article:published_time" content={publishedTime} />}
+{ogType === 'article' && modifiedTime && <meta property="article:modified_time" content={modifiedTime} />}
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content={title} />
 <meta name="twitter:description" content={description} />
 <meta name="twitter:image" content={imageAbs} />
+<meta name="twitter:image:alt" content={imageAlt} />
 
+<link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Rubik:wght@400;500;600;700;800;900&family=Noto+Serif+JP:wght@900&display=swap" rel="stylesheet">
@@ -74,8 +89,10 @@ const imageAbs = image.startsWith('http') ? image : new URL(image, SITE).href;
 </head>
 <body>
 
+<a href="#main-content" class="skip-link">דלג לתוכן הראשי</a>
+
 <!-- LOADER -->
-<div class="loader" id="loader">
+<div class="loader" id="loader" aria-hidden="true">
   <div class="loader-inner">
     <svg class="loader-shuriken" viewBox="0 0 200 200" aria-hidden="true">
       <defs>
@@ -96,35 +113,95 @@ const imageAbs = image.startsWith('http') ? image : new URL(image, SITE).href;
 </div>
 
 <!-- CURSOR -->
-<div class="cursor-dot" id="cursorDot"></div>
-<div class="cursor-ring" id="cursorRing"></div>
+<div class="cursor-dot" id="cursorDot" aria-hidden="true"></div>
+<div class="cursor-ring" id="cursorRing" aria-hidden="true"></div>
 
 <!-- SCROLL PROGRESS -->
-<div class="scroll-progress" id="scrollProgress"></div>
+<div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
 
 <!-- DECOR -->
-<div class="noise"></div>
-<div class="grid-bg"></div>
+<div class="noise" aria-hidden="true"></div>
+<div class="grid-bg" aria-hidden="true"></div>
 <div class="kanji-bg" aria-hidden="true">忍</div>
-<div class="floating-shuriken s1"></div>
-<div class="floating-shuriken s2"></div>
-<div class="floating-shuriken s3"></div>
+<div class="floating-shuriken s1" aria-hidden="true"></div>
+<div class="floating-shuriken s2" aria-hidden="true"></div>
+<div class="floating-shuriken s3" aria-hidden="true"></div>
 
-<Nav />
+{!hideNav && <Nav />}
 
-<main>
+{hideNav && (
+  <header class="minimal-nav" aria-label="כותרת">
+    <div class="container">
+      <div class="logo minimal" aria-label="NINJA Digital">
+        <svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+          <defs>
+            <linearGradient id="lg-min" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0" stop-color="#ff2a3c"/>
+              <stop offset="1" stop-color="#8b0000"/>
+            </linearGradient>
+          </defs>
+          <g class="shuriken-rotate">
+            <path d="M32 4 L38 26 L60 32 L38 38 L32 60 L26 38 L4 32 L26 26 Z" fill="url(#lg-min)" stroke="#ffd166" stroke-width="1.2"/>
+            <circle cx="32" cy="32" r="4" fill="#0a0a0a" stroke="#ffd166" stroke-width="1"/>
+          </g>
+        </svg>
+        <span class="logo-text"><b>NINJA</b><i>digital</i></span>
+      </div>
+    </div>
+  </header>
+)}
+
+<main id="main-content">
   <slot />
 </main>
 
 <Footer />
 
 {!hideFloatWA && (
-  <a href="https://wa.me/972545822451" class="float-wa" aria-label="WhatsApp" data-cursor="link">
-    <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.95.5 3.84 1.46 5.51L2 22l4.74-1.55a9.9 9.9 0 005.3 1.45h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7-1.86-1.87-4.34-2.9-7-2.9zm5.86 14.13c-.25.7-1.45 1.34-2 1.42-.51.07-1.16.1-1.86-.12a16 16 0 01-1.7-.63c-3-1.3-4.94-4.31-5.09-4.5-.15-.2-1.21-1.6-1.21-3.05 0-1.45.76-2.16 1.03-2.46.27-.3.59-.37.78-.37l.57.01c.18.01.43-.07.67.51l.94 2.27c.07.16.13.34.02.54l-.27.42-.4.46c-.13.13-.27.28-.12.55.16.27.7 1.16 1.5 1.87 1.03.93 1.9 1.21 2.17 1.35.27.13.43.11.6-.07.16-.18.69-.8.88-1.07.18-.27.36-.22.6-.13l1.65.78c.28.13.46.2.53.31.07.1.07.6-.18 1.3z"/></svg>
-    <span class="fw-pulse"></span>
+  <a href="https://wa.me/972545822451" class="float-wa" aria-label="פתח שיחת WhatsApp" data-cursor="link">
+    <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.95.5 3.84 1.46 5.51L2 22l4.74-1.55a9.9 9.9 0 005.3 1.45h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7-1.86-1.87-4.34-2.9-7-2.9zm5.86 14.13c-.25.7-1.45 1.34-2 1.42-.51.07-1.16.1-1.86-.12a16 16 0 01-1.7-.63c-3-1.3-4.94-4.31-5.09-4.5-.15-.2-1.21-1.6-1.21-3.05 0-1.45.76-2.16 1.03-2.46.27-.3.59-.37.78-.37l.57.01c.18.01.43-.07.67.51l.94 2.27c.07.16.13.34.02.54l-.27.42-.4.46c-.13.13-.27.28-.12.55.16.27.7 1.16 1.5 1.87 1.03.93 1.9 1.21 2.17 1.35.27.13.43.11.6-.07.16-.18.69-.8.88-1.07.18-.27.36-.22.6-.13l1.65.78c.28.13.46.2.53.31.07.1.07.6-.18 1.3z"/></svg>
+    <span class="fw-pulse" aria-hidden="true"></span>
   </a>
 )}
 
 <script src="/site.js" is:inline></script>
+
+<style is:global>
+  .minimal-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    padding: 18px 0;
+    background: rgba(8, 9, 12, 0.7);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .minimal-nav .logo.minimal {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: #fff;
+  }
+  .minimal-nav .logo-mark {
+    width: 36px;
+    height: 36px;
+  }
+  .minimal-nav .logo-text {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 800;
+    font-size: 1.05rem;
+    letter-spacing: 0.02em;
+  }
+  .minimal-nav .logo-text b { font-weight: 800; }
+  .minimal-nav .logo-text i {
+    font-style: normal;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.55);
+    margin-inline-start: 6px;
+  }
+</style>
+
 </body>
 </html>
