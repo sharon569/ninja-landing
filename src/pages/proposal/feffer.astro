@@ -1249,5 +1249,24 @@ canvas#signature {
  * that adds the `.in` class. Force every element visible so
  * the page renders even when the script throws. */
 [data-reveal] { opacity: 1 !important; transform: none !important; }
+
+/* Hard guarantee: no horizontal scroll on any device for this page */
+html, body { overflow-x: clip; }
+</style>
+
+<style>
+@media (max-width: 720px) {
+  /* Tighter hero so the sticky nav doesn't feel like it's covering content */
+  .proposal-hero { padding: 36px 0 50px; }
+  .proposal-hero h1 { font-size: 2.1rem; line-height: 1.15; }
+  .proposal-hero .lede { font-size: 0.98rem; }
+  .meta { grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; margin-top: 24px; }
+  .meta strong { font-size: 0.95rem; }
+
+  /* Keep the orbit nodes inside the viewport on narrow screens */
+  .orbit-stage { max-width: min(360px, calc(100vw - 80px)); }
+  .orbit-node.n2, .orbit-node.n3 { right: 0; }
+  .orbit-node.n5, .orbit-node.n6 { left: 0; }
+}
 </style>
 </Layout>
