@@ -12,7 +12,31 @@ export default defineConfig({
   site: 'https://www.samp.ninja',
   integrations: [
     sitemap({
-      filter: (page) => !page.includes('/portal/'),
+      filter: (page) => !page.includes('/portal/') && !page.includes('/proposal/'),
+      i18n: { defaultLocale: 'he', locales: { he: 'he-IL' } },
+      serialize(item) {
+        const url = item.url;
+        if (url === 'https://www.samp.ninja/') {
+          item.changefreq = 'weekly';
+          item.priority = 1.0;
+        } else if (url.match(/\/services\/?$/) || url.match(/\/work\/?$/) || url.match(/\/contact\/?$/)) {
+          item.changefreq = 'weekly';
+          item.priority = 0.9;
+        } else if (url.includes('/services/')) {
+          item.changefreq = 'monthly';
+          item.priority = 0.8;
+        } else if (url.includes('/work/')) {
+          item.changefreq = 'monthly';
+          item.priority = 0.7;
+        } else if (url.includes('/blog/')) {
+          item.changefreq = 'monthly';
+          item.priority = 0.6;
+        } else {
+          item.changefreq = 'monthly';
+          item.priority = 0.5;
+        }
+        return item;
+      },
     }),
   ],
 });

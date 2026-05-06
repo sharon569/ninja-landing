@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /portal/
 Disallow: /api/
+Disallow: /proposal/
 
 Sitemap: https://www.samp.ninja/sitemap-index.xml
