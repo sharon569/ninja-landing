@@ -58,11 +58,14 @@ export const POST: APIRoute = async ({ request }) => {
     });
   }
 
+  const sigAttachment = buildSignatureAttachment(payload.signature);
+
   const adminRes = await sendEmail(key, {
     to: [TO_EMAIL],
     reply_to: payload.email,
     subject: `הצעת מחיר ${payload.proposal}: אושרה ע"י ${payload.name ?? 'לקוח'}`,
     html: renderAdmin(payload, ip),
+    attachments: sigAttachment,
   });
 
   if (!adminRes.ok) {
@@ -80,6 +83,7 @@ export const POST: APIRoute = async ({ request }) => {
       reply_to: REPLY_TO_CUSTOMER,
       subject: `אישור חתימה: הצעת מחיר NINJA Digital`,
       html: renderCustomer(payload),
+      attachments: sigAttachment,
     });
     customerSent = customerRes.ok;
     if (!customerSent) {
@@ -93,9 +97,22 @@ export const POST: APIRoute = async ({ request }) => {
   );
 };
 
+interface ResendAttachment {
+  filename: string;
+  content: string;
+  content_id?: string;
+  content_type?: string;
+}
+
 async function sendEmail(
   key: string,
-  body: { to: string[]; reply_to?: string; subject: string; html: string },
+  body: {
+    to: string[];
+    reply_to?: string;
+    subject: string;
+    html: string;
+    attachments?: ResendAttachment[];
+  },
 ) {
   return fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -105,6 +122,18 @@ async function sendEmail(
     },
     body: JSON.stringify({ from: FROM_EMAIL, ...body }),
   });
+}
+
+function buildSignatureAttachment(signature?: string): ResendAttachment[] | undefined {
+  if (!signature) return undefined;
+  const match = signature.match(/^data:image\/([a-z]+);base64,(.+)$/i);
+  if (!match) return undefined;
+  return [{
+    filename: `signature.${match[1].toLowerCase()}`,
+    content: match[2],
+    content_id: 'signature',
+    content_type: `image/${match[1].toLowerCase()}`,
+  }];
 }
 
 function escape(s: string) {
@@ -144,7 +173,7 @@ function renderAdmin(payload: Payload, ip: string) {
         <tr><td style="padding: 6px 10px; border-bottom: 1px solid #eee;"><strong>IP</strong></td><td style="padding: 6px 10px; border-bottom: 1px solid #eee;">${escape(ip)}</td></tr>
       </table>
       <h3 style="margin-top: 22px;">חתימה דיגיטלית</h3>
-      ${payload.signature ? `<img src="${payload.signature}" alt="Signature" style="max-width: 100%; border: 1px solid #ddd; padding: 4px;" />` : '<em>לא צורפה תמונה</em>'}
+      ${payload.signature ? `<img src="cid:signature" alt="Signature" style="max-width: 100%; border: 1px solid #ddd; padding: 4px;" />` : '<em>לא צורפה תמונה</em>'}
       ${payload.interest && payload.interest.length ? `
         <h3 style="margin-top: 22px;">שירותים נוספים שסומנו כמעניינים</h3>
         <ul style="padding-inline-start: 20px; line-height: 1.8;">
@@ -206,7 +235,7 @@ function renderCustomer(payload: Payload) {
         <div style="margin-bottom:26px;">
           <div style="font-size:11px;color:#a1a1aa;letter-spacing:0.2em;text-transform:uppercase;font-weight:700;margin-bottom:10px;">החתימה הדיגיטלית שלך</div>
           <div style="background:#ffffff;border:1px solid #e5e5ea;border-radius:8px;padding:10px;text-align:center;">
-            <img src="${payload.signature}" alt="חתימה" style="max-width:100%;height:auto;display:inline-block;">
+            <img src="cid:signature" alt="חתימה" style="max-width:100%;height:auto;display:inline-block;">
           </div>
         </div>` : ''}
 
