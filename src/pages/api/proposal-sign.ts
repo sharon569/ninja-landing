@@ -14,7 +14,7 @@ import type { APIRoute } from 'astro';
 export const prerender = false;
 
 const TO_EMAIL = 'sharon@samp.ninja';
-const FROM_EMAIL = process.env.PROPOSAL_FROM_EMAIL ?? 'NINJA Digital <noreply@samp.ninja>';
+const FROM_EMAIL = process.env.PROPOSAL_FROM_EMAIL ?? 'NINJA Digital <hello@send.samp.ninja>';
 
 interface Payload {
   proposal: string;
