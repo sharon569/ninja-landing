@@ -6,6 +6,15 @@ const TO_EMAIL = 'sharon@samp.ninja';
 const FROM_EMAIL = process.env.LEAD_FROM_EMAIL ?? 'NINJA Digital <hello@send.samp.ninja>';
 const REPLY_TO_CUSTOMER = 'sharon@samp.ninja';
 
+const SERVICE_BLURBS: Record<string, string> = {
+  'גוגל אדס': 'אנחנו בונים תשתיות אגרסיביות בגוגל אדס: bid management אוטומטי, audience signals חכמים, אופטימיזציה יומית. המדד היחיד שמעניין אותנו זה ROAS.',
+  'SEO אורגני': 'SEO אצלנו מבוסס על topic clusters, schema markup ו-EEAT אמיתי. מילות המפתח שאנחנו מדרגים הן אלה שמייצרות לידים, לא רק תנועה.',
+  'בניית אתר / התממשקויות': 'אתרים שנבנים לקונברסיה. סטאק מודרני, ביצועים מושלמים, והתממשקויות ל-CRM ולסליקה שעובדות באמת ולא רק על הנייר.',
+  'פלאשי / ניהול לקוחות': 'הקמה ותחזוקה שוטפת של פלאשי. אוטומציות SMS ו-WhatsApp, סגמנטציה חכמה, ושימור לקוחות שעובד מהיום הראשון.',
+  'מועדון לקוחות': 'מועדון שלא נשאר במגירה. מנגנוני נקודות, הפניות ואוטומציות. לקוחות חוזרים זה ה-ROAS האמיתי.',
+  'חבילה משולבת': 'כשגוגל אדס, SEO, אתר ומועדון רצים מאותה מערכת, התוצאות מכפילות. אנחנו בונים את כל הצינור מקצה לקצה.',
+};
+
 export const POST: APIRoute = async ({ request }) => {
   let form: FormData;
   try {
@@ -127,45 +136,48 @@ function renderAdmin(d: { name: string; phone: string; email: string; topic: str
 function renderCustomer(d: { name: string; phone: string; topic: string; msg: string }) {
   const recapRow = (label: string, value: string) =>
     value
-      ? `<tr><td style="padding:5px 0;color:#6a6f7c;width:90px;font-size:13px;">${escape(label)}</td><td style="padding:5px 0;color:#f5f5f7;font-size:14px;">${escape(value)}</td></tr>`
+      ? `<tr><td style="padding:6px 0;color:#71717a;width:90px;font-size:13px;">${escape(label)}</td><td style="padding:6px 0;color:#0a0a0a;font-size:14px;">${escape(value)}</td></tr>`
       : '';
   const recap = [d.name && recapRow('שם', d.name), d.phone && recapRow('טלפון', d.phone), d.topic && recapRow('נושא', d.topic)]
     .filter(Boolean)
     .join('');
 
+  const blurb = SERVICE_BLURBS[d.topic];
+
   return `
 <!DOCTYPE html>
-<html lang="he" dir="rtl"><body style="margin:0;padding:0;background:#08090c;">
-<div style="background:#08090c;padding:48px 16px;font-family:'Heebo','Rubik',system-ui,Arial,sans-serif;direction:rtl;color:#f5f5f7;">
+<html lang="he" dir="rtl"><body style="margin:0;padding:0;background:#f5f5f7;">
+<div style="background:#f5f5f7;padding:40px 16px;font-family:'Heebo',system-ui,Arial,sans-serif;direction:rtl;color:#0a0a0a;">
   <table role="presentation" align="center" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;margin:0 auto;border-collapse:collapse;">
     <tr>
-      <td style="background:#0c0e13;border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:48px 36px;">
-        <div style="text-align:center;margin-bottom:36px;">
+      <td style="background:#ffffff;border:1px solid #e5e5ea;border-radius:18px;padding:44px 36px;">
+        <div style="text-align:center;margin-bottom:32px;">
           <img src="https://www.samp.ninja/brand/assets/shuriken-mark-512.png" width="56" height="56" alt="" style="display:block;margin:0 auto 14px;border:0;outline:none;">
-          <div style="font-family:'Rubik',Arial,sans-serif;font-weight:900;letter-spacing:0.22em;font-size:13px;color:#ffd166;">NINJA DIGITAL</div>
+          <div style="font-family:'Rubik',Arial,sans-serif;font-weight:900;letter-spacing:0.22em;font-size:13px;color:#0a0a0a;">NINJA DIGITAL</div>
         </div>
-        <h1 style="font-family:'Rubik',Arial,sans-serif;font-size:32px;font-weight:900;color:#f5f5f7;margin:0 0 14px;text-align:center;line-height:1.15;letter-spacing:-0.01em;">תודה, ${escape(d.name)}.</h1>
-        <p style="color:#a8acb6;font-size:16px;line-height:1.7;margin:0 0 32px;text-align:center;">קיבלנו את פנייתך. נחזור אליך תוך 24 שעות עם תוכנית התקפה ראשונית.</p>
+        <h1 style="font-family:'Rubik',Arial,sans-serif;font-size:30px;font-weight:900;color:#0a0a0a;margin:0 0 14px;text-align:center;line-height:1.15;letter-spacing:-0.01em;">תודה, ${escape(d.name)}.</h1>
+        <p style="color:#52525b;font-size:16px;line-height:1.7;margin:0 0 28px;text-align:center;">קיבלנו את פנייתך. נחזור אליך תוך 24 שעות עם תוכנית התקפה ראשונית.</p>
+        ${blurb ? `<div style="border-right:3px solid #ff2a3c;background:#fafafa;padding:18px 22px;margin-bottom:28px;border-radius:6px;color:#27272a;font-size:14px;line-height:1.75;">${escape(blurb)}</div>` : ''}
         ${recap ? `
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;margin-bottom:32px;border-collapse:separate;">
-          <tr><td style="padding:20px 22px;">
-            <div style="font-size:11px;color:#6a6f7c;letter-spacing:0.2em;text-transform:uppercase;font-weight:700;margin-bottom:10px;">פרטים שהשארת</div>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#fafafa;border-radius:12px;margin-bottom:28px;border-collapse:separate;">
+          <tr><td style="padding:18px 22px;">
+            <div style="font-size:11px;color:#a1a1aa;letter-spacing:0.2em;text-transform:uppercase;font-weight:700;margin-bottom:10px;">פרטים שהשארת</div>
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;line-height:1.8;">${recap}</table>
           </td></tr>
         </table>` : ''}
-        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:28px;text-align:center;">
-          <div style="color:#f5f5f7;font-weight:700;font-size:14px;margin-bottom:8px;">שרון, NINJA Digital</div>
-          <div style="font-size:13px;line-height:1.8;">
-            <a href="https://wa.me/972545822451" style="color:#ffd166;text-decoration:none;">WhatsApp 054-582-2451</a>
+        <div style="border-top:1px solid #e5e5ea;padding-top:24px;text-align:center;">
+          <div style="color:#0a0a0a;font-weight:700;font-size:14px;margin-bottom:6px;">שרון, NINJA Digital</div>
+          <div style="font-size:13px;line-height:1.8;color:#52525b;">
+            <a href="https://wa.me/972545822451" style="color:#a07b00;text-decoration:none;font-weight:600;">WhatsApp 054-582-2451</a>
             &nbsp;·&nbsp;
-            <a href="mailto:sharon@samp.ninja" style="color:#ffd166;text-decoration:none;">sharon@samp.ninja</a>
+            <a href="mailto:sharon@samp.ninja" style="color:#a07b00;text-decoration:none;font-weight:600;">sharon@samp.ninja</a>
           </div>
         </div>
       </td>
     </tr>
     <tr>
-      <td style="text-align:center;padding-top:20px;">
-        <a href="https://www.samp.ninja" style="color:#6a6f7c;font-size:11px;text-decoration:none;letter-spacing:0.22em;">WWW.SAMP.NINJA</a>
+      <td style="text-align:center;padding-top:18px;">
+        <a href="https://www.samp.ninja" style="color:#a1a1aa;font-size:11px;text-decoration:none;letter-spacing:0.22em;">WWW.SAMP.NINJA</a>
       </td>
     </tr>
   </table>
