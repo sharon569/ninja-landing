@@ -3,5 +3,6 @@ Allow: /
 Disallow: /portal/
 Disallow: /api/
 Disallow: /proposal/
+Disallow: /brand/
 
 Sitemap: https://www.samp.ninja/sitemap-index.xml
