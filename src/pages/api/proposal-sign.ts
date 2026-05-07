@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { generateProposalPDF } from '../../lib/proposal-pdf';
 
 export const prerender = false;
 
@@ -60,12 +61,24 @@ export const POST: APIRoute = async ({ request }) => {
 
   const sigAttachment = buildSignatureAttachment(payload.signature);
 
+  let pdfAttachment: ResendAttachment[] = [];
+  try {
+    const pdfBuffer = await generateProposalPDF(payload);
+    pdfAttachment = [{
+      filename: 'proposal-ninja-digital.pdf',
+      content: pdfBuffer.toString('base64'),
+      content_type: 'application/pdf',
+    }];
+  } catch (err) {
+    console.error('[proposal-sign] PDF generation failed', err instanceof Error ? err.message : err);
+  }
+
   const adminRes = await sendEmail(key, {
     to: [TO_EMAIL],
     reply_to: payload.email,
     subject: `הצעת מחיר ${payload.proposal}: אושרה ע"י ${payload.name ?? 'לקוח'}`,
     html: renderAdmin(payload, ip),
-    attachments: sigAttachment,
+    attachments: [...(sigAttachment ?? []), ...pdfAttachment],
   });
 
   if (!adminRes.ok) {
@@ -82,8 +95,8 @@ export const POST: APIRoute = async ({ request }) => {
       to: [payload.email],
       reply_to: REPLY_TO_CUSTOMER,
       subject: `אישור חתימה: הצעת מחיר NINJA Digital`,
-      html: renderCustomer(payload),
-      attachments: sigAttachment,
+      html: renderCustomer(payload, pdfAttachment.length > 0),
+      attachments: [...(sigAttachment ?? []), ...pdfAttachment],
     });
     customerSent = customerRes.ok;
     if (!customerSent) {
@@ -186,7 +199,7 @@ function renderAdmin(payload: Payload, ip: string) {
   `;
 }
 
-function renderCustomer(payload: Payload) {
+function renderCustomer(payload: Payload, hasPDF: boolean) {
   const date = formatDate(payload.signedAt);
   const url = proposalUrl(payload.proposal);
   const name = payload.name ?? '';
@@ -218,7 +231,7 @@ function renderCustomer(payload: Payload) {
 
         <div style="font-size:11px;color:#a1a1aa;letter-spacing:0.2em;text-transform:uppercase;font-weight:700;margin-bottom:6px;">אישור חתימה</div>
         <h1 style="font-family:'Rubik',Arial,sans-serif;font-size:24px;font-weight:900;color:#0a0a0a;margin:0 0 14px;line-height:1.25;letter-spacing:-0.01em;">תודה${name ? `, ${escape(name)}` : ''}. החתימה התקבלה.</h1>
-        <p style="color:#52525b;font-size:15px;line-height:1.7;margin:0 0 26px;">הקלטנו את הסכמתך להצעת המחיר במערכת. מייל זה משמש כאישור החתימה. נחזור אליך בימים הקרובים עם קיק-אוף ולוח זמנים לתחילת העבודה.</p>
+        <p style="color:#52525b;font-size:15px;line-height:1.7;margin:0 0 26px;">הקלטנו את הסכמתך להצעת המחיר במערכת. מייל זה משמש כאישור החתימה${hasPDF ? `, וקובץ ה-PDF של ההצעה החתומה מצורף למייל זה` : ''}. נחזור אליך בימים הקרובים עם קיק-אוף ולוח זמנים לתחילת העבודה.</p>
 
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#fafafa;border-radius:10px;margin-bottom:24px;border-collapse:separate;">
           <tr><td style="padding:18px 22px;">

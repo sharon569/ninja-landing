@@ -8,7 +8,9 @@ import sitemap from '@astrojs/sitemap';
 // in their frontmatter — see src/pages/index.astro etc.
 export default defineConfig({
   output: 'server',
-  adapter: vercel(),
+  adapter: vercel({
+    maxDuration: 60,
+  }),
   site: 'https://www.samp.ninja',
   integrations: [
     sitemap({
