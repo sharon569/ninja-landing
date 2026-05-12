@@ -14,6 +14,8 @@ import {
 	Pause,
 	X,
 	Lock,
+	FileText,
+	ExternalLink,
 } from "lucide-react";
 import {
 	STRATEGY_TYPE_LABEL,
@@ -26,7 +28,12 @@ import {
 	type ActionStep,
 	type KeywordStrategySummary,
 } from "@/lib/strategy";
-import { buildKeywordStrategy, setStrategyStatus, deleteStrategy } from "./actions";
+import {
+	buildKeywordStrategy,
+	setStrategyStatus,
+	deleteStrategy,
+	createBriefFromStrategyStep,
+} from "./actions";
 
 interface Row {
 	id: string;
@@ -198,7 +205,13 @@ export function StrategyCard({ row, clientId }: { row: Row; clientId: string }) 
 						</h4>
 						<ol className="space-y-3">
 							{parsed.actionPlan.map((step) => (
-								<StepRow key={step.stepNumber} step={step} clientId={clientId} />
+								<StepRow
+									key={step.stepNumber}
+									step={step}
+									clientId={clientId}
+									strategyId={row.id}
+									strategyType={row.strategyType}
+								/>
 							))}
 						</ol>
 					</section>
@@ -288,8 +301,38 @@ export function StrategyCard({ row, clientId }: { row: Row; clientId: string }) 
 	);
 }
 
-function StepRow({ step, clientId }: { step: ActionStep; clientId: string }) {
+// Phase 15B — which step kinds map to a Brief
+const BRIEF_ELIGIBLE_ACTIONS = new Set([
+	"content_expansion",
+	"new_article",
+	"new_landing_page",
+	"title_meta_update",
+	"meta_description_update",
+]);
+
+function StepRow({
+	step,
+	clientId,
+	strategyId,
+	strategyType,
+}: {
+	step: ActionStep;
+	clientId: string;
+	strategyId: string;
+	strategyType: string;
+}) {
 	const tone = ACTION_TYPE_TONE[step.actionType];
+	const briefEligible = BRIEF_ELIGIBLE_ACTIONS.has(step.actionType) && strategyType !== "monitor_only";
+	const [briefPending, startBrief] = useTransition();
+	const [briefResult, setBriefResult] = useState<{ briefId?: string; error?: string; reused?: boolean } | null>(null);
+
+	function createBrief() {
+		setBriefResult(null);
+		startBrief(async () => {
+			const r = await createBriefFromStrategyStep(strategyId, step.stepNumber);
+			setBriefResult({ briefId: r.briefId, error: r.error, reused: r.reused });
+		});
+	}
 	const cls =
 		tone === "good"
 			? "border-go/30 bg-go/5"
@@ -331,6 +374,34 @@ function StepRow({ step, clientId }: { step: ActionStep; clientId: string }) {
 							)}
 							{step.relatedSurface.internalLinkId && (
 								<Link href={`/clients/${clientId}/internal-links`} className="text-gold hover:text-blade">→ Internal Link קיים</Link>
+							)}
+						</div>
+					)}
+
+					{/* Phase 15B — Create Brief from this step */}
+					{briefEligible && (
+						<div className="mt-2 flex items-center gap-2 pt-2 border-t border-ninja-line">
+							{briefResult?.briefId ? (
+								<Link
+									href={`/clients/${clientId}/briefs`}
+									className="inline-flex items-center gap-1.5 rounded-md border border-go/30 bg-go/10 hover:bg-go/20 text-go px-2.5 py-1 text-[11px] font-semibold"
+								>
+									<ExternalLink className="w-3 h-3" />
+									{briefResult.reused ? "פתח Brief קיים" : "פתח את ה-Brief שנוצר"}
+								</Link>
+							) : (
+								<button
+									type="button"
+									onClick={createBrief}
+									disabled={briefPending}
+									className="inline-flex items-center gap-1.5 rounded-md border border-gold/30 bg-gold/10 hover:bg-gold/20 text-gold px-2.5 py-1 text-[11px] font-semibold disabled:opacity-60"
+								>
+									{briefPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
+									צור Brief מהאסטרטגיה
+								</button>
+							)}
+							{briefResult?.error && (
+								<span className="text-[10px] text-blade">{briefResult.error}</span>
 							)}
 						</div>
 					)}

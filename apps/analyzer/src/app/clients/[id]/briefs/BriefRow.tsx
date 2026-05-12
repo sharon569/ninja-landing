@@ -42,6 +42,11 @@ interface Row {
 	status: string;
 	createdAt: Date;
 	opportunityId: string | null;
+	// Phase 15B — when the brief was created from a Strategy step
+	sourceType?: string;
+	keywordStrategyId?: string | null;
+	strategyStepIndex?: number | null;
+	strategyContext?: string | null;
 }
 
 export function BriefRow({ row }: { row: Row }) {
@@ -83,6 +88,11 @@ export function BriefRow({ row }: { row: Row }) {
 							<span className="text-[10px] tracking-wider uppercase text-ink-mute">
 								· {searchIntentLabel(row.searchIntent)}
 							</span>
+							{row.sourceType === "keyword_strategy" && (
+								<span className="text-[10px] font-bold tracking-wider rounded-full border bg-gold/10 text-gold border-gold/30 px-1.5 py-0.5">
+									מאסטרטגיה
+								</span>
+							)}
 						</div>
 						{row.recommendedTitle && (
 							<p className="text-sm text-ink-dim line-clamp-1">{row.recommendedTitle}</p>
@@ -120,6 +130,14 @@ export function BriefRow({ row }: { row: Row }) {
 
 				{open && (
 					<div className="border-t border-ninja-line px-5 py-5 space-y-5">
+						{/* Phase 15B — strategy origin panel */}
+						{row.sourceType === "keyword_strategy" && row.strategyContext && (
+							<StrategyOriginPanel
+								strategyId={row.keywordStrategyId ?? null}
+								strategyContext={row.strategyContext}
+								stepIndex={row.strategyStepIndex ?? null}
+							/>
+						)}
 						{/* Phase 14C — research notes from source opportunity */}
 						{row.opportunityId && <BriefDecisionPanel opportunityId={row.opportunityId} />}
 
@@ -412,3 +430,131 @@ function NotesBlock({ title, items, tone }: { title: string; items: string[]; to
 	);
 }
 
+
+// Phase 15B — show the strategy step that commissioned this brief.
+// Pulls Why / risk / expected impact / measurement plan straight from the
+// strategyContext JSON snapshot saved at brief-creation time.
+function StrategyOriginPanel({
+	strategyId,
+	strategyContext,
+	stepIndex,
+}: {
+	strategyId: string | null;
+	strategyContext: string;
+	stepIndex: number | null;
+}) {
+	let ctx: {
+		stepNumber?: number;
+		actionType?: string;
+		action?: string;
+		why?: string;
+		expectedImpact?: string;
+		risk?: string;
+		strategyType?: string;
+		opportunityScore?: number;
+		riskLevel?: string;
+		confidence?: string;
+		snapshot?: { currentPosition?: number | null; impressions28d?: number; ctrPct?: number; positionBucket?: string };
+		measurementPlan?: { successCondition?: string; warningCondition?: string; secondaryQueries?: string[] };
+		researchNotes?: { whatToCheckManually?: string[]; whyThisStrategy?: string[] };
+	} = {};
+	try {
+		ctx = JSON.parse(strategyContext);
+	} catch {
+		return null;
+	}
+
+	return (
+		<div className="rounded-lg border border-gold/30 bg-gold/5 p-4 space-y-3">
+			<div className="flex items-center gap-2 flex-wrap">
+				<Brain className="w-4 h-4 text-gold" />
+				<h3 className="text-sm font-bold uppercase tracking-wider text-ink">
+					מקור: אסטרטגיית מילת מפתח
+				</h3>
+				<span className="text-[10px] text-ink-mute">
+					· שלב {stepIndex ?? ctx.stepNumber ?? "?"}
+				</span>
+				{ctx.strategyType && (
+					<span className="text-[10px] font-bold tracking-wider rounded-full border bg-ninja-raised text-ink-dim border-ninja-line px-2 py-0.5">
+						{ctx.strategyType}
+					</span>
+				)}
+				{typeof ctx.opportunityScore === "number" && (
+					<span className="text-[10px] text-ink-mute">· score {ctx.opportunityScore}/100</span>
+				)}
+				{strategyId && (
+					<a
+						href="../keyword-strategy"
+						className="text-[11px] text-gold hover:text-blade ms-auto"
+					>
+						→ פתח אסטרטגיה
+					</a>
+				)}
+			</div>
+
+			<div className="text-xs space-y-1.5">
+				{ctx.action && (
+					<div>
+						<span className="text-[10px] tracking-wider uppercase text-ink-mute">פעולה: </span>
+						<span className="text-ink">{ctx.action}</span>
+					</div>
+				)}
+				{ctx.why && (
+					<div>
+						<span className="text-[10px] tracking-wider uppercase text-ink-mute">למה: </span>
+						<span className="text-ink-dim leading-relaxed">{ctx.why}</span>
+					</div>
+				)}
+				{ctx.expectedImpact && (
+					<div>
+						<span className="text-[10px] tracking-wider uppercase text-ink-mute">צפי: </span>
+						<span className="text-ink-dim">{ctx.expectedImpact}</span>
+					</div>
+				)}
+				<div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] pt-1">
+					{ctx.snapshot?.currentPosition !== undefined && ctx.snapshot.currentPosition !== null && (
+						<span className="text-ink-mute">מיקום {ctx.snapshot.currentPosition.toFixed(1)}</span>
+					)}
+					{ctx.snapshot?.impressions28d !== undefined && (
+						<span className="text-ink-mute">· {ctx.snapshot.impressions28d.toLocaleString("he-IL")} חשיפות</span>
+					)}
+					{ctx.snapshot?.ctrPct !== undefined && (
+						<span className="text-ink-mute">· CTR {ctx.snapshot.ctrPct.toFixed(1)}%</span>
+					)}
+					{ctx.risk && <span className="text-gold">· סיכון: {ctx.risk}</span>}
+					{ctx.riskLevel && <span className="text-ink-mute">· risk: {ctx.riskLevel}</span>}
+					{ctx.confidence && <span className="text-ink-mute">· confidence: {ctx.confidence}</span>}
+				</div>
+			</div>
+
+			{(ctx.measurementPlan?.successCondition || ctx.measurementPlan?.warningCondition) && (
+				<div className="rounded border border-ninja-line bg-ninja-black/40 p-2.5 text-xs space-y-1">
+					<div className="text-[10px] tracking-wider uppercase text-ink-mute">תוכנית מדידה</div>
+					{ctx.measurementPlan.successCondition && (
+						<div className="text-go"><span className="text-ink-mute">הצלחה: </span>{ctx.measurementPlan.successCondition}</div>
+					)}
+					{ctx.measurementPlan.warningCondition && (
+						<div className="text-gold"><span className="text-ink-mute">אזהרה: </span>{ctx.measurementPlan.warningCondition}</div>
+					)}
+					{ctx.measurementPlan.secondaryQueries && ctx.measurementPlan.secondaryQueries.length > 0 && (
+						<div className="text-ink-dim">
+							<span className="text-ink-mute">לשמור על: </span>
+							{ctx.measurementPlan.secondaryQueries.slice(0, 3).map((q) => `"${q}"`).join(", ")}
+						</div>
+					)}
+				</div>
+			)}
+
+			{(ctx.researchNotes?.whatToCheckManually?.length ?? 0) > 0 && (
+				<div className="text-xs">
+					<div className="text-[10px] tracking-wider uppercase text-ink-mute mb-1">לבדוק ידנית</div>
+					<ul className="space-y-0.5 list-disc ms-4 text-ink-dim">
+						{ctx.researchNotes?.whatToCheckManually?.map((it, i) => (
+							<li key={i} className="text-[11px] leading-snug">{it}</li>
+						))}
+					</ul>
+				</div>
+			)}
+		</div>
+	);
+}

@@ -396,3 +396,202 @@ export async function generateBriefFromOpportunity(
 
 	return brief;
 }
+
+// ─── Phase 15B — Brief from KeywordStrategy step ────────────────
+
+/**
+ * Maps a Strategy ActionType to the ContentBrief.briefType taxonomy.
+ * Returns null when the action isn't appropriate for a brief (monitor,
+ * no_change, internal_linking, etc.) — the caller treats null as a
+ * guardrail: don't create a brief for this step.
+ */
+export function actionTypeToBriefType(actionType: string): string | null {
+	switch (actionType) {
+		case "content_expansion":
+			return "expand_existing_content";
+		case "new_article":
+			return "new_article";
+		case "new_landing_page":
+			return "new_landing_page";
+		case "title_meta_update":
+		case "meta_description_update":
+			return "title_meta_update";
+		default:
+			return null;
+	}
+}
+
+export interface GeneratedStrategyBrief extends GeneratedBrief {
+	keywordStrategyId: string;
+	strategyStepIndex: number;
+	strategyContext: string;
+}
+
+interface StrategyStepShape {
+	stepNumber: number;
+	actionType: string;
+	action: string;
+	why: string;
+	expectedImpact: string;
+	risk: string;
+	effort: string;
+	priority: string;
+	requiresHumanReview: boolean;
+	suggestedTiming: string;
+}
+
+interface StrategyPayloadShape {
+	keyword: string;
+	strategyType: string;
+	riskLevel: string;
+	confidence: string;
+	opportunityScore: number;
+	snapshot: {
+		keyword: string;
+		targetPage: string | null;
+		rankingPage: string | null;
+		currentPosition: number | null;
+		positionBucket: string;
+		clicks28d: number;
+		impressions28d: number;
+		ctrPct: number;
+		intent: string;
+		pageFit: string;
+	};
+	actionPlan: StrategyStepShape[];
+	researchNotes: {
+		whatWeKnow: string[];
+		whatWeDontKnow: string[];
+		whatToCheckManually: string[];
+		whyThisStrategy: string[];
+	};
+	measurementPlan: {
+		primaryKeyword: string;
+		primaryPage: string | null;
+		secondaryQueries: string[];
+		metrics: string[];
+		reviewWindows: string[];
+		successCondition: string;
+		warningCondition: string;
+	};
+}
+
+/**
+ * Produce a GeneratedStrategyBrief from a KeywordStrategy + the chosen
+ * step (by 1-based stepNumber). Reuses Phase 5 templates for the body
+ * structure, but the `notes` and `contentAngle` come from the strategy
+ * so the writer sees WHY the brief was commissioned.
+ *
+ * Returns null when the step's actionType doesn't map to a brief type —
+ * the caller treats this as a guardrail block.
+ */
+export async function generateBriefFromStrategyStep(
+	strategyId: string,
+	stepNumber: number,
+): Promise<GeneratedStrategyBrief | null> {
+	const strategy = await db.keywordStrategy.findUnique({
+		where: { id: strategyId },
+	});
+	if (!strategy) return null;
+	const client = await db.client.findUnique({ where: { id: strategy.clientId } });
+	if (!client) return null;
+
+	let payload: StrategyPayloadShape;
+	try {
+		payload = JSON.parse(strategy.payload);
+	} catch {
+		return null;
+	}
+	const step = payload.actionPlan.find((s) => s.stepNumber === stepNumber);
+	if (!step) return null;
+
+	const briefType = actionTypeToBriefType(step.actionType);
+	if (!briefType) return null;
+
+	const keyword = strategy.keyword.trim();
+	if (!keyword) return null;
+
+	const intent = payload.snapshot.intent && payload.snapshot.intent !== "unknown"
+		? payload.snapshot.intent
+		: inferIntent(keyword, client.vertical);
+	const relatedPage = strategy.rankingPage ?? null;
+
+	const profile: ClientProfile = {
+		id: client.id,
+		name: client.name,
+		baseUrl: client.baseUrl,
+		vertical: client.vertical,
+		language: client.language,
+		country: client.country,
+		serviceAreas: client.serviceAreas,
+		targetPages: client.targetPages,
+		competitors: client.competitors,
+		brandVoice: client.brandVoice,
+	};
+
+	const secondaryKeywords = await deriveSecondaryKeywords(
+		strategy.clientId,
+		keyword,
+		relatedPage ?? "",
+	);
+	const internalLinks = deriveInternalLinks(profile, relatedPage ?? "");
+
+	const strategyContext = JSON.stringify({
+		stepNumber: step.stepNumber,
+		actionType: step.actionType,
+		action: step.action,
+		why: step.why,
+		expectedImpact: step.expectedImpact,
+		risk: step.risk,
+		effort: step.effort,
+		priority: step.priority,
+		requiresHumanReview: step.requiresHumanReview,
+		suggestedTiming: step.suggestedTiming,
+		strategyType: payload.strategyType,
+		riskLevel: payload.riskLevel,
+		confidence: payload.confidence,
+		opportunityScore: payload.opportunityScore,
+		snapshot: payload.snapshot,
+		researchNotes: payload.researchNotes,
+		measurementPlan: payload.measurementPlan,
+	});
+
+	const notesParts: string[] = [
+		`מקור: שלב ${step.stepNumber} באסטרטגיה ל-"${keyword}" (${payload.strategyType}, ${payload.opportunityScore}/100).`,
+		`המצב היום: מיקום ${payload.snapshot.currentPosition?.toFixed(1) ?? "?"} (${payload.snapshot.positionBucket}), ${payload.snapshot.impressions28d.toLocaleString("he-IL")} חשיפות, CTR ${payload.snapshot.ctrPct.toFixed(1)}%.`,
+		`למה השלב הזה: ${step.why}`,
+		`צפי: ${step.expectedImpact}`,
+		`סיכון: ${step.risk}.`,
+		`מדידה: ${payload.measurementPlan.successCondition}`,
+	];
+	if (step.requiresHumanReview) {
+		notesParts.push("דורש סקירה אנושית לפני יישום.");
+	}
+	if (payload.measurementPlan.secondaryQueries.length > 0) {
+		notesParts.push(
+			`לשמור על: ${payload.measurementPlan.secondaryQueries.slice(0, 3).map((q) => `"${q}"`).join(", ")}.`,
+		);
+	}
+
+	return {
+		keywordStrategyId: strategyId,
+		strategyStepIndex: stepNumber,
+		strategyContext,
+		targetKeyword: keyword,
+		relatedQuery: payload.snapshot.keyword,
+		relatedPage: relatedPage ?? undefined,
+		briefType,
+		searchIntent: intent,
+		recommendedTitle: titleFor(keyword, client.vertical, intent, client.name),
+		recommendedMetaDescription: metaDescFor(keyword, intent, client.vertical),
+		recommendedH1: h1For(keyword, briefType),
+		outline: outlineFor(intent, briefType, keyword),
+		secondaryKeywords,
+		internalLinks,
+		recommendedCTA: ctaForIntent(intent, client.vertical),
+		recommendedSchema: schemaForVertical(client.vertical, briefType),
+		contentAngle: `${step.action}${client.brandVoice ? ` · טון: ${client.brandVoice}.` : ""}`,
+		notes: notesParts.join("\n"),
+	};
+}
+

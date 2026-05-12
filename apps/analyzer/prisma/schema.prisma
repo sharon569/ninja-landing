@@ -351,12 +351,22 @@ model ContentBrief {
 
   status                   String   @default("draft")  // draft | needs_human_review | approved | rejected | used
 
+  // Phase 15B — source attribution. Existing briefs (Phase 5) come from
+  // Opportunity; new briefs can now come from a KeywordStrategy step.
+  // sourceType lets the UI render a different back-link / badge per source.
+  sourceType               String   @default("opportunity") // opportunity | keyword_strategy
+  keywordStrategyId        String?
+  keywordStrategy          KeywordStrategy? @relation(fields: [keywordStrategyId], references: [id], onDelete: SetNull)
+  strategyStepIndex        Int?
+  strategyContext          String?  // JSON: { why, riskLevel, confidence, measurementPlan, researchNotes }
+
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 
   @@unique([clientId, opportunityId, briefType])
   @@index([clientId, status])
   @@index([clientId, briefType])
+  @@index([keywordStrategyId])
   @@schema("analyzer")
 }
 
@@ -501,6 +511,8 @@ model KeywordStrategy {
   approvalNote    String?
   pausedAt        DateTime?
   completedAt    DateTime?
+
+  contentBriefs   ContentBrief[]
 
   @@index([clientId, status])
   @@index([clientId, strategyType])
