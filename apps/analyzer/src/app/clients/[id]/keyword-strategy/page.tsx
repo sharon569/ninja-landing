@@ -39,6 +39,27 @@ export default async function KeywordStrategyPage({
 		}),
 	]);
 
+	// Phase 15C — preload briefs already created from these strategies so the
+	// StrategyCard can render "פתח Brief" instead of "צור Brief" without
+	// requiring a refresh. Indexed by [strategyId][briefType] → briefId.
+	const strategyIds = strategies.map((s) => s.id);
+	const existingBriefs = strategyIds.length
+		? await db.contentBrief.findMany({
+				where: {
+					clientId: id,
+					keywordStrategyId: { in: strategyIds },
+				},
+				select: { id: true, keywordStrategyId: true, briefType: true, status: true },
+			})
+		: [];
+	const briefsByStrategy = new Map<string, Record<string, { id: string; status: string }>>();
+	for (const b of existingBriefs) {
+		if (!b.keywordStrategyId) continue;
+		const m = briefsByStrategy.get(b.keywordStrategyId) ?? {};
+		m[b.briefType] = { id: b.id, status: b.status };
+		briefsByStrategy.set(b.keywordStrategyId, m);
+	}
+
 	// Keywords that don't yet have a strategy
 	const haveStrategy = new Set(strategies.map((s) => s.targetKeywordId));
 	const missingStrategy = keywords.filter((k) => !haveStrategy.has(k.id));
@@ -124,6 +145,7 @@ export default async function KeywordStrategyPage({
 								updatedAt: s.updatedAt,
 							}}
 							clientId={id}
+							existingBriefsByType={briefsByStrategy.get(s.id) ?? {}}
 						/>
 					))
 				)}

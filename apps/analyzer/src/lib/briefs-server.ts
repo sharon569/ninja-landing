@@ -203,16 +203,48 @@ function outlineFor(intent: string, briefType: string, keyword: string): string 
 
 // ─── Title / Meta templates ──────────────────────────────────────
 
+// Phase 15C — Hebrew-aware title builder.
+// Rules (validated against the Brabantia pilot):
+//   1. If the keyword is Hebrew but the brand is purely English, drop the
+//      brand entirely. Better a clean Hebrew title than mixed Hebrew + Latin
+//      "Levizon Market" plonked onto a Hebrew SERP listing.
+//   2. Use ONE separator throughout the title — " - " (Hebrew-friendly).
+//      The old templates mixed "|" and "—" which read sloppy.
+//   3. Avoid generic boilerplate suffixes ("הזמנה אונליין", "מחיר משתלם",
+//      "משלוח מהיר") unless they appear in client.brandVoice/notes. For
+//      ecommerce + transactional keywords, prefer the more useful Hebrew
+//      pattern "{keyword} - דגמים, צבעים ומחירים".
+function isHebrew(s: string): boolean {
+	return /[֐-׿]/.test(s);
+}
+
 function titleFor(keyword: string, vertical: string | null, intent: string, clientName: string): string {
 	const brand = clientName.trim();
-	if (intent === "transactional") return `${keyword} | ${brand} — הזמנה אונליין`;
-	if (intent === "commercial") return `${keyword} | המדריך השלם לבחירה — ${brand}`;
-	if (intent === "local") return `${keyword} — שירות באזור שלכם | ${brand}`;
-	if (intent === "informational")
-		return vertical === "content_site"
+	const kwIsHebrew = isHebrew(keyword);
+	const brandIsHebrew = isHebrew(brand);
+	// Mixed-language penalty: if keyword is Hebrew but brand is pure Latin,
+	// the operator will add a Hebrew alias manually before publishing.
+	const useBrand = !kwIsHebrew || brandIsHebrew;
+	const brandSuffix = useBrand && brand ? ` | ${brand}` : "";
+
+	// Intent-driven body. Single " - " separator only.
+	let body: string;
+	if (intent === "transactional") {
+		body = vertical === "ecommerce"
+			? `${keyword} - דגמים, צבעים ומחירים`
+			: `${keyword} - מחירים והזמנה`;
+	} else if (intent === "commercial") {
+		body = `${keyword} - השוואה, מחירים ובחירה`;
+	} else if (intent === "local") {
+		body = `${keyword} - שירות באזור שלכם`;
+	} else if (intent === "informational") {
+		body = vertical === "content_site"
 			? `${keyword}: כל מה שצריך לדעת`
-			: `${keyword} — המדריך המקצועי של ${brand}`;
-	return `${keyword} | ${brand}`;
+			: `${keyword} - מדריך מקצועי`;
+	} else {
+		body = keyword;
+	}
+	return `${body}${brandSuffix}`;
 }
 
 function metaDescFor(keyword: string, intent: string, vertical: string | null): string {

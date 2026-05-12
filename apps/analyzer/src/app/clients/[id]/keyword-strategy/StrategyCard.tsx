@@ -55,7 +55,33 @@ interface Row {
 	updatedAt: Date | string;
 }
 
-export function StrategyCard({ row, clientId }: { row: Row; clientId: string }) {
+// Phase 15B mapping mirrored here client-side (cheaper than RPC). Must stay
+// in sync with lib/briefs-server.ts:actionTypeToBriefType.
+function actionTypeToBriefType(actionType: string): string | null {
+	switch (actionType) {
+		case "content_expansion":
+			return "expand_existing_content";
+		case "new_article":
+			return "new_article";
+		case "new_landing_page":
+			return "new_landing_page";
+		case "title_meta_update":
+		case "meta_description_update":
+			return "title_meta_update";
+		default:
+			return null;
+	}
+}
+
+export function StrategyCard({
+	row,
+	clientId,
+	existingBriefsByType = {},
+}: {
+	row: Row;
+	clientId: string;
+	existingBriefsByType?: Record<string, { id: string; status: string }>;
+}) {
 	const [open, setOpen] = useState(false);
 	const [pending, startTransition] = useTransition();
 	const [message, setMessage] = useState<string | null>(null);
@@ -204,15 +230,20 @@ export function StrategyCard({ row, clientId }: { row: Row; clientId: string }) 
 							<TrendingUp className="w-4 h-4 text-gold" /> Action Plan
 						</h4>
 						<ol className="space-y-3">
-							{parsed.actionPlan.map((step) => (
-								<StepRow
-									key={step.stepNumber}
-									step={step}
-									clientId={clientId}
-									strategyId={row.id}
-									strategyType={row.strategyType}
-								/>
-							))}
+							{parsed.actionPlan.map((step) => {
+								const briefType = actionTypeToBriefType(step.actionType);
+								const existing = briefType ? existingBriefsByType[briefType] : undefined;
+								return (
+									<StepRow
+										key={step.stepNumber}
+										step={step}
+										clientId={clientId}
+										strategyId={row.id}
+										strategyType={row.strategyType}
+										existingBriefId={existing?.id ?? null}
+									/>
+								);
+							})}
 						</ol>
 					</section>
 
@@ -315,16 +346,22 @@ function StepRow({
 	clientId,
 	strategyId,
 	strategyType,
+	existingBriefId,
 }: {
 	step: ActionStep;
 	clientId: string;
 	strategyId: string;
 	strategyType: string;
+	existingBriefId: string | null;
 }) {
 	const tone = ACTION_TYPE_TONE[step.actionType];
 	const briefEligible = BRIEF_ELIGIBLE_ACTIONS.has(step.actionType) && strategyType !== "monitor_only";
 	const [briefPending, startBrief] = useTransition();
-	const [briefResult, setBriefResult] = useState<{ briefId?: string; error?: string; reused?: boolean } | null>(null);
+	// Seed from server-side preload so refresh doesn't lose the link to the
+	// already-created brief.
+	const [briefResult, setBriefResult] = useState<{ briefId?: string; error?: string; reused?: boolean } | null>(
+		existingBriefId ? { briefId: existingBriefId, reused: true } : null,
+	);
 
 	function createBrief() {
 		setBriefResult(null);
