@@ -20,6 +20,11 @@ import { type ExecutionActionType } from "./execution";
 import { classifyPage, type ClientScopeConfig, type PageClassification } from "./page-scope";
 import { computeDecisionForOpportunity } from "./decision-server";
 import { decisionAllowsExecution, isSubstantiveWhy } from "./decision";
+import {
+	classifyUrlPageType,
+	detectTitleVsPageTypeMismatch,
+	type MasterPageType,
+} from "./master-page";
 
 // Action types the Brief → Execution flow is allowed to produce.
 const BRIEF_ALLOWED_ACTION_TYPES: ExecutionActionType[] = [
@@ -210,15 +215,49 @@ export async function computeBriefExecutionReadiness(
 		readiness.pluginVersionOk &&
 		decisionAllows;
 
-	const canPrepareTitle =
-		baseGatesOk && hasTitle && allowedTitle && titleGate.ok && !openTitleExec;
-	const canPrepareMeta =
-		baseGatesOk && hasMeta && allowedMeta && metaGate.ok && !openMetaExec;
-
 	if (hasTitle && !allowedTitle) blockers.push("Yoast Title לא ב-Allowed Actions של הלקוח");
 	if (hasMeta && !allowedMeta) blockers.push("Yoast Meta לא ב-Allowed Actions של הלקוח");
 	if (openTitleExec) blockers.push("כבר קיים Execution פתוח על Title");
 	if (openMetaExec) blockers.push("כבר קיים Execution פתוח על Meta");
+
+	// Phase 15D.-1 — Page Type Mismatch Guard. If the brief's recommendedTitle
+	// reads as a category/comparison title but targetUrl is a product page (or
+	// vice versa), refuse. Operator can fix the title in the brief and try
+	// again. Override path: humanReviewedAt + approved_for_execution.
+	let titleMismatch = false;
+	if (hasTitle && targetUrl) {
+		const tkType = await (async () => {
+			const tk = await db.targetKeyword.findFirst({
+				where: {
+					clientId: brief.clientId,
+					keyword: brief.targetKeyword.toLowerCase(),
+				},
+				select: { masterPageType: true },
+			});
+			return (tk?.masterPageType as MasterPageType | null) ?? null;
+		})();
+		const pageType: MasterPageType = tkType ?? classifyUrlPageType(targetUrl);
+		const mm = detectTitleVsPageTypeMismatch(brief.recommendedTitle, pageType);
+		if (mm.mismatch) {
+			titleMismatch = true;
+			const reviewed = brief.humanReviewedAt && brief.humanReviewDecision === "approved_for_execution";
+			if (!reviewed) {
+				blockers.push(`Page Type mismatch: ${mm.reason}`);
+			}
+		}
+	}
+
+	// Page-type mismatch is bypassable only via brief.humanReviewedAt
+	// approved_for_execution. If mismatch + reviewed, the operator explicitly
+	// took responsibility.
+	const mismatchBypassed =
+		brief.humanReviewedAt != null && brief.humanReviewDecision === "approved_for_execution";
+	const mismatchHolds = titleMismatch && !mismatchBypassed;
+
+	const canPrepareTitle =
+		baseGatesOk && hasTitle && allowedTitle && titleGate.ok && !openTitleExec && !mismatchHolds;
+	const canPrepareMeta =
+		baseGatesOk && hasMeta && allowedMeta && metaGate.ok && !openMetaExec;
 
 	return {
 		briefId: brief.id,

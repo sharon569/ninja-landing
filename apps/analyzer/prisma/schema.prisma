@@ -562,6 +562,21 @@ model TargetKeyword {
   targetUrl String?                               // the page this keyword should rank
   status    String   @default("active")           // active | paused | won | lost | needs_content | needs_optimization | not_ranking | ranking
   notes     String?
+  businessValue String? // low | medium | high — operator-set commercial importance
+
+  // Phase 15D.-1 — Master Page resolver output. Computed by refreshClient
+  // (and on demand). The Master Page is the canonical URL we want to rank
+  // for this keyword; rankingPage is what Google actually shows today.
+  masterPage          String?
+  masterPageType      String?   // category | product | service | blog_article | brand_page | homepage | landing_page | unknown
+  masterPageConfidence String?  // high | medium | low | unknown
+  masterPageReason    String?   // Hebrew explanation of how the resolver picked it
+  rankingPage         String?   // from GSC, denormalised here for the keyword bank UI
+  rankingPageType     String?   // same enum as masterPageType
+  targetPageMatchStatus String? // target_matches_ranking | target_differs_from_ranking | target_missing | ranking_page_not_seo_eligible | master_page_candidate_found | needs_human_review
+  recommendedPageAction String? // optimize_master_page | choose_master_page | create_supporting_article | create_new_landing_page | improve_product_page | improve_category_page | no_change | human_review | brand_protection
+  pageTypeMismatch    Boolean   @default(false)
+  masterPageResolvedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

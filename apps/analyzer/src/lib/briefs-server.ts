@@ -6,6 +6,7 @@
 import "server-only";
 import { db } from "./db";
 import { classifyPage, type ClientScopeConfig } from "./page-scope";
+import type { MasterPageType } from "./master-page";
 
 interface ClientProfile {
 	id: string;
@@ -219,7 +220,13 @@ function isHebrew(s: string): boolean {
 	return /[֐-׿]/.test(s);
 }
 
-function titleFor(keyword: string, vertical: string | null, intent: string, clientName: string): string {
+function titleFor(
+	keyword: string,
+	vertical: string | null,
+	intent: string,
+	clientName: string,
+	pageType?: MasterPageType | null,
+): string {
 	const brand = clientName.trim();
 	const kwIsHebrew = isHebrew(keyword);
 	const brandIsHebrew = isHebrew(brand);
@@ -228,9 +235,28 @@ function titleFor(keyword: string, vertical: string | null, intent: string, clie
 	const useBrand = !kwIsHebrew || brandIsHebrew;
 	const brandSuffix = useBrand && brand ? ` | ${brand}` : "";
 
-	// Intent-driven body. Single " - " separator only.
+	// Phase 15D.-1 — page-type-aware title body. The 15E.2 pilot failed
+	// because a category-style title ("השוואה, מחירים ובחירה") landed on a
+	// single product page. The right move is to honor the page type FIRST
+	// and only fall back to intent-only when page type is unknown.
 	let body: string;
-	if (intent === "transactional") {
+	if (pageType === "product") {
+		// Don't promise comparison or model breakdown on a single product.
+		body = `${keyword} - הזמנה אונליין`;
+	} else if (pageType === "category") {
+		body =
+			intent === "transactional"
+				? `${keyword} - דגמים, צבעים ומחירים`
+				: `${keyword} - מגוון דגמים ומחירים`;
+	} else if (pageType === "blog_article") {
+		body = `איך לבחור ${keyword} - המדריך השלם`;
+	} else if (pageType === "service") {
+		body = `${keyword} - שירות באזור שלכם`;
+	} else if (pageType === "homepage" || pageType === "brand_page") {
+		// Brand keyword on homepage — let the brand carry the title.
+		body = brand && useBrand ? brand : keyword;
+		return body; // no extra suffix
+	} else if (intent === "transactional") {
 		body = vertical === "ecommerce"
 			? `${keyword} - דגמים, צבעים ומחירים`
 			: `${keyword} - מחירים והזמנה`;
@@ -418,13 +444,17 @@ export async function generateBriefFromOpportunity(
 	);
 	const internalLinks = deriveInternalLinks(profile, inferredTargetUrl);
 
+	// Phase 15D.-1 — use the resolved masterPageType on the TargetKeyword so
+	// title templates match the page kind (category vs product vs blog).
+	const masterPageType = (tk?.masterPageType as MasterPageType | null) ?? null;
+
 	const brief: GeneratedBrief = {
 		targetKeyword: keyword,
 		relatedQuery: opp.relatedQuery || undefined,
 		relatedPage: inferredTargetUrl || undefined,
 		briefType,
 		searchIntent: intent,
-		recommendedTitle: titleFor(keyword, client.vertical, intent, client.name),
+		recommendedTitle: titleFor(keyword, client.vertical, intent, client.name, masterPageType),
 		recommendedMetaDescription: metaDescFor(keyword, intent, client.vertical),
 		recommendedH1: h1For(keyword, briefType),
 		outline: outlineFor(intent, briefType, keyword),
@@ -656,7 +686,19 @@ export async function generateBriefFromStrategyStep(
 		relatedPage: relatedPage ?? undefined,
 		briefType,
 		searchIntent: intent,
-		recommendedTitle: titleFor(keyword, client.vertical, intent, client.name),
+		recommendedTitle: titleFor(
+			keyword,
+			client.vertical,
+			intent,
+			client.name,
+			await (async () => {
+				const tk = await db.targetKeyword.findUnique({
+					where: { id: strategy.targetKeywordId },
+					select: { masterPageType: true },
+				});
+				return (tk?.masterPageType as MasterPageType | null) ?? null;
+			})(),
+		),
 		recommendedMetaDescription: metaDescFor(keyword, intent, client.vertical),
 		recommendedH1: h1For(keyword, briefType),
 		outline: outlineFor(intent, briefType, keyword),

@@ -20,6 +20,7 @@ import { runTechnicalAudit } from "./tech-audit-server";
 import { computeImpactReview } from "./impact-server";
 import { computeKeywordStrategy } from "./strategy-server";
 import { buildSeoWorkPlan } from "./work-plan-server";
+import { resolveAllMasterPages } from "./master-page-server";
 
 export interface RefreshResult {
 	clientId: string;
@@ -29,6 +30,7 @@ export interface RefreshResult {
 	opportunities: { ran: boolean; detected: number; created: number; updated: number; error?: string };
 	impactReviews: { ran: number; failed: number };
 	strategies: { ran: number; failed: number; ineligibleRankingPage: number };
+	masterPages: { resolved: number; failed: number; withMasterPage: number; withTypeMismatch: number; needsHumanReview: number };
 	workPlan: { ran: boolean; planId?: string; totalItems?: number; safeItemsCount?: number; reviewItemsCount?: number; blockedItemsCount?: number; monitorItemsCount?: number; error?: string };
 	durationMs: number;
 }
@@ -85,6 +87,7 @@ export async function refreshClient(clientId: string, actor: string = "refresh_b
 		opportunities: { ran: false, detected: 0, created: 0, updated: 0 },
 		impactReviews: { ran: 0, failed: 0 },
 		strategies: { ran: 0, failed: 0, ineligibleRankingPage: 0 },
+		masterPages: { resolved: 0, failed: 0, withMasterPage: 0, withTypeMismatch: 0, needsHumanReview: 0 },
 		workPlan: { ran: false },
 		durationMs: 0,
 	};
@@ -290,6 +293,42 @@ export async function refreshClient(clientId: string, actor: string = "refresh_b
 		console.error("strategy step failed:", err);
 	}
 
+	// ─── 5b. Master Page resolver per active TargetKeyword ─────
+	try {
+		const runId = await startRun("master_page_resolve", clientId, actor, parentRunId);
+		try {
+			const r = await resolveAllMasterPages(clientId);
+			let withMasterPage = 0;
+			let mismatch = 0;
+			let needsReview = 0;
+			for (const res of r.results) {
+				if (res.masterPage) withMasterPage++;
+				if (res.pageTypeMismatch) mismatch++;
+				if (res.recommendedPageAction === "human_review" || res.recommendedPageAction === "choose_master_page") needsReview++;
+			}
+			result.masterPages = {
+				resolved: r.resolved,
+				failed: r.failed,
+				withMasterPage,
+				withTypeMismatch: mismatch,
+				needsHumanReview: needsReview,
+			};
+			await finishRun(runId, "success", {
+				summary: {
+					resolved: r.resolved,
+					failed: r.failed,
+					withMasterPage,
+					mismatch,
+					needsReview,
+				},
+			});
+		} catch (err) {
+			await finishRun(runId, "failed", { error: (err as Error).message });
+		}
+	} catch (err) {
+		console.error("master page step failed:", err);
+	}
+
 	// ─── 6. Work Plan rebuild ───────────────────────────────────
 	try {
 		const r = await buildSeoWorkPlan(clientId, "monthly_seo_work", actor);
@@ -314,6 +353,7 @@ export async function refreshClient(clientId: string, actor: string = "refresh_b
 			opportunities: result.opportunities,
 			impactReviews: result.impactReviews,
 			strategies: result.strategies,
+			masterPages: result.masterPages,
 			workPlan: result.workPlan,
 			durationMs: result.durationMs,
 			actor,

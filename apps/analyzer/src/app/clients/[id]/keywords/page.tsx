@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ExternalLink, Search } from "lucide-react";
+import { ExternalLink, Search, Target, AlertTriangle } from "lucide-react";
 import { db } from "@/lib/db";
 import {
 	intentLabel,
@@ -10,6 +10,16 @@ import {
 	PRIORITY_ORDER,
 } from "@/lib/keywords";
 import { loadKeywordPerformance } from "@/lib/keywords-server";
+import {
+	MASTER_PAGE_TYPE_LABEL,
+	MASTER_PAGE_CONFIDENCE_LABEL,
+	MASTER_PAGE_CONFIDENCE_TONE,
+	RECOMMENDED_ACTION_LABEL,
+	RECOMMENDED_ACTION_TONE,
+	type MasterPageType,
+	type MasterPageConfidence,
+	type RecommendedPageAction,
+} from "@/lib/master-page";
 import { AddForms } from "./AddForms";
 import { RowActions } from "./RowActions";
 
@@ -53,6 +63,14 @@ export default async function KeywordsPage({
 		withGsc: keywords.filter((k) => (perf.get(k.keyword)?.impressions ?? 0) > 0).length,
 	};
 
+	// Phase 15D.-1 — Master Page status counters
+	const masterPageCounts = {
+		withMasterPage: keywords.filter((k) => k.masterPage).length,
+		highConfidence: keywords.filter((k) => k.masterPageConfidence === "high").length,
+		needsReview: keywords.filter((k) => k.recommendedPageAction === "human_review" || k.recommendedPageAction === "choose_master_page").length,
+		typeMismatch: keywords.filter((k) => k.pageTypeMismatch).length,
+	};
+
 	return (
 		<div className="space-y-8">
 			{/* Header */}
@@ -75,6 +93,42 @@ export default async function KeywordsPage({
 				<SummaryChip label="עדיפות גבוהה/קריטית" value={counts.highOrCritical} tone="warn" />
 				<SummaryChip label="עם נתוני GSC" value={counts.withGsc} tone={counts.withGsc > 0 ? "good" : "mute"} />
 			</div>
+
+			{/* Master Page Status */}
+			<section className="rounded-xl border border-gold/20 bg-gold/5 p-4 space-y-3">
+				<div className="flex items-center gap-2">
+					<Target className="w-5 h-5 text-gold" />
+					<h2 className="text-sm font-bold tracking-wider uppercase text-gold">
+						Master Page Status
+					</h2>
+				</div>
+				<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+					<SummaryChip
+						label="עם Master Page"
+						value={masterPageCounts.withMasterPage}
+						tone={masterPageCounts.withMasterPage === counts.total ? "good" : "warn"}
+					/>
+					<SummaryChip
+						label="ביטחון גבוה"
+						value={masterPageCounts.highConfidence}
+						tone="good"
+					/>
+					<SummaryChip
+						label="דורש סקירה"
+						value={masterPageCounts.needsReview}
+						tone={masterPageCounts.needsReview > 0 ? "warn" : "neutral"}
+					/>
+					<SummaryChip
+						label="Type Mismatch"
+						value={masterPageCounts.typeMismatch}
+						tone={masterPageCounts.typeMismatch > 0 ? "bad" : "neutral"}
+					/>
+				</div>
+				<p className="text-xs text-ink-dim leading-relaxed">
+					Master Page הוא העמוד המרכזי שאמור להוביל את הקידום של מילת המפתח. ה-resolver בוחר אותו לפי targetUrl,
+					scan match, וסוג העמוד שגוגל מדרג. ה-refresh button מעדכן את כל הערכים.
+				</p>
+			</section>
 
 			{/* Add forms */}
 			<AddForms clientId={id} />
@@ -106,6 +160,8 @@ export default async function KeywordsPage({
 									<th className="px-4 py-3 font-bold text-left">קליקים</th>
 									<th className="px-4 py-3 font-bold text-left">CTR</th>
 									<th className="px-4 py-3 font-bold">עמוד יעד</th>
+									<th className="px-4 py-3 font-bold">Master Page</th>
+									<th className="px-4 py-3 font-bold">פעולה מומלצת</th>
 									<th className="px-4 py-3 font-bold w-1 text-center">פעולות</th>
 								</tr>
 							</thead>
@@ -170,6 +226,21 @@ export default async function KeywordsPage({
 													<Dash />
 												)}
 											</td>
+											<td className="px-4 py-3 align-top">
+												<MasterPageCell
+													masterPage={k.masterPage}
+													masterPageType={k.masterPageType as MasterPageType | null}
+													masterPageConfidence={k.masterPageConfidence as MasterPageConfidence | null}
+													pageTypeMismatch={k.pageTypeMismatch ?? false}
+												/>
+											</td>
+											<td className="px-4 py-3 align-top">
+												{k.recommendedPageAction ? (
+													<RecommendedActionPill action={k.recommendedPageAction as RecommendedPageAction} />
+												) : (
+													<Dash />
+												)}
+											</td>
 											<td className="px-4 py-3 align-top text-center">
 												<RowActions
 													row={{
@@ -210,6 +281,86 @@ function hostOf(url: string): string {
 
 function Dash() {
 	return <span className="text-ink-mute">—</span>;
+}
+
+function MasterPageCell({
+	masterPage,
+	masterPageType,
+	masterPageConfidence,
+	pageTypeMismatch,
+}: {
+	masterPage: string | null;
+	masterPageType: MasterPageType | null;
+	masterPageConfidence: MasterPageConfidence | null;
+	pageTypeMismatch: boolean;
+}) {
+	if (!masterPage) return <Dash />;
+	const tone = masterPageConfidence
+		? MASTER_PAGE_CONFIDENCE_TONE[masterPageConfidence]
+		: "neutral";
+	const cls =
+		tone === "good"
+			? "bg-go/10 text-go border-go/30"
+			: tone === "warn"
+				? "bg-gold/10 text-gold border-gold/30"
+				: tone === "bad"
+					? "bg-blade/10 text-blade border-blade/30"
+					: "bg-ninja-raised text-ink-dim border-ninja-line";
+	return (
+		<div className="space-y-1 max-w-[200px]">
+			<a
+				href={masterPage}
+				target="_blank"
+				rel="noopener noreferrer"
+				className="inline-flex items-center gap-1 text-xs text-gold hover:text-blade font-mono truncate max-w-full"
+				dir="ltr"
+			>
+				{(() => {
+					try {
+						return decodeURIComponent(new URL(masterPage).pathname);
+					} catch {
+						return masterPage;
+					}
+				})()}
+				<ExternalLink className="w-3 h-3 flex-shrink-0" />
+			</a>
+			<div className="flex items-center gap-1 flex-wrap">
+				{masterPageType && (
+					<span className="inline-flex items-center text-[9px] font-bold tracking-wider rounded-full border bg-ninja-raised text-ink-dim border-ninja-line px-1.5 py-0.5">
+						{MASTER_PAGE_TYPE_LABEL[masterPageType]}
+					</span>
+				)}
+				{masterPageConfidence && (
+					<span className={`inline-flex items-center text-[9px] font-bold tracking-wider rounded-full border px-1.5 py-0.5 ${cls}`}>
+						{MASTER_PAGE_CONFIDENCE_LABEL[masterPageConfidence]}
+					</span>
+				)}
+				{pageTypeMismatch && (
+					<span className="inline-flex items-center gap-0.5 text-[9px] font-bold tracking-wider rounded-full border bg-blade/10 text-blade border-blade/30 px-1.5 py-0.5">
+						<AlertTriangle className="w-2.5 h-2.5" />
+						Mismatch
+					</span>
+				)}
+			</div>
+		</div>
+	);
+}
+
+function RecommendedActionPill({ action }: { action: RecommendedPageAction }) {
+	const tone = RECOMMENDED_ACTION_TONE[action];
+	const cls =
+		tone === "good"
+			? "bg-go/10 text-go border-go/30"
+			: tone === "warn"
+				? "bg-gold/10 text-gold border-gold/30"
+				: tone === "bad"
+					? "bg-blade/10 text-blade border-blade/30"
+					: "bg-ninja-raised text-ink-dim border-ninja-line";
+	return (
+		<span className={`inline-flex items-center text-[10px] font-bold tracking-wider rounded-full border px-2 py-0.5 ${cls}`}>
+			{RECOMMENDED_ACTION_LABEL[action]}
+		</span>
+	);
 }
 
 function SummaryChip({
