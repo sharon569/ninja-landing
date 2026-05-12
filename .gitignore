@@ -26,6 +26,14 @@ pnpm-debug.log*
 # vercel
 .vercel/
 
+# analyzer (Next.js app) build artifacts
+apps/analyzer/.next/
+apps/analyzer/next-env.d.ts
+apps/analyzer/tsconfig.tsbuildinfo
+apps/analyzer/src/generated/
+apps/analyzer/data/*
+!apps/analyzer/data/.gitkeep
+
 # local scratch (per-client strategy drafts, one-off scripts)
 .cache/
 

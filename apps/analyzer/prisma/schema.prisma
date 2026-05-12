@@ -1,0 +1,128 @@
+// Agency SEO Analyzer — schema.
+//
+// Hosted on the shared Supabase Postgres (same DB as the ninja-landing portal).
+// All analyzer tables live in the dedicated `analyzer` schema so they don't
+// collide with the portal's `public.*` tables.
+//
+// Storage strategy:
+//   - DB holds connection metadata + scan summaries + audit findings index.
+//   - Full scan JSON payloads live on disk at data/<clientId>/scan-<id>.json
+//     so we can re-run the audit engine against historical scans without
+//     re-pulling from the plugin.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["analyzer"]
+  // Connection URLs are set in prisma.config.ts (Prisma 7 moved them out of the schema).
+}
+
+model Client {
+  id         String   @id @default(cuid())
+  name       String
+  baseUrl    String   @unique
+  token      String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  lastInfo   String?  // JSON blob
+  lastInfoAt DateTime?
+
+  lastScanAt DateTime?
+
+  scans          Scan[]
+  gscConnection  GscConnection?
+  gscDailyRows   GscDailyRow[]
+
+  @@index([baseUrl])
+  @@schema("analyzer")
+}
+
+model GscConnection {
+  id           String   @id @default(cuid())
+  clientId     String   @unique
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  googleEmail  String
+
+  refreshToken String
+
+  accessToken  String?
+  expiresAt    DateTime?
+
+  propertyUrl  String?
+
+  lastSyncAt   DateTime?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@schema("analyzer")
+}
+
+model GscDailyRow {
+  id          String   @id @default(cuid())
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  date        String   // YYYY-MM-DD
+  query       String
+  page        String?
+
+  clicks      Int
+  impressions Int
+  ctr         Float
+  position    Float
+
+  fetchedAt   DateTime @default(now())
+
+  @@unique([clientId, date, query, page])
+  @@index([clientId, date])
+  @@index([clientId, query])
+  @@schema("analyzer")
+}
+
+model Scan {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  ranAt     DateTime @default(now())
+
+  filePath  String
+
+  summary   String   // JSON blob
+
+  sizeBytes Int
+
+  durationMs Int
+
+  findings  Finding[]
+
+  @@index([clientId, ranAt])
+  @@schema("analyzer")
+}
+
+model Finding {
+  id        String   @id @default(cuid())
+  scanId    String
+  scan      Scan     @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  ruleId    String
+
+  severity  String
+
+  count     Int
+
+  payload   String   // JSON blob
+
+  createdAt DateTime @default(now())
+
+  @@index([scanId, severity])
+  @@index([ruleId])
+  @@schema("analyzer")
+}

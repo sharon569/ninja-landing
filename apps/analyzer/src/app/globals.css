@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@theme inline {
+	/* Brand palette — samp.ninja/brand */
+	--color-ninja-black: #08090c;
+	--color-ninja-panel: #0c0e13;
+	--color-ninja-raised: #11141b;
+	--color-ninja-line: rgba(255, 255, 255, 0.08);
+	--color-ninja-line-strong: rgba(255, 255, 255, 0.14);
+	--color-ink: #f5f5f7;
+	--color-ink-dim: #a8acb6;
+	--color-ink-mute: #6a6f7c;
+	--color-blade: #ff2a3c;
+	--color-blade-deep: #b3001b;
+	--color-gold: #ffd166;
+	--color-gold-deep: #a07b00;
+	--color-go: #2ee685;
+
+	/* Typography */
+	--font-display: var(--font-rubik), "Rubik", "Heebo", system-ui, sans-serif;
+	--font-sans: var(--font-heebo), "Heebo", "Tahoma", "Arial", sans-serif;
+}
+
+:root {
+	color-scheme: dark;
+}
+
+html,
+body {
+	background: #08090c;
+	color: #f5f5f7;
+}
+
+body {
+	font-family: var(--font-sans);
+	-webkit-font-smoothing: antialiased;
+	background-image:
+		radial-gradient(ellipse 70% 50% at top, rgba(255, 42, 60, 0.06), transparent 70%),
+		radial-gradient(ellipse 60% 40% at bottom, rgba(255, 209, 102, 0.03), transparent 70%);
+	background-attachment: fixed;
+}
+
+::selection {
+	background: rgba(255, 42, 60, 0.35);
+	color: #fff;
+}
+
+::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+::-webkit-scrollbar-track {
+	background: #08090c;
+}
+::-webkit-scrollbar-thumb {
+	background: rgba(255, 255, 255, 0.08);
+	border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: rgba(255, 209, 102, 0.4);
+}
+
+.font-display {
+	font-family: var(--font-display);
+	font-weight: 900;
+	letter-spacing: -0.02em;
+}
+
+.text-brand-gradient {
+	background: linear-gradient(135deg, #ff2a3c, #ffd166);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
