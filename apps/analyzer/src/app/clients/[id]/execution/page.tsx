@@ -10,6 +10,7 @@ import {
 	statusTone,
 	sourceTypeLabel,
 	isDryRunOnly,
+	ROLLBACK_AVAILABLE_NUDGE_DAYS,
 } from "@/lib/execution";
 import { ActionButtons } from "./ActionButtons";
 import { ReadinessPanel } from "./ReadinessPanel";
@@ -70,8 +71,15 @@ export default async function ExecutionPage({
 		executing: actions.filter((a) => a.status === "executing"),
 		executed: actions.filter((a) => ["executed", "rollback_available"].includes(a.status)),
 		failed: actions.filter((a) => a.status === "failed"),
-		closed: actions.filter((a) => ["cancelled", "rolled_back"].includes(a.status)),
+		closed: actions.filter((a) => ["cancelled", "rolled_back", "finalized"].includes(a.status)),
 	};
+
+	// Phase 14B — surface a "consider finalizing" warning for any rollback_available
+	// action older than the nudge threshold.
+	const nudgeCutoff = Date.now() - ROLLBACK_AVAILABLE_NUDGE_DAYS * 86_400_000;
+	const aging = actions.filter(
+		(a) => a.status === "rollback_available" && a.executedAt && a.executedAt.getTime() < nudgeCutoff,
+	);
 
 	return (
 		<div className="space-y-8">
@@ -106,6 +114,18 @@ export default async function ExecutionPage({
 
 			{/* Pre-flight Checklist */}
 			<PilotChecklist readiness={readiness} clientId={id} />
+
+			{/* Phase 14B — rollback follow-up nudge */}
+			{aging.length > 0 && (
+				<div className="rounded-lg border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-gold flex items-start gap-3">
+					<AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+					<div className="leading-relaxed">
+						<strong>{aging.length} פעולות בוצעו לפני יותר מ-{ROLLBACK_AVAILABLE_NUDGE_DAYS} ימים ועדיין זמינות ל-Rollback.</strong>
+						<br />
+						אם הכל תקין, אפשר ללחוץ <em>Finalize</em> כדי לסגור אותן בהיסטוריה.
+					</div>
+				</div>
+			)}
 
 			{/* Sections */}
 			<Section title="ממתינים לאישור ביצוע" items={buckets.ready} clientId={id} icon={<AlertTriangle className="w-4 h-4 text-gold" />} emptyHint="אין פעולות שמוכנות לאישור ביצוע." />

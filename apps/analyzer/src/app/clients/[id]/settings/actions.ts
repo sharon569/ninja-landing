@@ -132,8 +132,24 @@ export async function updateExecutionSettings(
 	// orphan allowedActions list while Execution is disabled cannot execute
 	// anything. Wiping silently was a UX bug — it made the natural flow
 	// "configure allowed actions first, enable later" impossible.
+	//
+	// Phase 14B — Controlled Enable Flow: when executionEnabled flips
+	// false→true and the operator hasn't selected any allowed actions yet,
+	// auto-seed with the safest one (yoast_title_update). They can expand
+	// later via the same form. This prevents the "I enabled but nothing
+	// runs" trap.
+	const previous = await db.client.findUnique({
+		where: { id: clientId },
+		select: { executionEnabled: true },
+	});
+	const flipOn = !previous?.executionEnabled && parsed.data.executionEnabled;
+	const data = { ...parsed.data };
+	if (flipOn && data.allowedExecutionActions.length === 0) {
+		data.allowedExecutionActions = ["yoast_title_update"];
+	}
+
 	try {
-		await db.client.update({ where: { id: clientId }, data: parsed.data });
+		await db.client.update({ where: { id: clientId }, data });
 	} catch (err) {
 		return { error: `Database error: ${(err as Error).message}` };
 	}

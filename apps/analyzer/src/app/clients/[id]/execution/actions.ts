@@ -9,6 +9,7 @@ import {
 	cancelExecutionAction,
 	rollbackAction,
 	getExecutionReadiness,
+	finalizeExecutionAction,
 	type CreatePayload,
 } from "@/lib/execution-server";
 import type { ExecutionActionType, ExecutionReadiness } from "@/lib/execution";
@@ -89,6 +90,23 @@ export async function cancelAction(
 		const a = await actor();
 		await cancelExecutionAction(actionId, a);
 		revalidatePath(`/clients/${clientId}/execution`);
+		return { ok: true, actionId };
+	} catch (err) {
+		return { error: (err as Error).message };
+	}
+}
+
+export async function finalizeAction(
+	clientId: string,
+	actionId: string,
+): Promise<ActionResult> {
+	try {
+		const a = await actor();
+		const r = await finalizeExecutionAction(actionId, a);
+		revalidatePath(`/clients/${clientId}/execution`);
+		revalidatePath(`/rollout`);
+		revalidatePath(`/`);
+		if (!r.ok) return { error: r.error ?? "Finalize failed" };
 		return { ok: true, actionId };
 	} catch (err) {
 		return { error: (err as Error).message };

@@ -44,20 +44,29 @@ export type ExecutionWorkflowBadge =
 	| "execution_ready"
 	| "awaiting_execute"
 	| "dry_run_failed"
-	| "executed";
+	| "dry_run_stale"
+	| "executed"
+	| "rollback_available"
+	| "finalized";
 
 export const EXECUTION_BADGE_LABEL: Record<ExecutionWorkflowBadge, string> = {
 	execution_ready: "Execution Ready",
 	awaiting_execute: "Awaiting Execute",
 	dry_run_failed: "Dry Run Failed",
+	dry_run_stale: "Dry Run Stale",
 	executed: "Executed",
+	rollback_available: "Rollback Available",
+	finalized: "Finalized",
 };
 
 export const EXECUTION_BADGE_TONE: Record<ExecutionWorkflowBadge, "good" | "warn" | "bad" | "neutral"> = {
 	execution_ready: "warn",
 	awaiting_execute: "warn",
 	dry_run_failed: "bad",
+	dry_run_stale: "bad",
 	executed: "good",
+	rollback_available: "warn",
+	finalized: "good",
 };
 
 export type WorkflowAction =

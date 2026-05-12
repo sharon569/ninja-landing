@@ -50,9 +50,11 @@ function executionStatusToBadge(status: string): ExecutionWorkflowBadge | null {
 	if (status === "dry_run_ready" || status === "awaiting_execution_approval")
 		return "execution_ready";
 	if (status === "draft" || status === "preview_only") return "awaiting_execute";
-	if (status === "dry_run_failed" || status === "dry_run_stale" || status === "failed")
-		return "dry_run_failed";
-	if (status === "executed" || status === "rollback_available") return "executed";
+	if (status === "dry_run_stale") return "dry_run_stale";
+	if (status === "dry_run_failed" || status === "failed") return "dry_run_failed";
+	if (status === "rollback_available") return "rollback_available";
+	if (status === "finalized") return "finalized";
+	if (status === "executed") return "executed";
 	return null;
 }
 

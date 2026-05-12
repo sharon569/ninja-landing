@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { AlertTriangle, Loader2, CheckCircle2 } from "lucide-react";
 import { updateExecutionSettings, type ExecutionSettingsState } from "./actions";
 
@@ -28,9 +28,30 @@ export function ExecutionSettings({
 		ExecutionSettingsState | undefined,
 		FormData
 	>(bound, undefined);
+	const formRef = useRef<HTMLFormElement | null>(null);
+	const [showEnableModal, setShowEnableModal] = useState(false);
+
+	// Phase 14B — controlled enable confirmation. If executionEnabled flips
+	// from false→true, intercept submit and show the warning modal first.
+	function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+		if (initial.executionEnabled) return; // already on, no need to confirm
+		const form = e.currentTarget;
+		const enableInput = form.elements.namedItem("executionEnabled") as HTMLInputElement | null;
+		if (enableInput?.checked) {
+			e.preventDefault();
+			setShowEnableModal(true);
+		}
+	}
+
+	function confirmEnable() {
+		setShowEnableModal(false);
+		// Defer slightly so React commits the state change before the synthetic submit
+		requestAnimationFrame(() => formRef.current?.requestSubmit());
+	}
 
 	return (
-		<form action={action} className="space-y-5">
+		<>
+		<form ref={formRef} action={action} onSubmit={handleSubmit} className="space-y-5">
 			{/* Strong warning header */}
 			<div className="rounded-lg border border-blade/40 bg-blade/10 px-4 py-3 text-sm text-blade flex items-start gap-3">
 				<AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
@@ -122,5 +143,44 @@ export function ExecutionSettings({
 				)}
 			</div>
 		</form>
+
+		{showEnableModal && (
+			<div className="fixed inset-0 z-50 flex items-center justify-center bg-ninja-black/80 backdrop-blur-sm p-4">
+				<div className="max-w-lg w-full rounded-xl border border-blade/40 bg-ninja-panel p-6 shadow-2xl">
+					<div className="flex items-start gap-3 mb-4">
+						<AlertTriangle className="w-6 h-6 text-blade shrink-0 mt-0.5" />
+						<div>
+							<h3 className="font-display text-xl text-ink mb-2">הפעלת Execution</h3>
+							<p className="text-sm text-ink-dim leading-relaxed">
+								Execution מאפשר ביצוע שינויים חיים באתר WordPress לאחר Dry Run ואישור מפורש. מומלץ להתחיל עם
+								<strong> Yoast Title</strong> בלבד. להפעיל?
+							</p>
+							<p className="text-xs text-ink-mute mt-2">
+								אם לא בחרת Allowed Actions במפורש — נסמן את Yoast Title אוטומטית כברירת מחדל בטוחה.
+							</p>
+						</div>
+					</div>
+					<div className="flex items-center justify-end gap-2 pt-4 border-t border-ninja-line">
+						<button
+							type="button"
+							onClick={() => setShowEnableModal(false)}
+							className="rounded-md border border-ninja-line bg-ninja-panel/60 hover:bg-ninja-raised text-ink-dim px-4 py-2 text-sm"
+						>
+							לא, ביטול
+						</button>
+						<button
+							type="button"
+							onClick={confirmEnable}
+							className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-bold text-white"
+							style={{ background: "linear-gradient(135deg, #ff2a3c, #b3001b)" }}
+						>
+							<AlertTriangle className="w-4 h-4" />
+							כן, להפעיל Execution
+						</button>
+					</div>
+				</div>
+			</div>
+		)}
+		</>
 	);
 }

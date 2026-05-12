@@ -245,14 +245,17 @@ export default async function AgencyDashboard({
 				</section>
 			)}
 
-			{/* Execution roll-up (Phase 12 + 13) — read-only */}
+			{/* Execution roll-up (Phase 12 + 13 + 14B) — read-only */}
 			{data.execution.clientsExecutionEnabled > 0 && (
 				<section className="space-y-4">
 					<div className="flex items-baseline justify-between flex-wrap gap-3">
 						<h2 className="font-display text-xl text-ink">
 							<span className="text-brand-gradient">Execution</span>
 						</h2>
-						<span className="text-[10px] text-ink-mute">מבט-על · ביצוע ידני בלבד דרך דף הלקוח</span>
+						<Link href="/rollout" className="text-xs text-gold hover:text-blade inline-flex items-center gap-1">
+							Execution Rollout
+							<ArrowLeft className="w-3 h-3" />
+						</Link>
 					</div>
 					<div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
 						<Bottleneck label="לקוחות עם Execution דלוק" value={data.execution.clientsExecutionEnabled} icon={<AlertTriangle className="w-4 h-4" />} />

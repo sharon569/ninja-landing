@@ -67,6 +67,12 @@ export default async function RootLayout({
 									אוטומציה
 								</Link>
 								<Link
+									href="/rollout"
+									className="px-3 py-1.5 rounded-md text-ink-dim hover:text-ink transition-colors"
+								>
+									Rollout
+								</Link>
+								<Link
 									href="/integrations"
 									className="px-3 py-1.5 rounded-md text-ink-dim hover:text-ink transition-colors"
 								>

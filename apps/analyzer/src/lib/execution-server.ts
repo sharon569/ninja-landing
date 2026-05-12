@@ -687,6 +687,48 @@ export async function executeAction(actionId: string, actor: string): Promise<{
 	return { ok: true, status: nextStatus };
 }
 
+// ─── Finalize (Phase 14B) ─────────────────────────────────────
+
+/**
+ * Mark an ExecutionAction as finalized — the operator has reviewed it and
+ * declares no rollback intent. Pure Analyzer state change; no WP call, no
+ * meta changes, no plugin contact. The audit history (Yoast meta value,
+ * executionResult, events) is preserved.
+ */
+export async function finalizeExecutionAction(actionId: string, actor: string): Promise<{
+	ok: boolean;
+	status: string;
+	error?: string;
+}> {
+	const action = await db.executionAction.findUnique({ where: { id: actionId } });
+	if (!action) throw new Error("Action not found");
+	if (!["executed", "rollback_available"].includes(action.status)) {
+		throw new Error(`Cannot finalize from status=${action.status}. Only executed/rollback_available are allowed.`);
+	}
+	await db.executionAction.update({
+		where: { id: actionId },
+		data: {
+			status: "finalized",
+			finalizedAt: new Date(),
+			finalizedBy: actor,
+		},
+	});
+	if (action.sourceType === "opportunity") {
+		await db.opportunityActionLog.create({
+			data: {
+				clientId: action.clientId,
+				opportunityId: action.sourceId,
+				createdBy: actor,
+				actionType: "finalized",
+				fromStatus: action.status,
+				toStatus: action.status,
+				note: "ExecutionAction סומנה כסופית — אין rollback מתוכנן.",
+			},
+		});
+	}
+	return { ok: true, status: "finalized" };
+}
+
 // ─── Rollback ────────────────────────────────────────────────
 
 export async function rollbackAction(actionId: string, actor: string): Promise<{

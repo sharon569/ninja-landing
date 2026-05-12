@@ -19,7 +19,8 @@ export type ExecutionStatus =
 	| "failed"
 	| "cancelled"
 	| "rollback_available"
-	| "rolled_back";
+	| "rolled_back"
+	| "finalized"; // Phase 14B — reviewed & closed, no rollback intended
 
 export type ExecutionSourceType = "opportunity" | "content_brief" | "internal_link_suggestion";
 
@@ -63,6 +64,7 @@ export const STATUS_LABELS: Record<ExecutionStatus, { label: string; tone: "good
 	cancelled: { label: "בוטל", tone: "mute" },
 	rollback_available: { label: "ניתן לבצע Rollback", tone: "warn" },
 	rolled_back: { label: "בוצע Rollback", tone: "mute" },
+	finalized: { label: "סופי (נסקר, אין rollback)", tone: "good" },
 };
 
 // Phase 12 — freshness rule: a dry run older than this needs to be re-run
@@ -73,6 +75,44 @@ export const DRY_RUN_MAX_AGE_HOURS = 24;
 export const ROLLBACK_CONFIRMATION_TEXT =
 	"פעולה זו תחזיר את הערך הקודם באתר. האם לבצע rollback?";
 export const ROLLBACK_BUTTON = "כן, החזר את הערך הקודם";
+
+// Phase 14B — plugin version policy. Hard cutoff at MIN; below MIN the Write
+// API contract isn't guaranteed. Between MIN and RECOMMENDED everything still
+// works, we just nudge the user to update. Readiness is capability-based —
+// version comparison is informational and never blocks execution on its own.
+export const MIN_PLUGIN_VERSION = "0.3.0";
+export const RECOMMENDED_PLUGIN_VERSION = "0.3.7";
+
+/**
+ * Compare two semver-ish version strings (a.b.c). Returns negative/zero/
+ * positive like a sort comparator. Tolerates short/long strings and missing
+ * segments (treated as 0).
+ */
+export function compareVersions(a: string | null | undefined, b: string | null | undefined): number {
+	const norm = (v: string | null | undefined) =>
+		(v ?? "").split(".").map((s) => parseInt(s, 10) || 0);
+	const av = norm(a);
+	const bv = norm(b);
+	const len = Math.max(av.length, bv.length);
+	for (let i = 0; i < len; i++) {
+		const d = (av[i] ?? 0) - (bv[i] ?? 0);
+		if (d !== 0) return d;
+	}
+	return 0;
+}
+
+// Phase 14B — rollback follow-up: how long an action can sit in
+// rollback_available before we surface a "consider finalizing" warning.
+export const ROLLBACK_AVAILABLE_NUDGE_DAYS = 7;
+
+// Phase 14B — Safe Action Expansion: number of clean (no failed/stale)
+// successful executions of a given actionType before suggesting the next
+// allowed action. Manual opt-in only — the system never auto-adds.
+export const ACTION_EXPANSION_THRESHOLD = 3;
+
+export const FINALIZE_CONFIRMATION_TEXT =
+	"פעולה זו תסמן שהביצוע נבדק ואושר, ואין צורך ב-Rollback כרגע. הפעולה תישאר בהיסטוריה. להמשיך?";
+export const FINALIZE_BUTTON = "כן, סמן כסופי";
 
 export const SOURCE_TYPE_LABELS: Record<ExecutionSourceType, string> = {
 	opportunity: "Opportunity",

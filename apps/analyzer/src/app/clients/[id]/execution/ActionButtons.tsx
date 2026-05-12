@@ -9,18 +9,22 @@ import {
 	XCircle,
 	RotateCcw,
 	Ban,
+	Lock,
 } from "lucide-react";
 import {
 	runDryRunAction,
 	executeActionNow,
 	cancelAction,
 	rollbackActionNow,
+	finalizeAction,
 } from "./actions";
 import {
 	EXECUTE_CONFIRMATION_TEXT,
 	EXECUTE_CONFIRMATION_BUTTON,
 	ROLLBACK_CONFIRMATION_TEXT,
 	ROLLBACK_BUTTON,
+	FINALIZE_CONFIRMATION_TEXT,
+	FINALIZE_BUTTON,
 	isExecutable,
 	isRollbackSupported,
 } from "@/lib/execution";
@@ -36,6 +40,7 @@ export function ActionButtons({ clientId, actionId, status, actionType }: Props)
 	const [pending, startTransition] = useTransition();
 	const [showExecuteModal, setShowExecuteModal] = useState(false);
 	const [showRollbackModal, setShowRollbackModal] = useState(false);
+	const [showFinalizeModal, setShowFinalizeModal] = useState(false);
 	const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
 	function runDryRun() {
@@ -79,6 +84,17 @@ export function ActionButtons({ clientId, actionId, status, actionType }: Props)
 		});
 	}
 
+	function finalize() {
+		setMessage(null);
+		setShowFinalizeModal(false);
+		startTransition(async () => {
+			const r = await finalizeAction(clientId, actionId);
+			setMessage(
+				r.ok ? { type: "ok", text: "סומן כסופי" } : { type: "err", text: r.error ?? "Finalize נכשל" },
+			);
+		});
+	}
+
 	const canDryRun =
 		status === "draft" ||
 		status === "dry_run_failed" ||
@@ -86,8 +102,10 @@ export function ActionButtons({ clientId, actionId, status, actionType }: Props)
 	const canExecute =
 		(status === "dry_run_ready" || status === "awaiting_execution_approval") &&
 		isExecutable(actionType);
-	const canCancel = !["executed", "rolled_back", "cancelled", "executing"].includes(status);
+	const canCancel = !["executed", "rolled_back", "cancelled", "executing", "finalized"].includes(status);
 	const canRollback = status === "rollback_available" && isRollbackSupported(actionType);
+	// Finalize closes out an executed/rollback_available action with no WP call.
+	const canFinalize = ["executed", "rollback_available"].includes(status);
 
 	return (
 		<div className="flex flex-wrap items-center gap-2">
@@ -122,6 +140,17 @@ export function ActionButtons({ clientId, actionId, status, actionType }: Props)
 					className="inline-flex items-center gap-1.5 rounded-md border border-gold/30 bg-gold/10 hover:bg-gold/20 text-gold px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
 				>
 					<RotateCcw className="w-3.5 h-3.5" /> Rollback
+				</button>
+			)}
+			{canFinalize && (
+				<button
+					type="button"
+					onClick={() => setShowFinalizeModal(true)}
+					disabled={pending}
+					className="inline-flex items-center gap-1.5 rounded-md border border-go/30 bg-go/10 hover:bg-go/20 text-go px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+					title="סמן כסופי — אין שינוי באתר, רק סגירה של הפעולה ב-Analyzer"
+				>
+					<Lock className="w-3.5 h-3.5" /> Finalize
 				</button>
 			)}
 			{canCancel && (
@@ -178,6 +207,40 @@ export function ActionButtons({ clientId, actionId, status, actionType }: Props)
 							>
 								<AlertTriangle className="w-4 h-4" />
 								{EXECUTE_CONFIRMATION_BUTTON}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{showFinalizeModal && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-ninja-black/80 backdrop-blur-sm p-4">
+					<div className="max-w-lg w-full rounded-xl border border-go/40 bg-ninja-panel p-6 shadow-2xl">
+						<div className="flex items-start gap-3 mb-4">
+							<Lock className="w-6 h-6 text-go shrink-0 mt-0.5" />
+							<div>
+								<h3 className="font-display text-xl text-ink mb-2">סגירת פעולה</h3>
+								<p className="text-sm text-ink-dim leading-relaxed">{FINALIZE_CONFIRMATION_TEXT}</p>
+								<p className="text-xs text-ink-mute mt-2">
+									אין שינוי באתר. הפעולה תישאר בהיסטוריה ב-Analyzer לצורכי תיעוד ו-Impact.
+								</p>
+							</div>
+						</div>
+						<div className="flex items-center justify-end gap-2 pt-4 border-t border-ninja-line">
+							<button
+								type="button"
+								onClick={() => setShowFinalizeModal(false)}
+								className="rounded-md border border-ninja-line bg-ninja-panel/60 hover:bg-ninja-raised text-ink-dim px-4 py-2 text-sm"
+							>
+								ביטול
+							</button>
+							<button
+								type="button"
+								onClick={finalize}
+								className="inline-flex items-center gap-2 rounded-md border border-go/40 bg-go/15 hover:bg-go/25 text-go px-4 py-2 text-sm font-bold"
+							>
+								<Lock className="w-4 h-4" />
+								{FINALIZE_BUTTON}
 							</button>
 						</div>
 					</div>

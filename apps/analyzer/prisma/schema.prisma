@@ -161,6 +161,10 @@ model ExecutionAction {
   executedBy    String?
   cancelledAt   DateTime?
   rolledBackAt  DateTime?
+  // Phase 14B — manual "I've reviewed this, no rollback needed" marker.
+  // No WP call; status moves to 'finalized' and the action is closed.
+  finalizedAt   DateTime?
+  finalizedBy   String?
 
   events        ExecutionEvent[]
 
