@@ -127,6 +127,7 @@ export default async function BriefsPage({
 							key={b.id}
 							row={{
 								id: b.id,
+								clientId: b.clientId,
 								targetKeyword: b.targetKeyword,
 								relatedQuery: b.relatedQuery,
 								relatedPage: b.relatedPage,
@@ -145,6 +146,10 @@ export default async function BriefsPage({
 								status: b.status,
 								createdAt: b.createdAt,
 								opportunityId: b.opportunityId,
+								sourceType: b.sourceType,
+								keywordStrategyId: b.keywordStrategyId,
+								strategyStepIndex: b.strategyStepIndex,
+								strategyContext: b.strategyContext,
 							}}
 						/>
 					))}

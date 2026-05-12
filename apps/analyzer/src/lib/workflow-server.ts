@@ -10,6 +10,7 @@ import type {
 	DecisionWorkflowBadge,
 } from "./workflow";
 import { priorityBand } from "./opportunities";
+import { isSeoEligible } from "./page-scope";
 
 // Active statuses per source type — items considered "in the workflow".
 const ACTIVE_OPPORTUNITY = ["detected", "recommended", "needs_human_review", "approved"];
@@ -79,7 +80,7 @@ function executionStatusToBadge(status: string): ExecutionWorkflowBadge | null {
 }
 
 export async function loadWorkflow(clientId: string): Promise<WorkflowItem[]> {
-	const [opps, briefs, links, executions] = await Promise.all([
+	const [opps, briefs, links, executions, briefExecutions, client] = await Promise.all([
 		db.opportunity.findMany({
 			where: {
 				clientId,
@@ -102,6 +103,23 @@ export async function loadWorkflow(clientId: string): Promise<WorkflowItem[]> {
 			orderBy: { updatedAt: "desc" },
 			select: { sourceId: true, status: true, updatedAt: true },
 		}),
+		// Phase 15D — latest execution per brief, for the same badge surface.
+		db.executionAction.findMany({
+			where: { clientId, sourceType: "content_brief" },
+			orderBy: { updatedAt: "desc" },
+			select: { sourceId: true, status: true, updatedAt: true, actionType: true },
+		}),
+		db.client.findUnique({
+			where: { id: clientId },
+			select: {
+				executionEnabled: true,
+				allowedExecutionActions: true,
+				targetPages: true,
+				seoIgnoredUrls: true,
+				seoIgnoredPatterns: true,
+				seoForcedTargetUrls: true,
+			},
+		}),
 	]);
 
 	const latestExecutionBySource = new Map<string, ExecutionWorkflowBadge>();
@@ -109,6 +127,22 @@ export async function loadWorkflow(clientId: string): Promise<WorkflowItem[]> {
 		if (latestExecutionBySource.has(e.sourceId)) continue; // first match is newest (orderBy desc)
 		const badge = executionStatusToBadge(e.status);
 		if (badge) latestExecutionBySource.set(e.sourceId, badge);
+	}
+
+	// Phase 15D — track brief-source executions separately so a brief row can
+	// show its OWN execution badge without leaking into opportunity badges.
+	const latestExecutionByBrief = new Map<string, ExecutionWorkflowBadge>();
+	const openExecutionByBrief = new Set<string>();
+	const OPEN_STATUSES = new Set([
+		"draft", "dry_run_ready", "awaiting_execution_approval", "executing",
+		"preview_only", "dry_run_failed", "dry_run_stale",
+	]);
+	for (const e of briefExecutions) {
+		if (!latestExecutionByBrief.has(e.sourceId)) {
+			const badge = executionStatusToBadge(e.status);
+			if (badge) latestExecutionByBrief.set(e.sourceId, badge);
+		}
+		if (OPEN_STATUSES.has(e.status)) openExecutionByBrief.add(e.sourceId);
 	}
 
 	const items: WorkflowItem[] = [];
@@ -150,6 +184,31 @@ export async function loadWorkflow(clientId: string): Promise<WorkflowItem[]> {
 	}
 
 	for (const b of briefs) {
+		// Phase 15D — lightweight readiness check. Full readiness lives on the
+		// brief row itself; this is just enough to flip a "Ready for Execution"
+		// badge in the workflow. Plugin connectivity is intentionally not
+		// re-checked here.
+		const briefScopeEligible = (() => {
+			if (!b.relatedPage || !client) return false;
+			return isSeoEligible(b.relatedPage, {
+				targetPages: client.targetPages,
+				seoIgnoredUrls: client.seoIgnoredUrls,
+				seoIgnoredPatterns: client.seoIgnoredPatterns,
+				seoForcedTargetUrls: client.seoForcedTargetUrls,
+			});
+		})();
+		const allowedSet = new Set(client?.allowedExecutionActions ?? []);
+		const titleAllowed = allowedSet.has("yoast_title_update");
+		const metaAllowed = allowedSet.has("yoast_description_update");
+		const briefReady =
+			b.status === "approved" &&
+			b.briefType === "title_meta_update" &&
+			!!b.relatedPage &&
+			briefScopeEligible &&
+			((b.recommendedTitle && titleAllowed) || (b.recommendedMetaDescription && metaAllowed)) &&
+			(client?.executionEnabled ?? false) &&
+			!openExecutionByBrief.has(b.id);
+
 		items.push({
 			id: `content_brief:${b.id}`,
 			sourceType: "content_brief",
@@ -171,9 +230,11 @@ export async function loadWorkflow(clientId: string): Promise<WorkflowItem[]> {
 			needsDecision: needsDecisionFlag("content_brief", b.status),
 			isMonitoring: false,
 			availableActions: actionsForBrief(b.status),
+			executionBadge: latestExecutionByBrief.get(b.id) ?? null,
 			sourceMeta: {
 				briefType: b.briefType,
 				searchIntent: b.searchIntent,
+				executionReady: briefReady,
 			},
 		});
 	}

@@ -34,6 +34,7 @@ import { logExecutionEvent } from "./execution-events-server";
 import { computeDecisionForOpportunity } from "./decision-server";
 import { decisionAllowsExecution } from "./decision";
 import { classifyPage, type ClientScopeConfig } from "./page-scope";
+import { onContentBriefExecuted } from "./brief-execution-server";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -731,9 +732,27 @@ export async function executeAction(actionId: string, actor: string): Promise<{
 		},
 	});
 
-	// Post-execute hooks: only if source is opportunity AND something actually changed
-	if (action.sourceType === "opportunity" && !wasNoOp) {
-		await onOpportunityExecuted(action.sourceId, actor, action.actionType);
+	// Post-execute hooks: only if something actually changed.
+	if (!wasNoOp) {
+		if (action.sourceType === "opportunity") {
+			await onOpportunityExecuted(action.sourceId, actor, action.actionType);
+		} else if (action.sourceType === "content_brief") {
+			// Phase 15D — brief lifecycle: flip Brief to "used". If the brief
+			// also links to an Opportunity, run that lifecycle too so impact
+			// review stays grounded in the opp's GSC identity.
+			await onContentBriefExecuted(action.sourceId, actor, action.actionType);
+			try {
+				const brief = await db.contentBrief.findUnique({
+					where: { id: action.sourceId },
+					select: { opportunityId: true },
+				});
+				if (brief?.opportunityId) {
+					await onOpportunityExecuted(brief.opportunityId, actor, action.actionType);
+				}
+			} catch (err) {
+				console.error("brief→opportunity post-execute hook failed:", err);
+			}
+		}
 	}
 
 	await logExecutionEvent({

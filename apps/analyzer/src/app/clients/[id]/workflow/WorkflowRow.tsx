@@ -112,6 +112,15 @@ export function WorkflowRow({ item, selected, onSelectChange }: Props) {
 							{item.executionBadge && (
 								<ExecutionBadge badge={item.executionBadge} />
 							)}
+							{item.sourceType === "content_brief" &&
+								item.sourceMeta?.executionReady === true && (
+									<span
+										className="inline-flex items-center text-[10px] font-bold tracking-wider rounded-full border px-2 py-0.5 bg-go/10 text-go border-go/30"
+										title="ה-Brief מוכן להכנת Execution"
+									>
+										Ready for Execution
+									</span>
+								)}
 							<Tag label="Impact" value={item.impact} />
 							<Tag label="Confidence" value={item.confidence} />
 							{item.relatedKeyword && (

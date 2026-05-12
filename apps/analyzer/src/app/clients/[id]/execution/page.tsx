@@ -46,6 +46,49 @@ function parseDiff(json: string | null): ParsedDiff | null {
 	}
 }
 
+// Phase 15D — pull the brief→execution decision snapshot's relevant bits so
+// the execution card can show Why / Measurement plan inline. Returns null
+// when the snapshot is missing, malformed, or doesn't come from a brief.
+interface BriefSnapshotMeta {
+	strategy: boolean;
+	why?: string;
+	successCondition?: string;
+	risk?: string;
+	confidence?: string;
+}
+function parseBriefDecisionSnapshot(json: string | null): BriefSnapshotMeta | null {
+	if (!json) return null;
+	try {
+		const parsed = JSON.parse(json) as {
+			source?: string;
+			strategyContext?: {
+				why?: string;
+				risk?: string;
+				riskLevel?: string;
+				confidence?: string;
+				measurementPlan?: { successCondition?: string };
+			};
+			decision?: { whyThisIsBetter?: string };
+		};
+		if (parsed.source === "keyword_strategy" && parsed.strategyContext) {
+			const sc = parsed.strategyContext;
+			return {
+				strategy: true,
+				why: sc.why,
+				successCondition: sc.measurementPlan?.successCondition,
+				risk: sc.risk ?? sc.riskLevel,
+				confidence: sc.confidence,
+			};
+		}
+		if (parsed.source === "opportunity" && parsed.decision) {
+			return { strategy: false, why: parsed.decision.whyThisIsBetter };
+		}
+		return null;
+	} catch {
+		return null;
+	}
+}
+
 export default async function ExecutionPage({
 	params,
 }: {
@@ -147,6 +190,23 @@ export default async function ExecutionPage({
 	);
 }
 
+interface ActionRow {
+	id: string;
+	actionType: string;
+	status: string;
+	sourceType: string;
+	sourceId: string;
+	targetUrl: string | null;
+	targetPostId: number | null;
+	diff: string | null;
+	error: string | null;
+	updatedAt: Date;
+	dryRunAt: Date | null;
+	executedAt: Date | null;
+	executedBy: string | null;
+	decisionSnapshot?: string | null;
+}
+
 function Section({
 	title,
 	items,
@@ -155,21 +215,7 @@ function Section({
 	emptyHint,
 }: {
 	title: string;
-	items: Array<{
-		id: string;
-		actionType: string;
-		status: string;
-		sourceType: string;
-		sourceId: string;
-		targetUrl: string | null;
-		targetPostId: number | null;
-		diff: string | null;
-		error: string | null;
-		updatedAt: Date;
-		dryRunAt: Date | null;
-		executedAt: Date | null;
-		executedBy: string | null;
-	}>;
+	items: ActionRow[];
 	clientId: string;
 	icon: React.ReactNode;
 	emptyHint?: string;
@@ -202,24 +248,11 @@ function ActionCard({
 	a,
 	clientId,
 }: {
-	a: {
-		id: string;
-		actionType: string;
-		status: string;
-		sourceType: string;
-		sourceId: string;
-		targetUrl: string | null;
-		targetPostId: number | null;
-		diff: string | null;
-		error: string | null;
-		updatedAt: Date;
-		dryRunAt: Date | null;
-		executedAt: Date | null;
-		executedBy: string | null;
-	};
+	a: ActionRow;
 	clientId: string;
 }) {
 	const diff = parseDiff(a.diff);
+	const briefMeta = a.sourceType === "content_brief" ? parseBriefDecisionSnapshot(a.decisionSnapshot ?? null) : null;
 	const tone = statusTone(a.status);
 	const toneBorder =
 		tone === "good"
@@ -276,6 +309,32 @@ function ActionCard({
 					<div className="text-[10px] text-ink-mute mt-0.5 text-end">{ago(a.updatedAt)}</div>
 				</div>
 			</div>
+
+			{briefMeta && (briefMeta.why || briefMeta.successCondition) && (
+				<div className="rounded-lg border border-gold/20 bg-gold/5 p-3 mb-3 text-xs space-y-1.5">
+					<div className="text-[10px] tracking-wider uppercase text-gold">
+						{briefMeta.strategy ? "מאסטרטגיה" : "מ-Opportunity"}
+					</div>
+					{briefMeta.why && (
+						<div className="text-ink-dim leading-relaxed">
+							<span className="text-ink-mute">למה: </span>
+							{briefMeta.why}
+						</div>
+					)}
+					{briefMeta.successCondition && (
+						<div className="text-go">
+							<span className="text-ink-mute">הצלחה: </span>
+							{briefMeta.successCondition}
+						</div>
+					)}
+					{(briefMeta.risk || briefMeta.confidence) && (
+						<div className="text-ink-mute text-[11px]">
+							{briefMeta.risk && <span>· סיכון: {briefMeta.risk} </span>}
+							{briefMeta.confidence && <span>· confidence: {briefMeta.confidence}</span>}
+						</div>
+					)}
+				</div>
+			)}
 
 			{/* Diff — "before" shows the rendered title when there's no manual
 			    Yoast override (templated case), with a small label noting it.
@@ -337,6 +396,24 @@ function ActionCard({
 						>
 							→ הזדמנות
 						</Link>
+					)}
+					{a.sourceType === "content_brief" && (
+						<>
+							<Link
+								href={`/clients/${clientId}/briefs`}
+								className="text-gold hover:text-blade"
+							>
+								→ Brief
+							</Link>
+							{briefMeta?.strategy && (
+								<Link
+									href={`/clients/${clientId}/keyword-strategy`}
+									className="text-gold hover:text-blade"
+								>
+									→ אסטרטגיה
+								</Link>
+							)}
+						</>
 					)}
 				</div>
 				<ActionButtons

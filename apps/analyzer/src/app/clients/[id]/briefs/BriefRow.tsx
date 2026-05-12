@@ -10,8 +10,11 @@ import {
 	Trash2,
 	ExternalLink,
 	Brain,
+	Zap,
+	Loader2,
 } from "lucide-react";
 import type { DecisionSummary } from "@/lib/decision";
+import type { BriefExecutionReadiness } from "@/lib/brief-execution-server";
 import { getOpportunityDecision } from "../opportunities/actions";
 import {
 	briefTypeLabel,
@@ -19,11 +22,13 @@ import {
 	briefStatusLabel,
 	briefStatusTone,
 } from "@/lib/briefs";
-import { setBriefStatus, deleteBrief } from "./actions";
+import { setBriefStatus, deleteBrief, getBriefExecutionReadiness } from "./actions";
 import { BriefEditModal } from "./BriefEditModal";
+import { PrepareBriefExecutionModal } from "./PrepareBriefExecutionModal";
 
 interface Row {
 	id: string;
+	clientId: string;
 	targetKeyword: string;
 	relatedQuery: string | null;
 	relatedPage: string | null;
@@ -52,6 +57,7 @@ interface Row {
 export function BriefRow({ row }: { row: Row }) {
 	const [open, setOpen] = useState(false);
 	const [editing, setEditing] = useState(false);
+	const [preparingExec, setPreparingExec] = useState(false);
 	const [pending, startTransition] = useTransition();
 
 	function act(status: string) {
@@ -140,6 +146,15 @@ export function BriefRow({ row }: { row: Row }) {
 						)}
 						{/* Phase 14C — research notes from source opportunity */}
 						{row.opportunityId && <BriefDecisionPanel opportunityId={row.opportunityId} />}
+
+						{/* Phase 15D — Execution Readiness (only for title_meta_update briefs) */}
+						{row.briefType === "title_meta_update" && (
+							<ExecutionReadinessPanel
+								briefId={row.id}
+								onPrepare={() => setPreparingExec(true)}
+								briefStatus={row.status}
+							/>
+						)}
 
 						{/* Title / Meta / H1 */}
 						<div className="grid sm:grid-cols-2 gap-3 text-sm">
@@ -237,13 +252,24 @@ export function BriefRow({ row }: { row: Row }) {
 								</>
 							)}
 							{row.status === "approved" && (
-								<ActionButton
-									icon={<CheckCheck className="w-3.5 h-3.5" />}
-									label="סומן כנוצל"
-									tone="good"
-									onClick={() => act("used")}
-									disabled={pending}
-								/>
+								<>
+									<ActionButton
+										icon={<CheckCheck className="w-3.5 h-3.5" />}
+										label="סומן כנוצל"
+										tone="good"
+										onClick={() => act("used")}
+										disabled={pending}
+									/>
+									{row.briefType === "title_meta_update" &&
+										(row.recommendedTitle || row.recommendedMetaDescription) && (
+											<ActionButton
+												icon={<Zap className="w-3.5 h-3.5" />}
+												label="הכן Execution"
+												tone="bad"
+												onClick={() => setPreparingExec(true)}
+											/>
+										)}
+								</>
 							)}
 							{row.status === "draft" && (
 								<ActionButton
@@ -276,6 +302,14 @@ export function BriefRow({ row }: { row: Row }) {
 
 			{editing && (
 				<BriefEditModal brief={row} onClose={() => setEditing(false)} />
+			)}
+
+			{preparingExec && (
+				<PrepareBriefExecutionModal
+					briefId={row.id}
+					clientId={row.clientId}
+					onClose={() => setPreparingExec(false)}
+				/>
 			)}
 		</>
 	);
@@ -355,6 +389,129 @@ function ActionButton({
 			{icon}
 			{label}
 		</button>
+	);
+}
+
+function ExecutionReadinessPanel({
+	briefId,
+	onPrepare,
+	briefStatus,
+}: {
+	briefId: string;
+	onPrepare: () => void;
+	briefStatus: string;
+}) {
+	const [readiness, setReadiness] = useState<BriefExecutionReadiness | null>(null);
+	const [loading, setLoading] = useState(true);
+
+	useEffect(() => {
+		getBriefExecutionReadiness(briefId).then((r) => {
+			if (r.ok && r.readiness) setReadiness(r.readiness);
+			setLoading(false);
+		});
+	}, [briefId]);
+
+	if (loading) {
+		return (
+			<div className="rounded-lg border border-ninja-line bg-ninja-panel/60 p-3 text-xs text-ink-mute flex items-center gap-2">
+				<Loader2 className="w-3.5 h-3.5 animate-spin" />
+				טוען Execution Readiness…
+			</div>
+		);
+	}
+	if (!readiness) return null;
+
+	const ready = readiness.canPrepareTitle || readiness.canPrepareMeta;
+	const borderTone = ready ? "border-go/30 bg-go/5" : "border-gold/30 bg-gold/5";
+
+	return (
+		<div className={`rounded-lg border ${borderTone} p-4 space-y-3`}>
+			<div className="flex items-center justify-between flex-wrap gap-2">
+				<div className="flex items-center gap-2">
+					<Zap className={`w-4 h-4 ${ready ? "text-go" : "text-gold"}`} />
+					<h3 className="text-sm font-bold uppercase tracking-wider text-ink">
+						Execution Readiness
+					</h3>
+					{ready ? (
+						<span className="text-[10px] font-bold tracking-wider rounded-full border bg-go/10 text-go border-go/30 px-2 py-0.5">
+							Ready
+						</span>
+					) : (
+						<span className="text-[10px] font-bold tracking-wider rounded-full border bg-gold/10 text-gold border-gold/30 px-2 py-0.5">
+							לא מוכן
+						</span>
+					)}
+				</div>
+				{briefStatus === "approved" && ready && (
+					<button
+						type="button"
+						onClick={onPrepare}
+						className="inline-flex items-center gap-1.5 text-xs font-medium rounded-md border border-blade/30 bg-blade/10 hover:bg-blade/20 text-blade px-3 py-1.5"
+					>
+						<Zap className="w-3.5 h-3.5" />
+						הכן Execution
+					</button>
+				)}
+			</div>
+
+			<div className="grid sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+				<ReadinessRow ok={readiness.briefStatus === "approved"} label="Brief מאושר" />
+				<ReadinessRow ok={readiness.briefType === "title_meta_update"} label="briefType = title_meta_update" />
+				<ReadinessRow ok={readiness.hasTitle || readiness.hasMeta} label="Title / Meta מומלצים" />
+				<ReadinessRow ok={!!readiness.targetUrl} label="Target URL" />
+				<ReadinessRow ok={!readiness.pageScope || readiness.pageScope.isSeoEligible} label="Page SEO eligible" />
+				<ReadinessRow ok={readiness.clientExecutionEnabled} label="Execution Enabled ללקוח" />
+				<ReadinessRow ok={readiness.allowedActionsTitle} label="Title ב-Allowed Actions" />
+				<ReadinessRow ok={readiness.allowedActionsMeta} label="Meta ב-Allowed Actions" />
+				<ReadinessRow ok={readiness.pluginReadinessOk} label="פלאגין מוכן" />
+				<ReadinessRow ok={readiness.decisionAllows} label="Decision Guard" detail={readiness.decisionReason ?? undefined} />
+			</div>
+
+			{readiness.existingExecutions.length > 0 && (
+				<div className="pt-2 border-t border-ninja-line text-xs space-y-1">
+					<div className="text-[10px] tracking-wider uppercase text-ink-mute">
+						Executions קודמות עבור Brief זה
+					</div>
+					<ul className="space-y-0.5">
+						{readiness.existingExecutions.map((e) => (
+							<li key={e.id} className="text-ink-dim">
+								· <span className="font-mono">{e.actionType}</span> ·{" "}
+								<span className="text-ink">{e.status}</span>
+							</li>
+						))}
+					</ul>
+				</div>
+			)}
+
+			{!ready && readiness.blockers.length > 0 && (
+				<div className="pt-2 border-t border-ninja-line text-xs">
+					<div className="text-[10px] tracking-wider uppercase text-gold mb-1">חסמים</div>
+					<ul className="space-y-0.5 text-ink-dim">
+						{readiness.blockers.map((b, i) => (
+							<li key={i}>· {b}</li>
+						))}
+					</ul>
+				</div>
+			)}
+		</div>
+	);
+}
+
+function ReadinessRow({ ok, label, detail }: { ok: boolean; label: string; detail?: string }) {
+	return (
+		<div className="flex items-start gap-2">
+			<span
+				className={`w-3.5 h-3.5 mt-0.5 rounded border flex items-center justify-center text-[9px] shrink-0 ${
+					ok ? "bg-go/20 border-go/40 text-go" : "bg-blade/10 border-blade/40 text-blade"
+				}`}
+			>
+				{ok ? "✓" : "✗"}
+			</span>
+			<div className="flex-1">
+				<div className={ok ? "text-ink-dim" : "text-ink"}>{label}</div>
+				{detail && <div className="text-[11px] text-ink-mute">{detail}</div>}
+			</div>
+		</div>
 	);
 }
 

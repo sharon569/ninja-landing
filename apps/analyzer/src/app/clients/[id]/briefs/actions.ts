@@ -10,6 +10,12 @@ import {
 	BRIEF_STATUS_OPTIONS,
 } from "@/lib/briefs";
 import { getCurrentUser } from "@/lib/supabase";
+import {
+	computeBriefExecutionReadiness,
+	createExecutionActionFromBrief,
+	type BriefActionType,
+	type BriefExecutionReadiness,
+} from "@/lib/brief-execution-server";
 
 export interface BriefActionState {
 	ok?: boolean;
@@ -203,4 +209,44 @@ export async function deleteBrief(briefId: string): Promise<void> {
 	if (!row) return;
 	await db.contentBrief.delete({ where: { id: briefId } });
 	revalAll(row.clientId);
+}
+
+// ─── Phase 15D — Brief → Execution ──────────────────────────────
+
+export async function getBriefExecutionReadiness(
+	briefId: string,
+): Promise<{ ok: boolean; readiness?: BriefExecutionReadiness; error?: string }> {
+	const r = await computeBriefExecutionReadiness(briefId);
+	if (!r) return { ok: false, error: "Brief not found" };
+	return { ok: true, readiness: r };
+}
+
+export interface PrepareBriefExecutionState {
+	ok?: boolean;
+	actionId?: string;
+	reusedExisting?: boolean;
+	error?: string;
+}
+
+/**
+ * Single-action prepare. The modal calls it once per chosen actionType so
+ * Title + Meta create two separate ExecutionActions.
+ */
+export async function prepareBriefExecution(
+	briefId: string,
+	actionType: BriefActionType,
+): Promise<PrepareBriefExecutionState> {
+	const actor = await actorEmail();
+	const brief = await db.contentBrief.findUnique({
+		where: { id: briefId },
+		select: { clientId: true },
+	});
+	if (!brief) return { error: "Brief not found" };
+
+	const r = await createExecutionActionFromBrief({ briefId, actionType, actor });
+	if (!r.ok) return { error: r.error };
+
+	revalAll(brief.clientId);
+	revalidatePath(`/clients/${brief.clientId}/execution`);
+	return { ok: true, actionId: r.actionId, reusedExisting: r.reusedExisting };
 }
