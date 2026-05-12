@@ -33,7 +33,32 @@ export interface WorkflowItem {
 
 	availableActions: WorkflowAction[];
 	sourceMeta?: Record<string, unknown>; // sourceType-specific extras (manualActionUrl, briefType, etc.)
+
+	// Phase 12 — read-only execution state for opportunities. The badge tells
+	// the user the current state of any prepared ExecutionAction; the actual
+	// Execute click lives only on the /execution page.
+	executionBadge?: ExecutionWorkflowBadge | null;
 }
+
+export type ExecutionWorkflowBadge =
+	| "execution_ready"
+	| "awaiting_execute"
+	| "dry_run_failed"
+	| "executed";
+
+export const EXECUTION_BADGE_LABEL: Record<ExecutionWorkflowBadge, string> = {
+	execution_ready: "Execution Ready",
+	awaiting_execute: "Awaiting Execute",
+	dry_run_failed: "Dry Run Failed",
+	executed: "Executed",
+};
+
+export const EXECUTION_BADGE_TONE: Record<ExecutionWorkflowBadge, "good" | "warn" | "bad" | "neutral"> = {
+	execution_ready: "warn",
+	awaiting_execute: "warn",
+	dry_run_failed: "bad",
+	executed: "good",
+};
 
 export type WorkflowAction =
 	| "approve"

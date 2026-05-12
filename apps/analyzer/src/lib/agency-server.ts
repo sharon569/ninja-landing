@@ -543,6 +543,38 @@ export async function loadAgencyDashboard(): Promise<AgencyDashboard> {
 	activity.sort((a, b) => b.at.localeCompare(a.at));
 	const recent = activity.slice(0, 20);
 
+	// Phase 12 — Execution roll-up (read-only stats). Strict count queries, no
+	// payload loading. Aggregated across all clients, separate from per-client
+	// bottlenecks because this is informational, not a bottleneck to clear.
+	const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000);
+	const [
+		clientsExecutionEnabled,
+		awaitingExecute,
+		dryRunFailed,
+		executedLast7d,
+		rollbackAvailable,
+	] = await Promise.all([
+		db.client.count({ where: { executionEnabled: true } }),
+		db.executionAction.count({
+			where: { status: { in: ["dry_run_ready", "awaiting_execution_approval"] } },
+		}),
+		db.executionAction.count({
+			where: { status: { in: ["dry_run_failed", "dry_run_stale"] } },
+		}),
+		db.executionAction.count({
+			where: { status: { in: ["executed", "rollback_available"] }, executedAt: { gte: sevenDaysAgo } },
+		}),
+		db.executionAction.count({ where: { status: "rollback_available" } }),
+	]);
+
+	const execution = {
+		clientsExecutionEnabled,
+		awaitingExecute,
+		dryRunFailed,
+		executedLast7d,
+		rollbackAvailable,
+	};
+
 	return {
 		clients: summaries,
 		totals,
@@ -550,5 +582,6 @@ export async function loadAgencyDashboard(): Promise<AgencyDashboard> {
 		queue: topQueue,
 		bottlenecks,
 		recent,
+		execution,
 	};
 }

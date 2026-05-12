@@ -89,6 +89,16 @@ export interface Bottlenecks {
 	clientsWithoutKeywordBank: number;
 }
 
+// Phase 12 — read-only execution health roll-up shown on Agency Dashboard.
+// No actions on this surface; click-through goes to the per-client page only.
+export interface ExecutionAgencyStats {
+	clientsExecutionEnabled: number;
+	awaitingExecute: number;          // status in dry_run_ready | awaiting_execution_approval
+	dryRunFailed: number;             // status in dry_run_failed | dry_run_stale
+	executedLast7d: number;
+	rollbackAvailable: number;
+}
+
 export interface ActivityEntry {
 	id: string;
 	clientId: string;
@@ -107,6 +117,7 @@ export interface AgencyDashboard {
 	queue: QueueItem[];
 	bottlenecks: Bottlenecks;
 	recent: ActivityEntry[];
+	execution: ExecutionAgencyStats;
 }
 
 // Filter buckets used in the matrix

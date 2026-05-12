@@ -6,6 +6,7 @@ import type {
 	WorkflowItem,
 	WorkflowAction,
 	WorkflowCounts,
+	ExecutionWorkflowBadge,
 } from "./workflow";
 import { priorityBand } from "./opportunities";
 
@@ -45,8 +46,18 @@ function needsDecisionFlag(sourceType: string, status: string): boolean {
 	return false;
 }
 
+function executionStatusToBadge(status: string): ExecutionWorkflowBadge | null {
+	if (status === "dry_run_ready" || status === "awaiting_execution_approval")
+		return "execution_ready";
+	if (status === "draft" || status === "preview_only") return "awaiting_execute";
+	if (status === "dry_run_failed" || status === "dry_run_stale" || status === "failed")
+		return "dry_run_failed";
+	if (status === "executed" || status === "rollback_available") return "executed";
+	return null;
+}
+
 export async function loadWorkflow(clientId: string): Promise<WorkflowItem[]> {
-	const [opps, briefs, links] = await Promise.all([
+	const [opps, briefs, links, executions] = await Promise.all([
 		db.opportunity.findMany({
 			where: {
 				clientId,
@@ -62,7 +73,21 @@ export async function loadWorkflow(clientId: string): Promise<WorkflowItem[]> {
 			where: { clientId, status: { in: ACTIVE_LINK } },
 			orderBy: { priorityScore: "desc" },
 		}),
+		// Phase 12 — fetch latest execution per opportunity for badge decoration.
+		// Read-only; the workflow page never executes anything.
+		db.executionAction.findMany({
+			where: { clientId, sourceType: "opportunity" },
+			orderBy: { updatedAt: "desc" },
+			select: { sourceId: true, status: true, updatedAt: true },
+		}),
 	]);
+
+	const latestExecutionBySource = new Map<string, ExecutionWorkflowBadge>();
+	for (const e of executions) {
+		if (latestExecutionBySource.has(e.sourceId)) continue; // first match is newest (orderBy desc)
+		const badge = executionStatusToBadge(e.status);
+		if (badge) latestExecutionBySource.set(e.sourceId, badge);
+	}
 
 	const items: WorkflowItem[] = [];
 
@@ -89,6 +114,7 @@ export async function loadWorkflow(clientId: string): Promise<WorkflowItem[]> {
 			needsDecision: needsDecisionFlag("opportunity", o.status),
 			isMonitoring,
 			availableActions: actionsForOpportunity(o.status),
+			executionBadge: latestExecutionBySource.get(o.id) ?? null,
 			sourceMeta: {
 				type: o.type,
 				manualActionUrl: o.manualActionUrl,

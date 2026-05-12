@@ -72,6 +72,13 @@ model Client {
   autoOpportunityAnalysisEnabled  Boolean @default(true)
   autoImpactReviewEnabled         Boolean @default(true)
 
+  // Phase 12 — per-client Execution gates. Pilot Mode is the default: an
+  // installed plugin v0.3 is NOT enough to mutate the site; the agency must
+  // opt this client in here AND list which actions are allowed.
+  executionEnabled         Boolean  @default(false)
+  executionPilotMode       Boolean  @default(true)
+  allowedExecutionActions  String[] @default([]) // subset of yoast_title_update | yoast_description_update | image_alt_update
+
   scans                   Scan[]
   gscDailyRows            GscDailyRow[]
   targetKeywords          TargetKeyword[]

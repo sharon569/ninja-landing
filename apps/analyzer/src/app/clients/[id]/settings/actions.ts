@@ -85,6 +85,65 @@ export async function updateClientProfile(
 	return { ok: true };
 }
 
+// ─── Phase 12: execution settings ─────────────────────────────
+
+export interface ExecutionSettingsState {
+	ok?: boolean;
+	error?: string;
+}
+
+const EXECUTION_ALLOWED_ACTIONS = [
+	"yoast_title_update",
+	"yoast_description_update",
+	"image_alt_update",
+] as const;
+
+const executionSchema = z.object({
+	executionEnabled: z.boolean().default(false),
+	executionPilotMode: z.boolean().default(true),
+	allowedExecutionActions: z
+		.array(z.enum(EXECUTION_ALLOWED_ACTIONS))
+		.default([]),
+});
+
+export async function updateExecutionSettings(
+	clientId: string,
+	_prev: ExecutionSettingsState | undefined,
+	formData: FormData,
+): Promise<ExecutionSettingsState> {
+	const allowed = formData
+		.getAll("allowedExecutionActions")
+		.map(String)
+		.filter((v): v is (typeof EXECUTION_ALLOWED_ACTIONS)[number] =>
+			(EXECUTION_ALLOWED_ACTIONS as readonly string[]).includes(v),
+		);
+
+	const parsed = executionSchema.safeParse({
+		executionEnabled: formData.get("executionEnabled") === "on",
+		executionPilotMode: formData.get("executionPilotMode") === "on",
+		allowedExecutionActions: allowed,
+	});
+	if (!parsed.success) {
+		return { error: parsed.error.issues.map((i) => i.message).join("; ") };
+	}
+
+	// Safety: if executionEnabled flips to false, also clear the allowed list
+	// so a future flip back to true does NOT silently re-enable past selections.
+	const data = parsed.data.executionEnabled
+		? parsed.data
+		: { ...parsed.data, allowedExecutionActions: [] };
+
+	try {
+		await db.client.update({ where: { id: clientId }, data });
+	} catch (err) {
+		return { error: `Database error: ${(err as Error).message}` };
+	}
+	revalidatePath(`/clients/${clientId}/settings`);
+	revalidatePath(`/clients/${clientId}/execution`);
+	revalidatePath("/");
+	return { ok: true };
+}
+
 // ─── Phase 10: automation toggles ─────────────────────────────
 
 export interface AutomationToggleState {

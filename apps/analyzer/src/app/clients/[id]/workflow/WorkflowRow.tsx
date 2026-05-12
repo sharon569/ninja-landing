@@ -16,6 +16,8 @@ import {
 	type WorkflowItem,
 	type WorkflowAction,
 	SOURCE_LABEL,
+	EXECUTION_BADGE_LABEL,
+	EXECUTION_BADGE_TONE,
 	actionLabel,
 } from "@/lib/workflow";
 import { priorityBand } from "@/lib/opportunities";
@@ -104,6 +106,9 @@ export function WorkflowRow({ item, selected, onSelectChange }: Props) {
 						)}
 						<div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px]">
 							<StatusPill value={item.status} needsDecision={item.needsDecision} isMonitoring={item.isMonitoring} />
+							{item.executionBadge && (
+								<ExecutionBadge badge={item.executionBadge} />
+							)}
 							<Tag label="Impact" value={item.impact} />
 							<Tag label="Confidence" value={item.confidence} />
 							{item.relatedKeyword && (
@@ -178,6 +183,26 @@ export function WorkflowRow({ item, selected, onSelectChange }: Props) {
 				/>
 			)}
 		</>
+	);
+}
+
+function ExecutionBadge({ badge }: { badge: keyof typeof EXECUTION_BADGE_LABEL }) {
+	const tone = EXECUTION_BADGE_TONE[badge];
+	const cls =
+		tone === "good"
+			? "bg-go/10 text-go border-go/30"
+			: tone === "warn"
+				? "bg-gold/10 text-gold border-gold/30"
+				: tone === "bad"
+					? "bg-blade/10 text-blade border-blade/30"
+					: "bg-ninja-raised text-ink-dim border-ninja-line";
+	return (
+		<span
+			className={`inline-flex items-center text-[10px] font-bold tracking-wider rounded-full border px-2 py-0.5 ${cls}`}
+			title="צפה בפעולה בדף Execution"
+		>
+			{EXECUTION_BADGE_LABEL[badge]}
+		</span>
 	);
 }
 

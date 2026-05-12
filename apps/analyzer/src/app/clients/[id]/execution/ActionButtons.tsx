@@ -19,6 +19,8 @@ import {
 import {
 	EXECUTE_CONFIRMATION_TEXT,
 	EXECUTE_CONFIRMATION_BUTTON,
+	ROLLBACK_CONFIRMATION_TEXT,
+	ROLLBACK_BUTTON,
 	isExecutable,
 	isRollbackSupported,
 } from "@/lib/execution";
@@ -33,6 +35,7 @@ interface Props {
 export function ActionButtons({ clientId, actionId, status, actionType }: Props) {
 	const [pending, startTransition] = useTransition();
 	const [showExecuteModal, setShowExecuteModal] = useState(false);
+	const [showRollbackModal, setShowRollbackModal] = useState(false);
 	const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
 	function runDryRun() {
@@ -66,7 +69,8 @@ export function ActionButtons({ clientId, actionId, status, actionType }: Props)
 	}
 
 	function rollback() {
-		if (!confirm("האם לבצע Rollback של הפעולה? הערך הקודם יוחזר לאתר.")) return;
+		setMessage(null);
+		setShowRollbackModal(false);
 		startTransition(async () => {
 			const r = await rollbackActionNow(clientId, actionId);
 			setMessage(
@@ -113,9 +117,9 @@ export function ActionButtons({ clientId, actionId, status, actionType }: Props)
 			{canRollback && (
 				<button
 					type="button"
-					onClick={rollback}
+					onClick={() => setShowRollbackModal(true)}
 					disabled={pending}
-					className="inline-flex items-center gap-1.5 rounded-md border border-ninja-line bg-ninja-panel/60 hover:bg-ninja-raised text-ink-dim px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+					className="inline-flex items-center gap-1.5 rounded-md border border-gold/30 bg-gold/10 hover:bg-gold/20 text-gold px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
 				>
 					<RotateCcw className="w-3.5 h-3.5" /> Rollback
 				</button>
@@ -174,6 +178,40 @@ export function ActionButtons({ clientId, actionId, status, actionType }: Props)
 							>
 								<AlertTriangle className="w-4 h-4" />
 								{EXECUTE_CONFIRMATION_BUTTON}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{showRollbackModal && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-ninja-black/80 backdrop-blur-sm p-4">
+					<div className="max-w-lg w-full rounded-xl border border-gold/40 bg-ninja-panel p-6 shadow-2xl">
+						<div className="flex items-start gap-3 mb-4">
+							<RotateCcw className="w-6 h-6 text-gold shrink-0 mt-0.5" />
+							<div>
+								<h3 className="font-display text-xl text-ink mb-2">אישור Rollback</h3>
+								<p className="text-sm text-ink-dim leading-relaxed">{ROLLBACK_CONFIRMATION_TEXT}</p>
+								<p className="text-xs text-gold mt-2">
+									הערה: אם הערך באתר שונה ממה שהמערכת ביצעה, Rollback אוטומטי לא יבוצע — נדרש טיפול ידני.
+								</p>
+							</div>
+						</div>
+						<div className="flex items-center justify-end gap-2 pt-4 border-t border-ninja-line">
+							<button
+								type="button"
+								onClick={() => setShowRollbackModal(false)}
+								className="rounded-md border border-ninja-line bg-ninja-panel/60 hover:bg-ninja-raised text-ink-dim px-4 py-2 text-sm"
+							>
+								ביטול
+							</button>
+							<button
+								type="button"
+								onClick={rollback}
+								className="inline-flex items-center gap-2 rounded-md border border-gold/40 bg-gold/15 hover:bg-gold/25 text-gold px-4 py-2 text-sm font-bold"
+							>
+								<RotateCcw className="w-4 h-4" />
+								{ROLLBACK_BUTTON}
 							</button>
 						</div>
 					</div>

@@ -245,6 +245,25 @@ export default async function AgencyDashboard({
 				</section>
 			)}
 
+			{/* Execution roll-up (Phase 12) — read-only */}
+			{data.execution.clientsExecutionEnabled > 0 && (
+				<section className="space-y-4">
+					<div className="flex items-baseline justify-between flex-wrap gap-3">
+						<h2 className="font-display text-xl text-ink">
+							<span className="text-brand-gradient">Execution</span>
+						</h2>
+						<span className="text-[10px] text-ink-mute">מבט-על · ביצוע ידני בלבד דרך דף הלקוח</span>
+					</div>
+					<div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+						<Bottleneck label="לקוחות עם Execution דלוק" value={data.execution.clientsExecutionEnabled} icon={<AlertTriangle className="w-4 h-4" />} />
+						<Bottleneck label="ממתינים לאישור Execute" value={data.execution.awaitingExecute} icon={<AlertTriangle className="w-4 h-4" />} tone="warn" />
+						<Bottleneck label="Dry Run נכשל/לא טרי" value={data.execution.dryRunFailed} icon={<AlertTriangle className="w-4 h-4" />} tone={data.execution.dryRunFailed > 0 ? "warn" : "neutral"} />
+						<Bottleneck label="בוצעו השבוע" value={data.execution.executedLast7d} icon={<CheckCircle2 className="w-4 h-4" />} />
+						<Bottleneck label="Rollback זמין" value={data.execution.rollbackAvailable} icon={<Clock className="w-4 h-4" />} />
+					</div>
+				</section>
+			)}
+
 			{/* Bottlenecks */}
 			<section className="space-y-4">
 				<h2 className="font-display text-xl text-ink">

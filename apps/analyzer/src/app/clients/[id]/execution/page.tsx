@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { AlertTriangle, Activity, Inbox, ShieldAlert, Bot } from "lucide-react";
+import { AlertTriangle, Activity, Inbox, ShieldAlert, Bot, ListChecks } from "lucide-react";
 import { db } from "@/lib/db";
-import { loadExecutionActionsForClient, getWpCapabilities } from "@/lib/execution-server";
+import { loadExecutionActionsForClient, getExecutionReadiness } from "@/lib/execution-server";
 import {
 	actionTypeLabel,
 	statusLabel,
@@ -11,6 +11,7 @@ import {
 	isDryRunOnly,
 } from "@/lib/execution";
 import { ActionButtons } from "./ActionButtons";
+import { ReadinessPanel } from "./ReadinessPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -53,15 +54,15 @@ export default async function ExecutionPage({
 	});
 	if (!client) notFound();
 
-	const [actions, caps] = await Promise.all([
+	const [actions, readiness] = await Promise.all([
 		loadExecutionActionsForClient(id),
-		getWpCapabilities(id),
+		getExecutionReadiness(id),
 	]);
 
 	// Bucket by status
 	const buckets = {
 		ready: actions.filter((a) => a.status === "dry_run_ready" || a.status === "awaiting_execution_approval"),
-		draft: actions.filter((a) => a.status === "draft" || a.status === "dry_run_failed" || a.status === "preview_only"),
+		draft: actions.filter((a) => ["draft", "dry_run_failed", "dry_run_stale", "preview_only"].includes(a.status)),
 		executing: actions.filter((a) => a.status === "executing"),
 		executed: actions.filter((a) => ["executed", "rollback_available"].includes(a.status)),
 		failed: actions.filter((a) => a.status === "failed"),
@@ -86,8 +87,21 @@ export default async function ExecutionPage({
 				</div>
 			</div>
 
-			{/* WP Capability status */}
-			<WpCapabilityCard caps={caps} />
+			{/* Pilot Mode Banner */}
+			{readiness.pilotMode && readiness.executionEnabled && (
+				<div className="rounded-lg border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-gold flex items-start gap-3">
+					<AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+					<div className="leading-relaxed">
+						<strong>Pilot Mode פעיל</strong> — ביצוע מוגבל לפעולות שאושרו ידנית וברשימת Allowed Actions בלבד.
+					</div>
+				</div>
+			)}
+
+			{/* WP Readiness Panel */}
+			<ReadinessPanel clientId={id} initial={readiness} />
+
+			{/* Pre-flight Checklist */}
+			<PilotChecklist readiness={readiness} clientId={id} />
 
 			{/* Sections */}
 			<Section title="ממתינים לאישור ביצוע" items={buckets.ready} clientId={id} icon={<AlertTriangle className="w-4 h-4 text-gold" />} emptyHint="אין פעולות שמוכנות לאישור ביצוע." />
@@ -296,31 +310,68 @@ function ActionCard({
 	);
 }
 
-function WpCapabilityCard({
-	caps,
+function PilotChecklist({
+	readiness,
+	clientId,
 }: {
-	caps:
-		| { ok: true; pluginVersion?: string; writeApiEnabled?: boolean; supportedActions?: string[]; yoastActive?: boolean }
-		| { ok: false; reason?: string };
+	readiness: import("@/lib/execution").ExecutionReadiness;
+	clientId: string;
 }) {
-	if (!caps.ok) {
-		return (
-			<div className="rounded-lg border border-blade/30 bg-blade/10 px-5 py-3 text-sm text-blade">
-				<AlertTriangle className="w-4 h-4 inline-block me-2" />
-				לא ניתן להתחבר לפלאגין: {(caps as { reason?: string }).reason ?? "לא ידוע"}
-			</div>
-		);
-	}
-	const tone = caps.writeApiEnabled ? "border-go/30 bg-go/5 text-go" : "border-gold/30 bg-gold/10 text-gold";
+	// 8-item pre-flight checklist. Each item maps to a single signal from
+	// the readiness payload. Last item ("Dry Run completed / Diff reviewed")
+	// is informational — it must remain a manual check by Sharon.
+	const items: { ok: boolean; label: string; href?: string }[] = [
+		{ ok: readiness.pluginReachable, label: "Plugin v0.3 מותקן ונגיש", href: `/clients/${clientId}/settings` },
+		{ ok: readiness.tokenPresent, label: "Token + Base URL מעודכנים בפרופיל הלקוח", href: `/clients/${clientId}/settings` },
+		{ ok: readiness.writeApiEnabled, label: "Write API פעיל ב-WordPress (kill switch)" },
+		{ ok: readiness.executionEnabled, label: "Execution Enabled ב-Analyzer", href: `/clients/${clientId}/settings` },
+		{
+			ok: readiness.allowedActions.length > 0,
+			label: "נבחרו Allowed Actions",
+			href: `/clients/${clientId}/settings`,
+		},
+		{ ok: readiness.pluginVersionOk, label: "גרסת פלאגין ≥ 0.3.0" },
+		{
+			ok: readiness.dryRunSupported,
+			label: "Dry Run נתמך — בצע Dry Run לפני Execute (ידני, לכל פעולה)",
+		},
+		{
+			ok: false, // intentionally manual — surfaces as informational reminder
+			label: "Diff נבדק על ידי איש מקצוע לפני לחיצת Execute",
+		},
+	];
+
 	return (
-		<div className={`rounded-lg border px-5 py-3 text-xs ${tone}`}>
-			<span className="font-bold">פלאגין v{caps.pluginVersion}</span>
-			{" · "}
-			{caps.writeApiEnabled ? "Write API פעיל" : "Write API כבוי באתר!"}
-			{caps.yoastActive ? " · Yoast פעיל" : " · Yoast לא פעיל"}
-			{caps.supportedActions && (
-				<span className="text-ink-mute"> · נתמך: {caps.supportedActions.length} סוגי פעולות</span>
-			)}
+		<div className="rounded-xl border border-ninja-line bg-ninja-panel/40 p-5 space-y-3">
+			<h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-ink-dim">
+				<ListChecks className="w-4 h-4 text-gold" />
+				Pilot Checklist — לפני הפעלת Execution
+			</h3>
+			<ul className="space-y-1.5 text-sm">
+				{items.map((item, i) => (
+					<li key={i} className="flex items-center gap-2.5">
+						<span
+							className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+								item.ok
+									? "bg-go/20 border-go/40 text-go"
+									: "bg-ninja-raised border-ninja-line text-ink-mute"
+							}`}
+						>
+							{item.ok ? "✓" : ""}
+						</span>
+						<span className={item.ok ? "text-ink-dim line-through" : "text-ink"}>{item.label}</span>
+						{!item.ok && item.href && (
+							<Link href={item.href} className="text-xs text-gold hover:text-blade ms-1">
+								פתח
+							</Link>
+						)}
+					</li>
+				))}
+			</ul>
+			<p className="text-[11px] text-ink-mute italic pt-2 border-t border-ninja-line">
+				הצ&apos;ק־ליסט הוא מדריך בלבד. ה-Analyzer מאכף את הבדיקות הקריטיות מצד השרת — לא ניתן ליצור או לבצע ExecutionAction
+				ללא כל הסעיפים הראשונים.
+			</p>
 		</div>
 	);
 }

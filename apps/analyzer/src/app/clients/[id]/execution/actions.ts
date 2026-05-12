@@ -8,9 +8,10 @@ import {
 	executeAction,
 	cancelExecutionAction,
 	rollbackAction,
+	getExecutionReadiness,
 	type CreatePayload,
 } from "@/lib/execution-server";
-import type { ExecutionActionType } from "@/lib/execution";
+import type { ExecutionActionType, ExecutionReadiness } from "@/lib/execution";
 
 export interface ActionResult {
 	ok?: boolean;
@@ -106,6 +107,24 @@ export async function rollbackActionNow(
 		revalidatePath(`/clients/${clientId}/impact`);
 		if (!r.ok) return { error: r.error ?? "Rollback failed" };
 		return { ok: true, actionId };
+	} catch (err) {
+		return { error: (err as Error).message };
+	}
+}
+
+// Phase 12 — "Test Write API" button. Re-runs the readiness probe and
+// returns the full payload to the UI. Read-only — never mutates WP.
+export interface TestApiResult {
+	ok?: boolean;
+	error?: string;
+	readiness?: ExecutionReadiness;
+}
+
+export async function testWriteApi(clientId: string): Promise<TestApiResult> {
+	try {
+		const readiness = await getExecutionReadiness(clientId);
+		revalidatePath(`/clients/${clientId}/execution`);
+		return { ok: true, readiness };
 	} catch (err) {
 		return { error: (err as Error).message };
 	}

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { deleteClient } from "@/app/actions";
 import { ProfileForm } from "./ProfileForm";
 import { AutomationToggles } from "./AutomationToggles";
+import { ExecutionSettings } from "./ExecutionSettings";
 import { calcProfileCompletion } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
@@ -108,6 +109,27 @@ export default async function SettingsPage({
 						autoTechAuditEnabled: client.autoTechAuditEnabled,
 						autoOpportunityAnalysisEnabled: client.autoOpportunityAnalysisEnabled,
 						autoImpactReviewEnabled: client.autoImpactReviewEnabled,
+					}}
+				/>
+			</section>
+
+			{/* Execution Settings (Phase 12) */}
+			<section className="space-y-5 border-t border-ninja-line pt-10">
+				<div>
+					<h2 className="font-display text-2xl text-ink">
+						הגדרות <span className="text-brand-gradient">Execution</span>
+					</h2>
+					<p className="text-xs text-ink-dim mt-1">
+						שליטה מי יכול לבצע שינויים חיים באתר הלקוח דרך ה-Plugin v0.3. שינוי כאן לא משפיע על Dry Runs — רק על
+						ביצוע חי.
+					</p>
+				</div>
+				<ExecutionSettings
+					clientId={client.id}
+					initial={{
+						executionEnabled: client.executionEnabled,
+						executionPilotMode: client.executionPilotMode,
+						allowedExecutionActions: client.allowedExecutionActions ?? [],
 					}}
 				/>
 			</section>

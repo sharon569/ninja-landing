@@ -25,7 +25,9 @@ import {
 	EXECUTABLE_ACTIONS,
 	DRY_RUN_ONLY_ACTIONS,
 	ROLLBACK_SUPPORTED_ACTIONS,
+	DRY_RUN_MAX_AGE_HOURS,
 	type ExecutionActionType,
+	type ExecutionReadiness,
 } from "./execution";
 import { createBaseline } from "./impact-server";
 
@@ -79,6 +81,146 @@ export async function getWpCapabilities(clientId: string) {
 	}
 }
 
+// ─── Phase 12 — Execution Readiness ──────────────────────────
+
+/** Semver compare for the 0.3.0+ check. */
+function pluginVersionAtLeast(v: string | null, min: [number, number, number]): boolean {
+	if (!v) return false;
+	const parts = v.split(".").map((s) => parseInt(s, 10));
+	for (let i = 0; i < 3; i++) {
+		const a = parts[i] ?? 0;
+		const b = min[i];
+		if (a > b) return true;
+		if (a < b) return false;
+	}
+	return true;
+}
+
+/**
+ * Aggregate everything the Execution page needs to know whether the client
+ * is ready to execute. Always returns — never throws. Use this to drive the
+ * Readiness Panel and to gate ExecutionAction creation.
+ */
+export async function getExecutionReadiness(clientId: string): Promise<ExecutionReadiness> {
+	const client = await db.client.findUnique({
+		where: { id: clientId },
+		select: {
+			baseUrl: true,
+			token: true,
+			executionEnabled: true,
+			executionPilotMode: true,
+			allowedExecutionActions: true,
+		},
+	});
+	const now = new Date().toISOString();
+	const warnings: string[] = [];
+
+	if (!client) {
+		return {
+			overallReady: false,
+			executionEnabled: false,
+			pilotMode: false,
+			allowedActions: [],
+			tokenPresent: false,
+			pluginReachable: false,
+			pluginVersion: null,
+			pluginVersionOk: false,
+			writeApiEnabled: false,
+			dryRunSupported: false,
+			yoastActive: false,
+			pluginSupportedActions: [],
+			lastCheckedAt: now,
+			warnings: ["client_not_found"],
+		};
+	}
+
+	const tokenPresent = !!(client.baseUrl && client.token);
+	if (!tokenPresent) warnings.push("missing_token_or_baseUrl");
+	if (!client.executionEnabled) warnings.push("execution_disabled_for_client");
+	if ((client.allowedExecutionActions ?? []).length === 0 && client.executionEnabled) {
+		warnings.push("no_allowed_actions_selected");
+	}
+
+	let pluginReachable = false;
+	let pluginVersion: string | null = null;
+	let writeApiEnabled = false;
+	let dryRunSupported = false;
+	let yoastActive = false;
+	let pluginSupported: string[] = [];
+
+	if (tokenPresent) {
+		try {
+			const info = await getWpInfo(client.baseUrl, client.token);
+			pluginReachable = true;
+			pluginVersion = info.plugin_version ?? null;
+			writeApiEnabled = !!info.write_api_enabled;
+			dryRunSupported = !!info.dry_run_supported;
+			yoastActive = !!info.yoast_active;
+			pluginSupported = info.supported_write_actions ?? [];
+		} catch (err) {
+			warnings.push(`plugin_unreachable: ${(err as Error).message}`);
+		}
+	}
+
+	const versionOk = pluginVersionAtLeast(pluginVersion, [0, 3, 0]);
+	if (pluginReachable && !versionOk) warnings.push("plugin_version_below_0.3.0");
+	if (pluginReachable && !writeApiEnabled) warnings.push("write_api_disabled_on_plugin");
+	if (pluginReachable && !dryRunSupported) warnings.push("dry_run_not_supported_by_plugin");
+
+	const overallReady =
+		client.executionEnabled &&
+		tokenPresent &&
+		pluginReachable &&
+		versionOk &&
+		writeApiEnabled &&
+		dryRunSupported &&
+		(client.allowedExecutionActions ?? []).length > 0;
+
+	return {
+		overallReady,
+		executionEnabled: client.executionEnabled,
+		pilotMode: client.executionPilotMode,
+		allowedActions: client.allowedExecutionActions ?? [],
+		tokenPresent,
+		pluginReachable,
+		pluginVersion,
+		pluginVersionOk: versionOk,
+		writeApiEnabled,
+		dryRunSupported,
+		yoastActive,
+		pluginSupportedActions: pluginSupported,
+		lastCheckedAt: now,
+		warnings,
+	};
+}
+
+/**
+ * Centralised gate for "can we even *prepare* an ExecutionAction for this
+ * (client, actionType)?" — used by createExecutionActionFromOpportunity and
+ * by the Settings UI to short-circuit form submission.
+ */
+export async function canCreateExecutionAction(clientId: string, actionType: ExecutionActionType) {
+	const r = await getExecutionReadiness(clientId);
+	const missing: string[] = [];
+	if (!r.executionEnabled) missing.push("execution_disabled_for_client");
+	if (!r.tokenPresent) missing.push("missing_token_or_baseUrl");
+	if (!r.pluginReachable) missing.push("plugin_unreachable");
+	if (!r.pluginVersionOk) missing.push("plugin_version_below_0.3.0");
+	if (!r.writeApiEnabled) missing.push("write_api_disabled_on_plugin");
+	if (!r.dryRunSupported) missing.push("dry_run_not_supported_by_plugin");
+	if (!r.pluginSupportedActions.includes(actionType)) missing.push("action_not_supported_by_plugin");
+	// Allowed-actions check applies only to actions that can actually execute.
+	// Dry-run-only ones (internal-link, content-snippet) bypass the allowlist
+	// because they never mutate anything anyway.
+	if (
+		!DRY_RUN_ONLY_ACTIONS.includes(actionType) &&
+		!r.allowedActions.includes(actionType)
+	) {
+		missing.push("action_not_allowed_for_client");
+	}
+	return { ok: missing.length === 0, missing, readiness: r };
+}
+
 // ─── Create ──────────────────────────────────────────────────
 
 export async function createExecutionActionFromOpportunity(args: {
@@ -97,6 +239,23 @@ export async function createExecutionActionFromOpportunity(args: {
 
 	if (![...EXECUTABLE_ACTIONS, ...DRY_RUN_ONLY_ACTIONS].includes(actionType)) {
 		throw new Error(`Unsupported actionType: ${actionType}`);
+	}
+
+	// Phase 12 — Execution Readiness gate. Even if Plugin v0.3 is installed,
+	// the agency must explicitly opt this client in.
+	const gate = await canCreateExecutionAction(opp.clientId, actionType);
+	if (!gate.ok) {
+		// Friendly Hebrew error matched to the most relevant missing item.
+		if (gate.missing.includes("execution_disabled_for_client")) {
+			throw new Error("ביצוע אוטומטי לא מופעל עבור הלקוח הזה.");
+		}
+		if (gate.missing.includes("action_not_allowed_for_client")) {
+			throw new Error("סוג הפעולה הזה לא מורשה ללקוח. עדכן את Allowed Actions בהגדרות.");
+		}
+		if (gate.missing.includes("write_api_disabled_on_plugin")) {
+			throw new Error("Write API כבוי באתר הלקוח. הפעל את ה-kill switch באדמין WP.");
+		}
+		throw new Error(`Execution לא מוכן: ${gate.missing.join(", ")}`);
 	}
 
 	// Concurrency guard — block a second open ExecutionAction for the same source+action
@@ -270,6 +429,72 @@ export async function executeAction(actionId: string, actor: string): Promise<{
 		throw new Error("Client missing baseUrl/token");
 	}
 
+	// Phase 12 — Pilot Mode gate re-checked at execute time. If Sharon flipped
+	// executionEnabled=false between Dry Run and Execute, we abort.
+	const gate = await canCreateExecutionAction(client.id, action.actionType as ExecutionActionType);
+	if (!gate.ok) {
+		await db.executionAction.update({
+			where: { id: actionId },
+			data: { status: "dry_run_failed", error: `Readiness lost: ${gate.missing.join(", ")}` },
+		});
+		throw new Error("Execution is not enabled for this client (state changed since Dry Run).");
+	}
+
+	// Phase 12 — Dry Run freshness. Anything older than DRY_RUN_MAX_AGE_HOURS
+	// is rejected outright; the user must re-run dry run.
+	const ageHours = (Date.now() - action.dryRunAt.getTime()) / (1000 * 60 * 60);
+	if (ageHours > DRY_RUN_MAX_AGE_HOURS) {
+		await db.executionAction.update({
+			where: { id: actionId },
+			data: { status: "dry_run_stale", error: `Dry Run הוא מלפני ${Math.floor(ageHours)} שעות (מעל ${DRY_RUN_MAX_AGE_HOURS}). הרץ Dry Run חדש.` },
+		});
+		throw new Error(`Dry Run ישן (${Math.floor(ageHours)} שעות) — נדרש Dry Run חדש.`);
+	}
+
+	// Phase 12 — Before-value freshness. Re-run a dry run now, compare its
+	// `before` to the saved one. If the editor touched the page in between,
+	// we don't want to silently overwrite their work.
+	const savedDiff = action.diff ? (JSON.parse(action.diff) as DiffPreview) : null;
+	if (savedDiff && savedDiff.before !== null) {
+		try {
+			const freshPayload: CreatePayload = JSON.parse(action.payload);
+			const freshResp = await callPluginForAction(
+				action.actionType as ExecutionActionType,
+				client.baseUrl,
+				client.token,
+				freshPayload,
+				/*dryRun*/ true,
+				`${action.id}-freshness`,
+			);
+			const freshDiff = extractDiff(freshResp);
+			if ((freshDiff.before ?? "") !== (savedDiff.before ?? "")) {
+				await db.executionAction.update({
+					where: { id: actionId },
+					data: {
+						status: "dry_run_stale",
+						error: "הערך באתר השתנה מאז ה-Dry Run. יש להריץ Dry Run מחדש.",
+						// Persist the fresh diff so the UI shows the user what's actually live now
+						diff: JSON.stringify(freshDiff),
+						dryRunResult: JSON.stringify(freshResp),
+						dryRunAt: new Date(),
+					},
+				});
+				throw new Error("הערך באתר השתנה מאז ה-Dry Run. יש להריץ Dry Run מחדש.");
+			}
+		} catch (err) {
+			// Distinguish freshness drift (already updated above + rethrown) from
+			// a network/plugin error in the freshness probe — only the latter
+			// goes here.
+			const msg = (err as Error).message;
+			if (msg.includes("Dry Run מחדש")) throw err;
+			await db.executionAction.update({
+				where: { id: actionId },
+				data: { status: "dry_run_failed", error: `Freshness probe failed: ${msg}` },
+			});
+			throw new Error(`Freshness probe failed: ${msg}`);
+		}
+	}
+
 	// Optimistic lock — only the row currently in dry_run_ready may flip to executing
 	const lockResult = await db.executionAction.updateMany({
 		where: {
@@ -358,6 +583,34 @@ export async function rollbackAction(actionId: string, actor: string): Promise<{
 	if (diff.before === null) throw new Error("No before-value captured");
 
 	const client = action.client;
+
+	// Phase 12 — Rollback drift check. We saved `diff.after` as the value we
+	// pushed live. If the current value on WP is *not* `diff.after`, someone
+	// else has edited it since — auto-rolling-back to `diff.before` would
+	// silently overwrite their newer edit. Bail with a clear message.
+	try {
+		const probePayload: CreatePayload = JSON.parse(action.payload);
+		const probeResp = await callPluginForAction(
+			action.actionType as ExecutionActionType,
+			client.baseUrl,
+			client.token,
+			probePayload,
+			/*dryRun*/ true,
+			`${action.id}-rollback-probe`,
+		);
+		const probeDiff = extractDiff(probeResp);
+		if ((probeDiff.before ?? "") !== (diff.after ?? "")) {
+			throw new Error("הערך הנוכחי באתר שונה מהערך שהמערכת ביצעה. Rollback אוטומטי לא בטוח.");
+		}
+	} catch (err) {
+		const msg = (err as Error).message;
+		// Bubble the drift message verbatim; only convert true probe failures.
+		if (msg.includes("Rollback אוטומטי לא בטוח")) {
+			return { ok: false, status: action.status, error: msg };
+		}
+		return { ok: false, status: action.status, error: `Rollback drift probe failed: ${msg}` };
+	}
+
 	// Build a rollback payload by swapping before/after.
 	const payload: CreatePayload = JSON.parse(action.payload);
 	const rollbackPayload: CreatePayload = { ...payload };
