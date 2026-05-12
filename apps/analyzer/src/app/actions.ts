@@ -1,7 +1,6 @@
 "use server";
 
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { put } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -105,13 +104,16 @@ export async function runScan(clientId: string): Promise<void> {
 	const payload = await plugin.scan();
 	const durationMs = Date.now() - startedAt;
 
-	// Persist raw payload to disk so we can re-run audits without re-pulling.
+	// Persist raw payload to Vercel Blob (private) so we can re-run audits later
+	// without re-pulling. Works the same locally + in serverless production.
 	const ts = new Date().toISOString().replace(/[:.]/g, "-");
-	const dir = path.resolve(process.cwd(), "data", clientId);
-	await mkdir(dir, { recursive: true });
-	const filePath = path.join(dir, `scan-${ts}.json`);
 	const jsonString = JSON.stringify(payload);
-	await writeFile(filePath, jsonString, "utf-8");
+	const blob = await put(`scans/${clientId}/scan-${ts}.json`, jsonString, {
+		access: "private",
+		contentType: "application/json",
+		addRandomSuffix: false,
+	} as Parameters<typeof put>[2]);
+	const filePath = blob.url;
 
 	// Run audit rules over the payload.
 	const findings = runAudit(payload);
@@ -136,7 +138,7 @@ export async function runScan(clientId: string): Promise<void> {
 		const scan = await tx.scan.create({
 			data: {
 				clientId,
-				filePath: path.relative(process.cwd(), filePath),
+				filePath,
 				summary: JSON.stringify(headlineCounts),
 				sizeBytes: Buffer.byteLength(jsonString, "utf-8"),
 				durationMs,

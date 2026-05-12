@@ -45,3 +45,6 @@ next-env.d.ts
 # Local-only SQLite DB and per-client scan snapshots (Phase 1 storage)
 /data/*
 !/data/.gitkeep
+
+.vercel
+.env*.local

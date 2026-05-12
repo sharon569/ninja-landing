@@ -1,7 +1,7 @@
 # מערכת ניהול קידום אורגני — NINJA Analyzer
 
 פלטפורמת אדמין פנימית של NINJA Digital לניהול לקוחות SEO.
-מאוחסנת תחת `ninja-landing/apps/analyzer/` ונפרסת **בנפרד** ל-`app.samp.ninja`.
+מאוחסנת תחת `ninja-landing/apps/analyzer/` ונפרסת **בנפרד** ל-`seo.samp.ninja`.
 
 מקור: הועתק מ-`C:\Users\sharon\projects\agency-tools\analyzer` ב-2026-05-12.
 המקור נשאר ללא שינוי כגיבוי.
@@ -38,7 +38,7 @@ GOOGLE_CLIENT_SECRET=
 GOOGLE_OAUTH_REDIRECT=http://localhost:3000/api/gsc/callback
 ```
 
-## פריסה ל-Vercel ול-`app.samp.ninja`
+## פריסה ל-Vercel ול-`seo.samp.ninja`
 
 המדריך הזה מניח שניהו-לנדינג כבר מקושר ל-Vercel (פרויקט קיים).
 האנלייזר ייפרס כ**פרויקט Vercel נפרד** באותו ריפו, עם Root Directory מותאם.
@@ -73,12 +73,12 @@ GOOGLE_OAUTH_REDIRECT=http://localhost:3000/api/gsc/callback
 > 4. שנה את `provider` ב-`prisma/schema.prisma` מ-`sqlite` ל-`postgresql`.
 > 5. הרץ `npx prisma migrate deploy` בסביבת prod.
 
-### 3. חיבור הדומיין `app.samp.ninja`
+### 3. חיבור הדומיין `seo.samp.ninja`
 
-1. ב-Vercel project → **Settings → Domains** → **Add Domain** → `app.samp.ninja`.
+1. ב-Vercel project → **Settings → Domains** → **Add Domain** → `seo.samp.ninja`.
 2. ב-DNS provider של `samp.ninja` (Cloudflare/וכו') הוסף רשומת CNAME:
    ```
-   app  CNAME  cname.vercel-dns.com
+   seo  CNAME  cname.vercel-dns.com
    ```
 3. Vercel תקתקת SSL אוטומטית תוך כמה דקות.
 
@@ -97,7 +97,7 @@ select id, email from auth.users where email = 'sharon@samp.ninja';
 
 כל push ל-`main` יפרוס את שני הפרויקטים:
 - `ninja-landing` (samp.ninja) — Astro
-- `ninja-analyzer` (app.samp.ninja) — Next.js
+- `ninja-analyzer` (seo.samp.ninja) — Next.js
 
 הכל ביחד באותו ריפו, שני פרויקטים נפרדים ב-Vercel.
 
@@ -107,7 +107,7 @@ select id, email from auth.users where email = 'sharon@samp.ninja';
 |---|---|
 | Supabase project | ✅ אותו פרויקט, אותם משתמשים |
 | `admin_users` / `client_users` tables | ✅ אותם שורות |
-| Auth cookies | ❌ קוקיז דומיין-בלעדיים. כניסה נפרדת לכל סאב-דומיין (`samp.ninja` ו-`app.samp.ninja`). אופציה לעתיד: הגדרת `cookie domain=.samp.ninja` ל-SSO. |
+| Auth cookies | ❌ קוקיז דומיין-בלעדיים. כניסה נפרדת לכל סאב-דומיין (`samp.ninja` ו-`seo.samp.ninja`). אופציה לעתיד: הגדרת `cookie domain=.samp.ninja` ל-SSO. |
 | `analyzer` DB (clients/scans) | ❌ DB משלו (SQLite מקומית, Postgres ב-prod) |
 | `analyzer` GSC tokens | ❌ שייכים לטבלת `GscConnection` של האנלייזר |
 
