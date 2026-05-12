@@ -1,0 +1,559 @@
+// Phase 11 — Execution Engine orchestrator (server-only).
+//
+// Public surface:
+//   - createExecutionActionFromOpportunity(opp, actionType, payload, actor)
+//   - runDryRun(actionId)
+//   - executeAction(actionId, actor)
+//   - cancelExecutionAction(actionId, actor)
+//   - rollbackAction(actionId, actor)  // only Yoast title/desc + image alt
+//   - loadExecutionActionsForClient(clientId)
+//   - getWpCapabilities(clientId)
+//
+// Safety invariants (enforced top-of-function in every mutator):
+//   1. Client exists, has baseUrl + token.
+//   2. Plugin reports writeApiEnabled=true + actionType in supported set.
+//   3. Source item must exist and be in 'approved' state for Opportunities.
+//   4. executeAction requires status=dry_run_ready AND dryRunAt set.
+//   5. Dry-run-only actionTypes can NEVER reach executing.
+//   6. Concurrency: an action already in {executing, dry_run_ready} blocks
+//      a second create from the same (sourceType, sourceId, actionType).
+
+import "server-only";
+import { db } from "./db";
+import { getWpInfo, callWriteEndpoint, type WriteResponse } from "./wp-client";
+import {
+	EXECUTABLE_ACTIONS,
+	DRY_RUN_ONLY_ACTIONS,
+	ROLLBACK_SUPPORTED_ACTIONS,
+	type ExecutionActionType,
+} from "./execution";
+import { createBaseline } from "./impact-server";
+
+// ─── Types ────────────────────────────────────────────────────
+
+export interface CreatePayload {
+	// One of these targets is required (per actionType):
+	targetUrl?: string;
+	targetPostId?: number;
+	attachmentId?: number;
+	imageUrl?: string;
+	// Per-action body:
+	title?: string;
+	description?: string;
+	altText?: string;
+	targetLinkUrl?: string;
+	anchorText?: string;
+	placementHint?: string;
+	snippet?: string;
+	placement?: string;
+}
+
+export interface DiffPreview {
+	before: string | null;
+	after: string | null;
+	changed: boolean;
+	warnings: string[];
+	note: string | null;
+}
+
+// ─── Capability check ────────────────────────────────────────
+
+export async function getWpCapabilities(clientId: string) {
+	const client = await db.client.findUnique({ where: { id: clientId } });
+	if (!client) throw new Error("Client not found");
+	if (!client.baseUrl || !client.token) {
+		return { ok: false, reason: "Client missing baseUrl or token" };
+	}
+	try {
+		const info = await getWpInfo(client.baseUrl, client.token);
+		return {
+			ok: true,
+			pluginVersion: info.plugin_version,
+			writeApiEnabled: info.write_api_enabled,
+			supportedActions: info.supported_write_actions ?? [],
+			dryRunOnlyActions: info.dry_run_only_actions ?? [],
+			yoastActive: info.yoast_active,
+		};
+	} catch (err) {
+		return { ok: false, reason: (err as Error).message };
+	}
+}
+
+// ─── Create ──────────────────────────────────────────────────
+
+export async function createExecutionActionFromOpportunity(args: {
+	opportunityId: string;
+	actionType: ExecutionActionType;
+	payload: CreatePayload;
+	actor: string;
+}) {
+	const { opportunityId, actionType, payload, actor } = args;
+
+	const opp = await db.opportunity.findUnique({ where: { id: opportunityId } });
+	if (!opp) throw new Error("Opportunity not found");
+	if (opp.status !== "approved") {
+		throw new Error(`Opportunity must be approved (current: ${opp.status})`);
+	}
+
+	if (![...EXECUTABLE_ACTIONS, ...DRY_RUN_ONLY_ACTIONS].includes(actionType)) {
+		throw new Error(`Unsupported actionType: ${actionType}`);
+	}
+
+	// Concurrency guard — block a second open ExecutionAction for the same source+action
+	const existingOpen = await db.executionAction.findFirst({
+		where: {
+			sourceType: "opportunity",
+			sourceId: opportunityId,
+			actionType,
+			status: {
+				in: ["draft", "dry_run_ready", "awaiting_execution_approval", "executing", "preview_only"],
+			},
+		},
+	});
+	if (existingOpen) return existingOpen; // idempotent: reuse the in-flight action
+
+	const initialStatus = DRY_RUN_ONLY_ACTIONS.includes(actionType) ? "preview_only" : "draft";
+
+	const created = await db.executionAction.create({
+		data: {
+			clientId: opp.clientId,
+			sourceType: "opportunity",
+			sourceId: opportunityId,
+			actionType,
+			status: initialStatus,
+			targetUrl: payload.targetUrl ?? opp.relatedPage ?? null,
+			targetPostId: payload.targetPostId ?? null,
+			payload: JSON.stringify(payload),
+		},
+	});
+
+	await db.opportunityActionLog.create({
+		data: {
+			clientId: opp.clientId,
+			opportunityId,
+			createdBy: actor,
+			actionType: "execution_prepared",
+			fromStatus: opp.status,
+			toStatus: opp.status,
+			note: `Prepared ExecutionAction ${created.id} for ${actionType}`,
+		},
+	});
+
+	return created;
+}
+
+// ─── Dry Run ─────────────────────────────────────────────────
+
+export async function runDryRun(actionId: string, actor: string): Promise<{
+	ok: boolean;
+	status: string;
+	diff: DiffPreview;
+	error?: string;
+}> {
+	const action = await db.executionAction.findUnique({
+		where: { id: actionId },
+		include: { client: true },
+	});
+	if (!action) throw new Error("Action not found");
+	if (action.status === "executing") throw new Error("Action is already executing");
+	if (action.status === "executed") throw new Error("Action already executed");
+	if (action.status === "cancelled" || action.status === "rolled_back") {
+		throw new Error("Action is closed");
+	}
+
+	const client = action.client;
+	if (!client.baseUrl || !client.token) {
+		await db.executionAction.update({
+			where: { id: actionId },
+			data: { status: "dry_run_failed", error: "Client missing baseUrl/token" },
+		});
+		return { ok: false, status: "dry_run_failed", diff: emptyDiff(), error: "Client missing baseUrl/token" };
+	}
+
+	const caps = await getWpCapabilities(client.id);
+	if (!caps.ok) {
+		await db.executionAction.update({
+			where: { id: actionId },
+			data: { status: "dry_run_failed", error: `Plugin not reachable: ${caps.reason}` },
+		});
+		return { ok: false, status: "dry_run_failed", diff: emptyDiff(), error: caps.reason };
+	}
+	if (!caps.writeApiEnabled) {
+		await db.executionAction.update({
+			where: { id: actionId },
+			data: { status: "dry_run_failed", error: "Write API disabled on plugin" },
+		});
+		return { ok: false, status: "dry_run_failed", diff: emptyDiff(), error: "Write API disabled on plugin" };
+	}
+	if (!caps.supportedActions?.includes(action.actionType)) {
+		await db.executionAction.update({
+			where: { id: actionId },
+			data: { status: "dry_run_failed", error: `actionType ${action.actionType} not supported by plugin` },
+		});
+		return { ok: false, status: "dry_run_failed", diff: emptyDiff(), error: "actionType not supported by plugin" };
+	}
+
+	const payload: CreatePayload = JSON.parse(action.payload);
+	let resp: WriteResponse;
+	try {
+		resp = await callPluginForAction(action.actionType as ExecutionActionType, client.baseUrl, client.token, payload, /*dryRun*/ true, action.id);
+	} catch (err) {
+		await db.executionAction.update({
+			where: { id: actionId },
+			data: { status: "dry_run_failed", error: (err as Error).message },
+		});
+		return { ok: false, status: "dry_run_failed", diff: emptyDiff(), error: (err as Error).message };
+	}
+
+	const diff = extractDiff(resp);
+	const isPreviewOnly = DRY_RUN_ONLY_ACTIONS.includes(action.actionType as ExecutionActionType);
+	const nextStatus = isPreviewOnly ? "preview_only" : "dry_run_ready";
+
+	await db.executionAction.update({
+		where: { id: actionId },
+		data: {
+			status: nextStatus,
+			dryRunResult: JSON.stringify(resp),
+			diff: JSON.stringify(diff),
+			dryRunAt: new Date(),
+			auditLogId: resp.auditLogId ?? null,
+			targetUrl: action.targetUrl ?? (resp.target?.url as string | undefined) ?? null,
+			targetPostId:
+				action.targetPostId ?? (resp.target?.postId as number | undefined) ?? null,
+			error: null,
+		},
+	});
+
+	if (action.sourceType === "opportunity") {
+		await db.opportunityActionLog.create({
+			data: {
+				clientId: action.clientId,
+				opportunityId: action.sourceId,
+				createdBy: actor,
+				actionType: "dry_run_completed",
+				fromStatus: "approved",
+				toStatus: "approved",
+				note: `Dry Run OK · ${action.actionType} · changed=${diff.changed}`,
+			},
+		});
+	}
+
+	return { ok: true, status: nextStatus, diff };
+}
+
+// ─── Execute ─────────────────────────────────────────────────
+
+export async function executeAction(actionId: string, actor: string): Promise<{
+	ok: boolean;
+	status: string;
+	error?: string;
+}> {
+	const action = await db.executionAction.findUnique({
+		where: { id: actionId },
+		include: { client: true },
+	});
+	if (!action) throw new Error("Action not found");
+
+	// Safety invariants
+	if (DRY_RUN_ONLY_ACTIONS.includes(action.actionType as ExecutionActionType)) {
+		throw new Error("This action type is preview-only in plugin v0.3");
+	}
+	if (!action.dryRunAt) {
+		throw new Error("Dry Run must run successfully before Execute");
+	}
+	if (action.status !== "dry_run_ready" && action.status !== "awaiting_execution_approval") {
+		throw new Error(`Cannot execute from status=${action.status}`);
+	}
+
+	const client = action.client;
+	if (!client.baseUrl || !client.token) {
+		throw new Error("Client missing baseUrl/token");
+	}
+
+	// Optimistic lock — only the row currently in dry_run_ready may flip to executing
+	const lockResult = await db.executionAction.updateMany({
+		where: {
+			id: actionId,
+			status: { in: ["dry_run_ready", "awaiting_execution_approval"] },
+			executedAt: null,
+		},
+		data: { status: "executing" },
+	});
+	if (lockResult.count === 0) {
+		throw new Error("Concurrent execute — action state changed");
+	}
+
+	const payload: CreatePayload = JSON.parse(action.payload);
+	let resp: WriteResponse;
+	try {
+		resp = await callPluginForAction(action.actionType as ExecutionActionType, client.baseUrl, client.token, payload, /*dryRun*/ false, action.id);
+	} catch (err) {
+		await db.executionAction.update({
+			where: { id: actionId },
+			data: { status: "failed", error: (err as Error).message },
+		});
+		return { ok: false, status: "failed", error: (err as Error).message };
+	}
+
+	const success = resp.ok && (resp.executed === true || resp.changed === false);
+	const wasNoOp = resp.changed === false;
+
+	if (!success) {
+		await db.executionAction.update({
+			where: { id: actionId },
+			data: {
+				status: "failed",
+				executionResult: JSON.stringify(resp),
+				auditLogId: resp.auditLogId ?? null,
+				error: resp.error ?? "Plugin returned ok=false or executed=false",
+			},
+		});
+		return { ok: false, status: "failed", error: resp.error ?? "execute failed" };
+	}
+
+	const isRollback = ROLLBACK_SUPPORTED_ACTIONS.includes(action.actionType as ExecutionActionType);
+	const nextStatus = wasNoOp ? "executed" : (isRollback ? "rollback_available" : "executed");
+
+	await db.executionAction.update({
+		where: { id: actionId },
+		data: {
+			status: nextStatus,
+			executedAt: new Date(),
+			executedBy: actor,
+			executionResult: JSON.stringify(resp),
+			auditLogId: resp.auditLogId ?? null,
+			error: null,
+		},
+	});
+
+	// Post-execute hooks: only if source is opportunity AND something actually changed
+	if (action.sourceType === "opportunity" && !wasNoOp) {
+		await onOpportunityExecuted(action.sourceId, actor, action.actionType);
+	}
+
+	return { ok: true, status: nextStatus };
+}
+
+// ─── Rollback ────────────────────────────────────────────────
+
+export async function rollbackAction(actionId: string, actor: string): Promise<{
+	ok: boolean;
+	status: string;
+	error?: string;
+}> {
+	const action = await db.executionAction.findUnique({
+		where: { id: actionId },
+		include: { client: true },
+	});
+	if (!action) throw new Error("Action not found");
+	if (!ROLLBACK_SUPPORTED_ACTIONS.includes(action.actionType as ExecutionActionType)) {
+		throw new Error("Rollback not supported for this action type");
+	}
+	if (action.status !== "rollback_available" && action.status !== "executed") {
+		throw new Error(`Cannot rollback from status=${action.status}`);
+	}
+	if (!action.diff) throw new Error("No diff stored — cannot rollback");
+
+	const diff = JSON.parse(action.diff) as DiffPreview;
+	if (diff.before === null) throw new Error("No before-value captured");
+
+	const client = action.client;
+	// Build a rollback payload by swapping before/after.
+	const payload: CreatePayload = JSON.parse(action.payload);
+	const rollbackPayload: CreatePayload = { ...payload };
+	switch (action.actionType) {
+		case "yoast_title_update":
+			rollbackPayload.title = diff.before;
+			break;
+		case "yoast_description_update":
+			rollbackPayload.description = diff.before;
+			break;
+		case "image_alt_update":
+			rollbackPayload.altText = diff.before;
+			break;
+		default:
+			throw new Error("Rollback not implemented for this actionType");
+	}
+
+	let resp: WriteResponse;
+	try {
+		resp = await callPluginForAction(action.actionType as ExecutionActionType, client.baseUrl, client.token, rollbackPayload, /*dryRun*/ false, `${action.id}-rollback`);
+	} catch (err) {
+		return { ok: false, status: action.status, error: (err as Error).message };
+	}
+	if (!resp.ok) {
+		return { ok: false, status: action.status, error: resp.error ?? "Rollback failed" };
+	}
+	await db.executionAction.update({
+		where: { id: actionId },
+		data: {
+			status: "rolled_back",
+			rolledBackAt: new Date(),
+			executionResult: JSON.stringify({ ...JSON.parse(action.executionResult ?? "{}"), rollback: resp }),
+		},
+	});
+	if (action.sourceType === "opportunity") {
+		await db.opportunityActionLog.create({
+			data: {
+				clientId: action.clientId,
+				opportunityId: action.sourceId,
+				createdBy: actor,
+				actionType: "rolled_back",
+				fromStatus: "monitoring",
+				toStatus: "approved",
+				note: "Rollback של פעולת Execution",
+			},
+		});
+		await db.opportunity.update({
+			where: { id: action.sourceId },
+			data: {
+				status: "approved",
+				manuallyAppliedAt: null,
+				monitoringStartedAt: null,
+			},
+		});
+	}
+	return { ok: true, status: "rolled_back" };
+}
+
+// ─── Cancel ──────────────────────────────────────────────────
+
+export async function cancelExecutionAction(actionId: string, actor: string) {
+	const action = await db.executionAction.findUnique({ where: { id: actionId } });
+	if (!action) throw new Error("Action not found");
+	if (action.status === "executed" || action.status === "rolled_back") {
+		throw new Error("Cannot cancel — action already completed");
+	}
+	if (action.status === "executing") {
+		throw new Error("Cannot cancel an action mid-execution");
+	}
+	await db.executionAction.update({
+		where: { id: actionId },
+		data: { status: "cancelled", cancelledAt: new Date() },
+	});
+	if (action.sourceType === "opportunity") {
+		await db.opportunityActionLog.create({
+			data: {
+				clientId: action.clientId,
+				opportunityId: action.sourceId,
+				createdBy: actor,
+				actionType: "execution_cancelled",
+				fromStatus: action.status,
+				toStatus: action.status,
+				note: "ExecutionAction בוטלה",
+			},
+		});
+	}
+	return { ok: true };
+}
+
+// ─── List for client ─────────────────────────────────────────
+
+export async function loadExecutionActionsForClient(clientId: string) {
+	return await db.executionAction.findMany({
+		where: { clientId },
+		orderBy: { updatedAt: "desc" },
+		take: 100,
+	});
+}
+
+// ─── Internals ───────────────────────────────────────────────
+
+function emptyDiff(): DiffPreview {
+	return { before: null, after: null, changed: false, warnings: [], note: null };
+}
+
+function extractDiff(resp: WriteResponse): DiffPreview {
+	const before = (resp.before ?? resp.beforeSnippet ?? resp.beforeExcerpt ?? null) as string | null;
+	const after = (resp.after ?? resp.afterSnippet ?? resp.afterPreview ?? null) as string | null;
+	return {
+		before,
+		after,
+		changed: !!resp.changed,
+		warnings: resp.warnings ?? [],
+		note: resp.note ?? null,
+	};
+}
+
+async function callPluginForAction(
+	actionType: ExecutionActionType,
+	baseUrl: string,
+	token: string,
+	payload: CreatePayload,
+	dryRun: boolean,
+	requestId: string,
+): Promise<WriteResponse> {
+	const common = {
+		dryRun,
+		requestId,
+		postId: payload.targetPostId,
+		url: payload.targetUrl,
+	};
+	switch (actionType) {
+		case "yoast_title_update":
+			return callWriteEndpoint(baseUrl, token, "yoast-title", { ...common, title: payload.title ?? "" });
+		case "yoast_description_update":
+			return callWriteEndpoint(baseUrl, token, "yoast-description", { ...common, description: payload.description ?? "" });
+		case "image_alt_update":
+			return callWriteEndpoint(baseUrl, token, "image-alt", {
+				...common,
+				attachmentId: payload.attachmentId,
+				imageUrl: payload.imageUrl,
+				altText: payload.altText ?? "",
+			});
+		case "internal_link_insert":
+			return callWriteEndpoint(baseUrl, token, "internal-link", {
+				...common,
+				targetUrl: payload.targetLinkUrl,
+				anchorText: payload.anchorText,
+				placementHint: payload.placementHint,
+			});
+		case "content_snippet_insert":
+			return callWriteEndpoint(baseUrl, token, "content-snippet", {
+				...common,
+				snippet: payload.snippet,
+				placement: payload.placement,
+			});
+	}
+}
+
+async function onOpportunityExecuted(opportunityId: string, actor: string, actionType: string) {
+	const opp = await db.opportunity.findUnique({
+		where: { id: opportunityId },
+		include: { baseline: true },
+	});
+	if (!opp) return;
+
+	const now = new Date();
+	await db.opportunity.update({
+		where: { id: opportunityId },
+		data: {
+			status: "monitoring",
+			manuallyAppliedAt: now,
+			manuallyAppliedBy: actor,
+			manualActionNote: `בוצע דרך Execution Engine · ${actionType}`,
+			monitoringStartedAt: now,
+		},
+	});
+
+	// Auto-baseline if not present — uses prior 28 days of GSC for relatedQuery/relatedPage.
+	if (!opp.baseline && (opp.relatedPage || opp.relatedQuery)) {
+		try {
+			await createBaseline(opportunityId);
+		} catch (err) {
+			console.error("auto baseline failed:", err);
+		}
+	}
+
+	await db.opportunityActionLog.create({
+		data: {
+			clientId: opp.clientId,
+			opportunityId,
+			createdBy: actor,
+			actionType: "executed",
+			fromStatus: "approved",
+			toStatus: "monitoring",
+			note: "הפעולה בוצעה דרך Execution Engine",
+		},
+	});
+}

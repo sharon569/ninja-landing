@@ -12,6 +12,7 @@ import {
 	CheckCheck,
 	BarChart3,
 	FileText,
+	Zap,
 } from "lucide-react";
 import {
 	typeLabel,
@@ -30,6 +31,7 @@ import {
 	runImpactReview,
 } from "./actions";
 import { ApproveModal, MarkAppliedModal, RejectModal } from "./ActionModals";
+import { PrepareExecutionModal } from "./PrepareExecutionModal";
 import { createBriefFromOpportunity } from "../briefs/actions";
 
 interface Row {
@@ -57,7 +59,7 @@ interface Row {
 export function OpportunityRow({ row, clientId }: { row: Row; clientId: string }) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
-	const [modal, setModal] = useState<"approve" | "applied" | "reject" | null>(null);
+	const [modal, setModal] = useState<"approve" | "applied" | "reject" | "execution" | null>(null);
 	const [pending, startTransition] = useTransition();
 
 	const band = priorityBand(row.priorityScore);
@@ -228,13 +230,22 @@ export function OpportunityRow({ row, clientId }: { row: Row; clientId: string }
 							)}
 
 							{row.status === "approved" && (
-								<ActionButton
-									icon={<CheckCheck className="w-3.5 h-3.5" />}
-									label="סומן כבוצע ידנית"
-									tone="good"
-									onClick={() => setModal("applied")}
-									disabled={pending}
-								/>
+								<>
+									<ActionButton
+										icon={<Zap className="w-3.5 h-3.5" />}
+										label="הכנת Execution"
+										tone="bad"
+										onClick={() => setModal("execution")}
+										disabled={pending}
+									/>
+									<ActionButton
+										icon={<CheckCheck className="w-3.5 h-3.5" />}
+										label="סומן כבוצע ידנית"
+										tone="good"
+										onClick={() => setModal("applied")}
+										disabled={pending}
+									/>
+								</>
 							)}
 
 							{(row.status === "monitoring" || row.status === "manually_applied" || row.status === "impact_reviewed") && (
@@ -306,6 +317,14 @@ export function OpportunityRow({ row, clientId }: { row: Row; clientId: string }
 			{modal === "approve" && <ApproveModal opportunityId={row.id} onClose={() => setModal(null)} />}
 			{modal === "applied" && <MarkAppliedModal opportunityId={row.id} onClose={() => setModal(null)} />}
 			{modal === "reject" && <RejectModal opportunityId={row.id} onClose={() => setModal(null)} />}
+			{modal === "execution" && (
+				<PrepareExecutionModal
+					opportunityId={row.id}
+					clientId={clientId}
+					relatedPage={row.relatedPage || null}
+					onClose={() => setModal(null)}
+				/>
+			)}
 		</>
 	);
 }

@@ -79,6 +79,7 @@ model Client {
   contentBriefs           ContentBrief[]
   internalLinkSuggestions InternalLinkSuggestion[]
   automationRuns          AutomationRun[]
+  executionActions        ExecutionAction[]
 
   @@index([baseUrl])
   @@schema("analyzer")
@@ -111,6 +112,51 @@ model AutomationRun {
   @@index([runType, startedAt(sort: Desc)])
   @@index([status, startedAt(sort: Desc)])
   @@index([parentRunId])
+  @@schema("analyzer")
+}
+
+// Phase 11 — Execution Engine. Every live change pushed to a client's
+// WordPress site is materialised here. Flow is strictly 2-step:
+//   1. status = draft → dry_run_ready (after successful plugin dryRun)
+//   2. Sharon clicks Execute → status = executing → executed | failed
+//
+// Nothing executes without dryRunAt and an explicit human click. No bulk,
+// no cron, no Agency-Dashboard one-tap. See lib/execution-server.ts.
+model ExecutionAction {
+  id            String   @id @default(cuid())
+  clientId      String
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  sourceType    String   // opportunity | content_brief | internal_link_suggestion
+  sourceId      String
+
+  actionType    String   // yoast_title_update | yoast_description_update | image_alt_update | internal_link_insert | content_snippet_insert
+
+  status        String   @default("draft")
+  // draft | dry_run_ready | dry_run_failed | awaiting_execution_approval |
+  // preview_only | executing | executed | failed | cancelled |
+  // rollback_available | rolled_back
+
+  targetUrl     String?
+  targetPostId  Int?
+  payload       String   // JSON — proposed values + meta we'll send to the plugin
+  dryRunResult  String?  // JSON — full plugin response from dryRun
+  diff          String?  // JSON — before/after extracted for UI
+  executionResult String? // JSON — full plugin response from execute
+  auditLogId    Int?     // FK from plugin audit_log row (informational only)
+  error         String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  dryRunAt      DateTime?
+  executedAt    DateTime?
+  executedBy    String?
+  cancelledAt   DateTime?
+  rolledBackAt  DateTime?
+
+  @@index([clientId, status, updatedAt(sort: Desc)])
+  @@index([sourceType, sourceId])
+  @@index([clientId, actionType])
   @@schema("analyzer")
 }
 

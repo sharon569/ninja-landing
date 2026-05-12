@@ -43,6 +43,12 @@ export default async function ClientLayout({
 	).length;
 	const briefsCount = client.contentBriefs.length;
 	const internalLinksCount = client.internalLinkSuggestions.length;
+	const executionOpenCount = await db.executionAction.count({
+		where: {
+			clientId: id,
+			status: { in: ["draft", "dry_run_ready", "awaiting_execution_approval", "executing", "preview_only", "rollback_available"] },
+		},
+	});
 
 	const host = (() => {
 		try {
@@ -89,6 +95,7 @@ export default async function ClientLayout({
 					{ label: "אישורים", href: `/clients/${id}/approvals`, count: approvalCount },
 					{ label: "בריפים", href: `/clients/${id}/briefs`, count: briefsCount },
 					{ label: "קישורים פנימיים", href: `/clients/${id}/internal-links`, count: internalLinksCount },
+					{ label: "ביצוע", href: `/clients/${id}/execution`, count: executionOpenCount },
 					{ label: "השפעה", href: `/clients/${id}/impact`, count: monitoringCount },
 					{ label: "אודיט", href: `/clients/${id}/issues`, count: findingsCount },
 					{ label: "מילות מפתח", href: `/clients/${id}/keywords`, count: keywordsCount },
