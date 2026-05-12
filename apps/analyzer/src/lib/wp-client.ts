@@ -29,6 +29,10 @@ export interface WriteResponse {
 	target: Record<string, unknown>;
 	before?: string;
 	after?: string;
+	// Plugin v0.3.3+ — the title/description Yoast actually renders today,
+	// resolved from wp_yoast_indexable. Surfaces the visible page title even
+	// when there's no manual meta override (template-rendered case).
+	currentRendered?: string | null;
 	beforeSnippet?: string | null;
 	afterSnippet?: string | null;
 	beforeExcerpt?: string;

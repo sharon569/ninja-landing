@@ -54,6 +54,9 @@ export interface CreatePayload {
 export interface DiffPreview {
 	before: string | null;
 	after: string | null;
+	// Plugin v0.3.3+ — the title/description actually rendered to visitors
+	// today, even when `before` (stored meta) is empty (template-rendered).
+	currentRendered?: string | null;
 	changed: boolean;
 	warnings: string[];
 	note: string | null;
@@ -898,6 +901,7 @@ function extractDiff(resp: WriteResponse): DiffPreview {
 	return {
 		before,
 		after,
+		currentRendered: resp.currentRendered ?? null,
 		changed: !!resp.changed,
 		warnings: resp.warnings ?? [],
 		note: resp.note ?? null,

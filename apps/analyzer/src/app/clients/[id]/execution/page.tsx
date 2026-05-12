@@ -30,6 +30,7 @@ function ago(d: Date | null | undefined): string {
 interface ParsedDiff {
 	before: string | null;
 	after: string | null;
+	currentRendered?: string | null;
 	changed: boolean;
 	warnings: string[];
 	note: string | null;
@@ -256,13 +257,26 @@ function ActionCard({
 				</div>
 			</div>
 
-			{/* Diff */}
-			{diff && (diff.before !== null || diff.after !== null) && (
+			{/* Diff — "before" shows the rendered title when there's no manual
+			    Yoast override (templated case), with a small label noting it.
+			    "after" is what we'll write into the meta. */}
+			{diff && (diff.before !== null || diff.after !== null || diff.currentRendered) && (
 				<div className="grid md:grid-cols-2 gap-2 text-xs mb-3">
 					<div>
-						<div className="text-[10px] tracking-wider uppercase text-ink-mute mb-1">לפני</div>
+						<div className="text-[10px] tracking-wider uppercase text-ink-mute mb-1 flex items-center gap-1.5">
+							לפני
+							{!diff.before && diff.currentRendered && (
+								<span className="text-[9px] normal-case tracking-normal text-gold-deep">
+									(מחושב מתבנית Yoast — אין override שמור)
+								</span>
+							)}
+						</div>
 						<div className="rounded border border-ninja-line bg-ninja-black/60 px-3 py-2 text-ink-dim font-mono break-all whitespace-pre-wrap min-h-[2.5rem]">
-							{diff.before ?? <span className="text-ink-mute italic">—</span>}
+							{diff.before
+								? diff.before
+								: diff.currentRendered
+									? diff.currentRendered
+									: <span className="text-ink-mute italic">—</span>}
 						</div>
 					</div>
 					<div>
