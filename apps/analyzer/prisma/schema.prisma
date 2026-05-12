@@ -79,6 +79,15 @@ model Client {
   executionPilotMode       Boolean  @default(true)
   allowedExecutionActions  String[] @default([]) // subset of yoast_title_update | yoast_description_update | image_alt_update
 
+  // Phase 15C.2 — SEO Crawl Scope overrides. Per-client extensions of the
+  // global defaults in lib/page-scope.ts. Each is a list of either absolute
+  // URLs or path patterns (with optional leading "/", optional trailing "$"
+  // for exact match). Decide order: forced target > ignored url > ignored
+  // pattern > defaults. See classifyPage() for the full precedence.
+  seoIgnoredUrls       String[] @default([])
+  seoIgnoredPatterns   String[] @default([])
+  seoForcedTargetUrls  String[] @default([])
+
   scans                   Scan[]
   gscDailyRows            GscDailyRow[]
   targetKeywords          TargetKeyword[]

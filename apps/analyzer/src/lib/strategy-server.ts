@@ -24,6 +24,7 @@ import {
 	type ResearchNotes,
 	type StrategyType,
 } from "./strategy";
+import { classifyPage, type ClientScopeConfig } from "./page-scope";
 
 // ─── Public entry ────────────────────────────────────────────
 
@@ -36,7 +37,13 @@ export async function computeKeywordStrategy(
 	});
 	if (!tk) throw new Error(`TargetKeyword ${targetKeywordId} not found`);
 
-	const snapshot = await buildSnapshot(tk);
+	const scopeCfg: ClientScopeConfig = {
+		targetPages: tk.client.targetPages,
+		seoIgnoredUrls: tk.client.seoIgnoredUrls,
+		seoIgnoredPatterns: tk.client.seoIgnoredPatterns,
+		seoForcedTargetUrls: tk.client.seoForcedTargetUrls,
+	};
+	const snapshot = await buildSnapshot(tk, scopeCfg);
 
 	// Look up related items in the existing system
 	const [opps, briefs, links, execs] = await Promise.all([
@@ -132,6 +139,7 @@ export async function computeKeywordStrategy(
 
 async function buildSnapshot(
 	tk: { id: string; clientId: string; keyword: string; intent: string | null; targetUrl: string | null },
+	scopeCfg: ClientScopeConfig,
 ): Promise<KeywordResearchSnapshot> {
 	// Pull last 28 days of GSC for this exact query. date is YYYY-MM-DD string
 	// so we string-compare against the same format — works because YYYY-MM-DD
@@ -160,19 +168,36 @@ async function buildSnapshot(
 
 	// Pick the page with the most clicks (or most impressions if no clicks) as
 	// the "ranking page" — what Google actually shows for this query.
+	//
+	// Phase 15C.2 — Crawl Scope gate: if the top-scoring page is a utility /
+	// legal / system page, skip it and look for the next best SEO-eligible
+	// page. If none exists we record `rankingPageIneligibleUrl` so the action-
+	// plan engine can surface a "ranks on utility page, not boostable" warning.
 	let bestPage: string | null = null;
 	let bestScore = -1;
+	let rankingPageIneligibleUrl: string | null = null;
+	let rankingPageIneligibleReason: string | null = null;
+	const candidates: { page: string; score: number }[] = [];
 	for (const [page, e] of byPage.entries()) {
-		// Ignore null pages when picking the ranking page — they're query-only
-		// GSC rows (sync that didn't pull page dim). They still count toward
-		// impressions/position but they can't be a "ranking page".
 		if (page === null) continue;
-		const score = e.clicks * 1000 + e.impressions;
-		if (score > bestScore) {
-			bestScore = score;
-			bestPage = page;
+		candidates.push({ page, score: e.clicks * 1000 + e.impressions });
+	}
+	candidates.sort((a, b) => b.score - a.score);
+	for (const c of candidates) {
+		const cls = classifyPage(c.page, scopeCfg);
+		if (cls.isSeoEligible) {
+			bestPage = c.page;
+			bestScore = c.score;
+			break;
+		}
+		// First-blocked entry wins the "ineligible top page" slot — that's the
+		// one Google actually shows for this query.
+		if (rankingPageIneligibleUrl === null) {
+			rankingPageIneligibleUrl = c.page;
+			rankingPageIneligibleReason = `${cls.scope} (${cls.reason})`;
 		}
 	}
+	void bestScore;
 	const bestEntry = bestPage !== null ? byPage.get(bestPage) : null;
 	// Position: prefer the ranking page's position; fall back to the
 	// query-level weighted average over ALL rows (including page=null). This
@@ -232,6 +257,8 @@ async function buildSnapshot(
 		competingPages,
 		intent,
 		pageFit,
+		rankingPageIneligibleUrl,
+		rankingPageIneligibleReason,
 	};
 }
 
@@ -752,6 +779,18 @@ function buildResearchNotes(s: KeywordResearchSnapshot, type: StrategyType): Res
 	if (s.intent === "mixed" || s.intent === "unknown") dontKnow.push("כוונת החיפוש לא ברורה");
 	if (s.impressions28d < 100) dontKnow.push("מעט נתונים — מתחת ל-100 חשיפות ב-28 ימים");
 	if (s.targetPageMismatch) dontKnow.push("העמוד שמדורג שונה מ-target page שהוגדר");
+	// Phase 15C.2 — when Google ranks this query on a utility/legal page that
+	// we cannot promote (cart, terms, contact…), be explicit about it. The
+	// engine treats the keyword as effectively "not_ranking" but the operator
+	// needs to know WHY no rankingPage was chosen.
+	if (s.rankingPageIneligibleUrl) {
+		know.push(
+			`גוגל מציג את "${s.keyword}" על עמוד תפעולי/משפטי: ${s.rankingPageIneligibleUrl} (${s.rankingPageIneligibleReason}). העמוד הזה לא מתאים לקידום SEO.`,
+		);
+		check.push(
+			`למפות את "${s.keyword}" לעמוד SEO מתאים אחר (קטגוריה / עמוד מוצר / מאמר) או ליצור עמוד חדש שמכוון לכוונת החיפוש`,
+		);
+	}
 	// Critical disclosure when GSC sync skipped the page dimension — without
 	// it we can't see which page Google actually serves for this query, can't
 	// build a protected-queries portfolio, and can't validate page fit.

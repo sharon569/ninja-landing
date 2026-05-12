@@ -33,6 +33,7 @@ import { createBaseline } from "./impact-server";
 import { logExecutionEvent } from "./execution-events-server";
 import { computeDecisionForOpportunity } from "./decision-server";
 import { decisionAllowsExecution } from "./decision";
+import { classifyPage, type ClientScopeConfig } from "./page-scope";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -245,6 +246,40 @@ export async function createExecutionActionFromOpportunity(args: {
 
 	if (![...EXECUTABLE_ACTIONS, ...DRY_RUN_ONLY_ACTIONS].includes(actionType)) {
 		throw new Error(`Unsupported actionType: ${actionType}`);
+	}
+
+	// Phase 15C.2 — SEO Crawl Scope guard. The target URL has to be an SEO-
+	// eligible page; we refuse to push Yoast Title / Meta / Alt updates onto
+	// checkout, cart, terms, privacy etc. unless the operator explicitly
+	// added that URL to seoForcedTargetUrls. Dry-run-only actions (internal
+	// link insert / content snippet) bypass — they never mutate.
+	if (!DRY_RUN_ONLY_ACTIONS.includes(actionType)) {
+		const targetUrl = payload.targetUrl ?? opp.relatedPage ?? null;
+		if (targetUrl) {
+			const c = await db.client.findUnique({
+				where: { id: opp.clientId },
+				select: {
+					targetPages: true,
+					seoIgnoredUrls: true,
+					seoIgnoredPatterns: true,
+					seoForcedTargetUrls: true,
+				},
+			});
+			if (c) {
+				const scopeCfg: ClientScopeConfig = {
+					targetPages: c.targetPages,
+					seoIgnoredUrls: c.seoIgnoredUrls,
+					seoIgnoredPatterns: c.seoIgnoredPatterns,
+					seoForcedTargetUrls: c.seoForcedTargetUrls,
+				};
+				const cls = classifyPage(targetUrl, scopeCfg);
+				if (!cls.isSeoEligible) {
+					throw new Error(
+						`לא ניתן לבצע שינוי על עמוד מסוג ${cls.scope} (${cls.reason}). אם זה עמוד שכן צריך לקדם, הוסף אותו ל-Forced SEO Target URLs בהגדרות הלקוח.`,
+					);
+				}
+			}
+		}
 	}
 
 	// Phase 12 — Execution Readiness gate. Even if Plugin v0.3 is installed,

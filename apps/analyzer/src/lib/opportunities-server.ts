@@ -7,6 +7,7 @@
 
 import "server-only";
 import { db } from "./db";
+import { isSeoEligible, type ClientScopeConfig } from "./page-scope";
 
 export interface DetectedOpportunity {
 	type: string;
@@ -668,14 +669,41 @@ export async function analyzeOpportunities(clientId: string): Promise<AnalyzeRes
 		}
 	}
 
+	// Phase 15C.2 — SEO Crawl Scope gate. Skip any opportunity whose related
+	// page is not SEO-eligible (cart/checkout/legal/system/business-info-not-
+	// target). Detectors that don't carry a page (cannibalization at the query
+	// level) still pass through.
+	const scopeCfg: ClientScopeConfig = {
+		targetPages: client.targetPages,
+		seoIgnoredUrls: client.seoIgnoredUrls,
+		seoIgnoredPatterns: client.seoIgnoredPatterns,
+		seoForcedTargetUrls: client.seoForcedTargetUrls,
+	};
+	const scopeCache = new Map<string, boolean>();
+	function eligible(url: string | undefined): boolean {
+		if (!url) return true;
+		const hit = scopeCache.get(url);
+		if (hit !== undefined) return hit;
+		const ok = isSeoEligible(url, scopeCfg);
+		scopeCache.set(url, ok);
+		return ok;
+	}
+	const beforeFilter = allDetected.length;
+	const filtered = allDetected.filter((o) => eligible(o.relatedPage));
+	if (filtered.length < beforeFilter) {
+		console.log(
+			`[opportunities] scope filter dropped ${beforeFilter - filtered.length} ineligible-page opportunities`,
+		);
+	}
+
 	// Sort highest priority first so UI is meaningful even mid-write.
-	allDetected.sort((a, b) => b.priorityScore - a.priorityScore);
+	filtered.sort((a, b) => b.priorityScore - a.priorityScore);
 
 	let created = 0;
 	let updated = 0;
 
 	// UPSERT each. Compound unique = (clientId, type, kw, page, query).
-	for (const o of allDetected) {
+	for (const o of filtered) {
 		const rk = o.relatedKeyword ?? "";
 		const rp = o.relatedPage ?? "";
 		const rq = o.relatedQuery ?? "";
@@ -742,7 +770,7 @@ export async function analyzeOpportunities(clientId: string): Promise<AnalyzeRes
 	});
 
 	return {
-		detected: allDetected.length,
+		detected: filtered.length,
 		created,
 		updated,
 		staleClosed: stale.count,

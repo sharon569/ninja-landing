@@ -4,6 +4,7 @@ import { deleteClient } from "@/app/actions";
 import { ProfileForm } from "./ProfileForm";
 import { AutomationToggles } from "./AutomationToggles";
 import { ExecutionSettings } from "./ExecutionSettings";
+import { ScopeSettings } from "./ScopeSettings";
 import { calcProfileCompletion } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
@@ -109,6 +110,27 @@ export default async function SettingsPage({
 						autoTechAuditEnabled: client.autoTechAuditEnabled,
 						autoOpportunityAnalysisEnabled: client.autoOpportunityAnalysisEnabled,
 						autoImpactReviewEnabled: client.autoImpactReviewEnabled,
+					}}
+				/>
+			</section>
+
+			{/* SEO Crawl Scope (Phase 15C.2) */}
+			<section className="space-y-5 border-t border-ninja-line pt-10">
+				<div>
+					<h2 className="font-display text-2xl text-ink">
+						SEO <span className="text-brand-gradient">Crawl Scope</span>
+					</h2>
+					<p className="text-xs text-ink-dim mt-1 max-w-2xl">
+						איזה עמודים נכללים באסטרטגיית ה-SEO. עמודים שלא נכללים — לא מקבלים Opportunities, Briefs, Strategy
+						או Execution. שינוי כאן משפיע על הריצה הבאה של מנועי ההמלצה.
+					</p>
+				</div>
+				<ScopeSettings
+					clientId={client.id}
+					initial={{
+						seoIgnoredUrls: client.seoIgnoredUrls ?? [],
+						seoIgnoredPatterns: client.seoIgnoredPatterns ?? [],
+						seoForcedTargetUrls: client.seoForcedTargetUrls ?? [],
 					}}
 				/>
 			</section>

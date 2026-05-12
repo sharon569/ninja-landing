@@ -86,6 +86,12 @@ export interface KeywordResearchSnapshot {
 	competingPages: string[];        // pages on the same domain ranking on this keyword
 	intent: "informational" | "commercial" | "transactional" | "local" | "navigational" | "mixed" | "unknown";
 	pageFit: "match" | "partial" | "mismatch" | "unknown";
+	// Phase 15C.2 — when the top page Google shows for this query is a
+	// utility / legal / system page (cart, checkout, terms…), we cannot use
+	// it as the SEO ranking page. We still record it so the operator sees
+	// "Google ranks this query on a non-SEO page — needs different target".
+	rankingPageIneligibleUrl?: string | null;
+	rankingPageIneligibleReason?: string | null;
 }
 
 export interface MeasurementPlan {

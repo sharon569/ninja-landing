@@ -175,6 +175,46 @@ const automationSchema = z.object({
 	autoImpactReviewEnabled: z.boolean().default(true),
 });
 
+// ─── Phase 15C.2: SEO Crawl Scope ─────────────────────────────
+
+export interface ScopeSettingsState {
+	ok?: boolean;
+	error?: string;
+}
+
+const scopeSchema = z.object({
+	seoIgnoredUrls: z.array(z.string().max(500)).max(200).default([]),
+	seoIgnoredPatterns: z.array(z.string().max(200)).max(200).default([]),
+	seoForcedTargetUrls: z.array(z.string().max(500)).max(200).default([]),
+});
+
+export async function updateScopeSettings(
+	clientId: string,
+	_prev: ScopeSettingsState | undefined,
+	formData: FormData,
+): Promise<ScopeSettingsState> {
+	const parsed = scopeSchema.safeParse({
+		seoIgnoredUrls: linesToArray(formData.get("seoIgnoredUrls")),
+		seoIgnoredPatterns: linesToArray(formData.get("seoIgnoredPatterns")),
+		seoForcedTargetUrls: linesToArray(formData.get("seoForcedTargetUrls")),
+	});
+	if (!parsed.success) {
+		return { error: parsed.error.issues.map((i) => i.message).join("; ") };
+	}
+	try {
+		await db.client.update({ where: { id: clientId }, data: parsed.data });
+	} catch (err) {
+		return { error: `Database error: ${(err as Error).message}` };
+	}
+	revalidatePath(`/clients/${clientId}/settings`);
+	revalidatePath(`/clients/${clientId}/opportunities`);
+	revalidatePath(`/clients/${clientId}/briefs`);
+	revalidatePath(`/clients/${clientId}/keyword-strategy`);
+	revalidatePath(`/clients/${clientId}/internal-links`);
+	revalidatePath(`/clients/${clientId}/execution`);
+	return { ok: true };
+}
+
 export async function updateClientAutomation(
 	clientId: string,
 	_prev: AutomationToggleState | undefined,

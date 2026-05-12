@@ -5,6 +5,7 @@
 
 import "server-only";
 import { db } from "./db";
+import { classifyPage, type ClientScopeConfig } from "./page-scope";
 
 interface ClientProfile {
 	id: string;
@@ -374,6 +375,26 @@ export async function generateBriefFromOpportunity(
 	});
 	const inferredTargetUrl = tk?.targetUrl || opp.relatedPage || "";
 
+	// Phase 15C.2 — SEO Crawl Scope gate. Refuse to brief utility / legal /
+	// system pages. Caller surfaces a Hebrew explanation; we return null so
+	// the same call site that handles "no actionType match" also handles
+	// "ineligible page".
+	if (inferredTargetUrl) {
+		const scopeCfg: ClientScopeConfig = {
+			targetPages: client.targetPages,
+			seoIgnoredUrls: client.seoIgnoredUrls,
+			seoIgnoredPatterns: client.seoIgnoredPatterns,
+			seoForcedTargetUrls: client.seoForcedTargetUrls,
+		};
+		const cls = classifyPage(inferredTargetUrl, scopeCfg);
+		if (!cls.isSeoEligible) {
+			console.log(
+				`[briefs] refused to create brief for ineligible page: ${inferredTargetUrl} (${cls.scope})`,
+			);
+			return null;
+		}
+	}
+
 	const { briefType, angle } = selectBriefType(opp as OpportunityForBrief, !!inferredTargetUrl);
 	const intent = inferIntent(keyword, client.vertical);
 
@@ -542,6 +563,27 @@ export async function generateBriefFromStrategyStep(
 
 	const keyword = strategy.keyword.trim();
 	if (!keyword) return null;
+
+	// Phase 15C.2 — refuse strategy briefs that point at an ineligible page.
+	// Snapshot.rankingPage is the brief's relatedPage; if the strategy was
+	// rebuilt before this Phase the engine would already have skipped to a
+	// secondary page, but defend the boundary anyway in case payload is stale.
+	const candidateUrl = strategy.rankingPage ?? "";
+	if (candidateUrl) {
+		const scopeCfg: ClientScopeConfig = {
+			targetPages: client.targetPages,
+			seoIgnoredUrls: client.seoIgnoredUrls,
+			seoIgnoredPatterns: client.seoIgnoredPatterns,
+			seoForcedTargetUrls: client.seoForcedTargetUrls,
+		};
+		const cls = classifyPage(candidateUrl, scopeCfg);
+		if (!cls.isSeoEligible) {
+			console.log(
+				`[briefs] refused to create strategy-brief for ineligible page: ${candidateUrl} (${cls.scope})`,
+			);
+			return null;
+		}
+	}
 
 	const intent = payload.snapshot.intent && payload.snapshot.intent !== "unknown"
 		? payload.snapshot.intent

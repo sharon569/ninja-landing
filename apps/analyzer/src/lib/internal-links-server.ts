@@ -18,6 +18,7 @@
 
 import "server-only";
 import { db } from "./db";
+import { isSeoEligible, type ClientScopeConfig } from "./page-scope";
 
 // ─── Internal types ──────────────────────────────────────────────
 
@@ -468,7 +469,24 @@ export async function analyzeInternalLinks(clientId: string): Promise<AnalyzeLin
 	};
 
 	const pages = await loadPageInfo(ctx);
-	const allPages = Array.from(pages.values());
+	const allPagesRaw = Array.from(pages.values());
+
+	// Phase 15C.2 — SEO Crawl Scope filter. Drop utility / legal / system
+	// pages from BOTH the source pool and the target pool, so we never
+	// suggest "link from /cart" or "link to /privacy-policy".
+	const scopeCfg: ClientScopeConfig = {
+		targetPages: client.targetPages,
+		seoIgnoredUrls: client.seoIgnoredUrls,
+		seoIgnoredPatterns: client.seoIgnoredPatterns,
+		seoForcedTargetUrls: client.seoForcedTargetUrls,
+	};
+	const allPages = allPagesRaw.filter((p) => isSeoEligible(p.url, scopeCfg));
+	const droppedCount = allPagesRaw.length - allPages.length;
+	if (droppedCount > 0) {
+		console.log(
+			`[internal-links] scope filter dropped ${droppedCount} ineligible pages from both source + target pools`,
+		);
+	}
 
 	// Build target list — pages that should *receive* links.
 	const targets: { page: PageInfo; reasonClass: "orphan" | "target_boost" | "keyword" | "opportunity" | "authority"; source: string }[] = [];
