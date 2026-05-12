@@ -71,6 +71,14 @@ export default async function ReportPage({
 		take: 5,
 	});
 
+	// Monitoring section (recent actions whose impact we're tracking)
+	const monitoringActions = await db.opportunity.findMany({
+		where: { clientId: id, status: { in: ["monitoring", "manually_applied", "impact_reviewed"] } },
+		orderBy: { manuallyAppliedAt: "desc" },
+		take: 5,
+		include: { impactReviews: { orderBy: { reviewWindow: "asc" } } },
+	});
+
 	const findings = latestScan.findings.map(
 		(f) => ({ ...f, parsed: JSON.parse(f.payload) as Finding }),
 	);
@@ -311,6 +319,55 @@ export default async function ReportPage({
 								</div>
 							</li>
 						))}
+					</ol>
+				</section>
+			)}
+
+			{/* Monitoring — friendly version for the client */}
+			{monitoringActions.length > 0 && (
+				<section className="space-y-5">
+					<h2 className="text-xs font-medium uppercase tracking-wider text-ink-dim">
+						פעולות שנמצאות במעקב
+					</h2>
+					<p className="text-sm text-ink-dim max-w-3xl leading-relaxed">
+						אלו הפעולות שביצענו לאחרונה. אנחנו עוקבים אחרי הביצועים בכל פעולה במשך 7–30 ימים אחרי הביצוע כדי לדעת מה עבד ומה דורש המשך טיפול.
+					</p>
+					<ol className="space-y-3">
+						{monitoringActions.map((m) => {
+							const latestReview = m.impactReviews[m.impactReviews.length - 1];
+							return (
+								<li
+									key={m.id}
+									className="rounded-xl border border-ninja-line bg-ninja-panel/40 px-6 py-5"
+								>
+									<div className="flex flex-wrap items-baseline justify-between gap-2">
+										<h3 className="text-base font-semibold text-ink">{m.title}</h3>
+										{m.manuallyAppliedAt && (
+											<span className="text-xs text-ink-dim">
+												בוצע ב-{new Date(m.manuallyAppliedAt).toLocaleDateString("he-IL")}
+											</span>
+										)}
+									</div>
+									{m.manualActionNote && (
+										<p className="text-sm text-ink-dim mt-2 leading-relaxed">
+											{m.manualActionNote}
+										</p>
+									)}
+									{latestReview ? (
+										<p className="text-sm text-ink mt-3 leading-relaxed">
+											<span className="text-[11px] uppercase tracking-wider text-ink-mute mr-2">
+												מדידה ({latestReview.reviewWindow}):
+											</span>
+											{latestReview.summary}
+										</p>
+									) : (
+										<p className="text-xs text-ink-mute mt-3 italic">
+											ממתינים לנתוני השפעה — נציג כאן את התוצאה ברגע שהמערכת תאסוף מספיק נתונים מאחרי הביצוע.
+										</p>
+									)}
+								</li>
+							);
+						})}
 					</ol>
 				</section>
 			)}

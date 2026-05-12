@@ -25,11 +25,17 @@ export default async function ClientLayout({
 			targetKeywords: { select: { id: true } },
 			opportunities: {
 				where: { status: { in: ["detected", "recommended", "needs_human_review", "approved"] } },
-				select: { id: true },
+				select: { id: true, status: true },
 			},
 		},
 	});
 	if (!client) notFound();
+	const monitoringCount = await db.opportunity.count({
+		where: { clientId: id, status: { in: ["monitoring", "manually_applied", "impact_reviewed"] } },
+	});
+	const approvalCount = client.opportunities.filter(
+		(o) => o.status === "recommended" || o.status === "needs_human_review",
+	).length;
 
 	const host = (() => {
 		try {
@@ -72,6 +78,8 @@ export default async function ClientLayout({
 				items={[
 					{ label: "סקירה", href: `/clients/${id}` },
 					{ label: "הזדמנויות", href: `/clients/${id}/opportunities`, count: opportunitiesCount },
+					{ label: "אישורים", href: `/clients/${id}/approvals`, count: approvalCount },
+					{ label: "השפעה", href: `/clients/${id}/impact`, count: monitoringCount },
 					{ label: "אודיט", href: `/clients/${id}/issues`, count: findingsCount },
 					{ label: "מילות מפתח", href: `/clients/${id}/keywords`, count: keywordsCount },
 					{ label: "Search Console", href: `/clients/${id}/search` },

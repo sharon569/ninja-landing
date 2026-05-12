@@ -1,10 +1,12 @@
 ﻿import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, RefreshCw, Clock, AlertTriangle, FileText, Target, Sparkles } from "lucide-react";
+import { ArrowRight, RefreshCw, Clock, AlertTriangle, FileText, Target, Sparkles, Activity, Heart } from "lucide-react";
 import { db } from "@/lib/db";
 import { runScan } from "@/app/actions";
 import { ClientProfileCard } from "@/components/ClientProfileCard";
 import { priorityBand } from "@/lib/opportunities";
+import { calcProfileCompletion } from "@/lib/profile";
+import { calcHealthScore } from "@/lib/health-score";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +87,49 @@ export default async function ClientOverviewPage({
 	};
 	const topOpp = client.opportunities[0];
 
+	// Impact tracking summary
+	const monitoringOpps = await db.opportunity.findMany({
+		where: { clientId: id, status: { in: ["monitoring", "manually_applied", "impact_reviewed"] } },
+		select: { id: true },
+	});
+	const allReviews = await db.impactReview.findMany({
+		where: { clientId: id },
+		select: { result: true },
+	});
+	const impactCounts = {
+		monitoring: monitoringOpps.length,
+		improved: allReviews.filter((r) => r.result === "improved").length,
+		neutral: allReviews.filter((r) => r.result === "neutral").length,
+		declined: allReviews.filter((r) => r.result === "declined").length,
+		notEnoughData: allReviews.filter((r) => r.result === "not_enough_data" || r.result === "needs_more_time").length,
+	};
+
+	// SEO Health Score
+	const completion = calcProfileCompletion(client);
+	const highSeverityCount = client.scans[0]?.findings.filter((f) => f.severity === "high").length ?? 0;
+	const totalKw = await db.targetKeyword.count({ where: { clientId: id } });
+	const gscRowCount = await db.gscDailyRow.count({ where: { clientId: id } });
+	const lastGscDate = await db.gscDailyRow.findFirst({
+		where: { clientId: id },
+		orderBy: { fetchedAt: "desc" },
+		select: { fetchedAt: true },
+	});
+	const gscFreshDays = lastGscDate
+		? Math.floor((Date.now() - new Date(lastGscDate.fetchedAt).getTime()) / 86_400_000)
+		: null;
+
+	const health = calcHealthScore({
+		profileCompletionPct: completion.percent,
+		openOpportunities: opps.length,
+		highImpactOpen: oppCounts.high,
+		highSeverityFindings: highSeverityCount,
+		hasKeywordBank: totalKw > 0,
+		hasGscSync: gscRowCount > 0,
+		gscFreshDays,
+		monitoringCount: impactCounts.monitoring,
+		improvedReviews: impactCounts.improved,
+	});
+
 	// Keyword summary
 	const kwTotal = client.targetKeywords.length;
 	const kwActive = client.targetKeywords.filter(
@@ -104,6 +149,48 @@ export default async function ClientOverviewPage({
 
 	return (
 		<div className="space-y-8">
+			{/* SEO Health Score — top of the page */}
+			<section className="rounded-xl border border-ninja-line bg-ninja-panel/60 overflow-hidden">
+				<div className="px-5 py-4 flex flex-wrap items-center justify-between gap-6">
+					<div className="flex items-center gap-4">
+						<div
+							className="w-14 h-14 rounded-full flex items-center justify-center font-display text-2xl tabular-nums"
+							style={{
+								background: `conic-gradient(${health.bandColor} ${health.score * 3.6}deg, rgba(255,255,255,0.05) 0)`,
+								color: health.bandColor,
+							}}
+						>
+							<div className="w-11 h-11 rounded-full bg-ninja-panel flex items-center justify-center">
+								<span style={{ color: health.bandColor }}>{health.score}</span>
+							</div>
+						</div>
+						<div>
+							<div className="text-[10px] font-bold tracking-[0.25em] uppercase text-ink-mute">
+								SEO Health Score
+							</div>
+							<div className="font-display text-xl mt-0.5" style={{ color: health.bandColor }}>
+								{health.bandLabel}
+							</div>
+						</div>
+					</div>
+					<details className="text-xs">
+						<summary className="cursor-pointer text-ink-dim hover:text-ink">
+							הפירוט שמרכיב את הציון
+						</summary>
+						<div className="absolute mt-2 w-72 rounded-lg border border-ninja-line bg-ninja-panel shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-3 z-10 space-y-1.5">
+							{health.breakdown.map((b) => (
+								<div key={b.label} className="flex items-center justify-between text-xs">
+									<span className="text-ink-dim">{b.label}</span>
+									<span className="text-ink tabular-nums">
+										{b.points}/{b.max}
+									</span>
+								</div>
+							))}
+						</div>
+					</details>
+				</div>
+			</section>
+
 			{/* SEO Profile summary */}
 			<ClientProfileCard
 				clientId={client.id}
@@ -177,6 +264,47 @@ export default async function ClientOverviewPage({
 					</div>
 				)}
 			</Link>
+
+			{/* Impact Tracking card */}
+			{impactCounts.monitoring > 0 && (
+				<Link
+					href={`/clients/${id}/impact`}
+					className="group flex items-center justify-between gap-6 rounded-xl border border-ninja-line bg-ninja-panel/60 px-5 py-4 hover:border-ninja-line-strong transition-colors"
+				>
+					<div className="flex items-center gap-3">
+						<div className="w-9 h-9 rounded-lg bg-ninja-raised border border-ninja-line flex items-center justify-center">
+							<Activity className="w-4 h-4 text-go" />
+						</div>
+						<div>
+							<div className="text-[10px] font-bold tracking-[0.25em] uppercase text-ink-mute">
+								Impact Tracking
+							</div>
+							<div className="text-sm text-ink mt-0.5">
+								<span className="font-semibold">{impactCounts.monitoring}</span> פעולות במעקב
+								{impactCounts.improved > 0 && (
+									<>
+										{" · "}
+										<span className="text-go">{impactCounts.improved}</span> השתפרו
+									</>
+								)}
+								{impactCounts.declined > 0 && (
+									<>
+										{" · "}
+										<span className="text-blade">{impactCounts.declined}</span> ירדו
+									</>
+								)}
+								{impactCounts.notEnoughData > 0 && (
+									<>
+										{" · "}
+										<span className="text-ink-mute">{impactCounts.notEnoughData}</span> אין מספיק נתונים
+									</>
+								)}
+							</div>
+						</div>
+					</div>
+					<ArrowRight className="w-4 h-4 text-ink-mute group-hover:text-gold transition-colors" />
+				</Link>
+			)}
 
 			{/* Keyword bank chips */}
 			<Link

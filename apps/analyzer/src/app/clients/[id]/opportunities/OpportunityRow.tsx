@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ChevronDown, Check, X, Eye, Trash2, ExternalLink } from "lucide-react";
+import {
+	ChevronDown,
+	Check,
+	X,
+	Eye,
+	Trash2,
+	ExternalLink,
+	CheckCheck,
+	BarChart3,
+} from "lucide-react";
 import {
 	typeLabel,
 	statusLabel,
@@ -10,15 +19,21 @@ import {
 	effortLabel,
 	confidenceLabel,
 	priorityBand,
+	approvedActionTypeLabel,
 } from "@/lib/opportunities";
-import { setOpportunityStatus, deleteOpportunity } from "./actions";
+import {
+	setOpportunityStatus,
+	deleteOpportunity,
+	runImpactReview,
+} from "./actions";
+import { ApproveModal, MarkAppliedModal, RejectModal } from "./ActionModals";
 
 interface Row {
 	id: string;
 	type: string;
 	title: string;
 	description: string;
-	evidence: string; // JSON
+	evidence: string;
 	recommendedAction: string;
 	priorityScore: number;
 	impact: string;
@@ -28,10 +43,16 @@ interface Row {
 	relatedKeyword: string;
 	relatedPage: string;
 	relatedQuery: string;
+	approvedActionType?: string | null;
+	approvalNote?: string | null;
+	approvedAt?: Date | null;
+	manuallyAppliedAt?: Date | null;
+	manualActionNote?: string | null;
 }
 
 export function OpportunityRow({ row }: { row: Row }) {
 	const [open, setOpen] = useState(false);
+	const [modal, setModal] = useState<"approve" | "applied" | "reject" | null>(null);
 	const [pending, startTransition] = useTransition();
 
 	const band = priorityBand(row.priorityScore);
@@ -43,162 +64,225 @@ export function OpportunityRow({ row }: { row: Row }) {
 		}
 	})();
 
-	function act(status: string) {
+	function setStatus(status: string) {
 		startTransition(async () => {
 			await setOpportunityStatus(row.id, status);
 		});
 	}
 
+	function impactReview(window: "7d" | "14d" | "30d") {
+		startTransition(async () => {
+			await runImpactReview(row.id, window);
+		});
+	}
+
 	return (
-		<article
-			className={`rounded-xl border bg-ninja-panel/60 transition-all ${
-				row.status === "dismissed" || row.status === "rejected"
-					? "border-ninja-line opacity-60"
-					: row.status === "approved"
-						? "border-go/40"
-						: row.status === "needs_human_review"
-							? "border-gold/40"
-							: "border-ninja-line hover:border-ninja-line-strong"
-			}`}
-		>
-			{/* Header */}
-			<button
-				type="button"
-				onClick={() => setOpen(!open)}
-				className="w-full flex items-start gap-4 px-5 py-4 text-right"
+		<>
+			<article
+				className={`rounded-xl border bg-ninja-panel/60 transition-all ${
+					row.status === "dismissed" || row.status === "rejected"
+						? "border-ninja-line opacity-60"
+						: row.status === "approved"
+							? "border-go/40"
+							: row.status === "monitoring" || row.status === "manually_applied"
+								? "border-gold/40"
+								: row.status === "needs_human_review"
+									? "border-gold/40"
+									: "border-ninja-line hover:border-ninja-line-strong"
+				}`}
 			>
-				<div className="shrink-0 w-14 text-center">
-					<div
-						className="font-display text-2xl tabular-nums leading-none"
-						style={{ color: band.color }}
-					>
-						{row.priorityScore}
-					</div>
-					<div className="text-[10px] font-bold tracking-wider uppercase text-ink-mute mt-1">
-						{band.label}
-					</div>
-				</div>
-
-				<div className="flex-1 min-w-0">
-					<div className="flex flex-wrap items-baseline gap-2 mb-1">
-						<h3 className="text-base font-semibold text-ink truncate">{row.title}</h3>
-						<span className="text-[10px] font-bold tracking-wider uppercase text-ink-mute">
-							{typeLabel(row.type)}
-						</span>
-					</div>
-					<p className="text-sm text-ink-dim leading-relaxed line-clamp-2">
-						{row.description}
-					</p>
-					<div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px]">
-						<Pill label="Impact" value={impactLabel(row.impact)} />
-						<Pill label="Effort" value={effortLabel(row.effort)} />
-						<Pill label="Confidence" value={confidenceLabel(row.confidence)} />
-						<StatusPill value={row.status} />
-					</div>
-				</div>
-
-				<ChevronDown
-					className={`w-4 h-4 mt-1 text-ink-mute transition-transform shrink-0 ${open ? "rotate-180" : ""}`}
-				/>
-			</button>
-
-			{/* Body */}
-			{open && (
-				<div className="border-t border-ninja-line px-5 py-5 space-y-5">
-					{/* Recommended action */}
-					<div className="rounded-lg border border-gold/30 bg-gold/5 p-4">
-						<div className="text-[10px] font-bold tracking-wider uppercase text-gold mb-1.5">
-							הפעולה המומלצת
+				{/* Header */}
+				<button
+					type="button"
+					onClick={() => setOpen(!open)}
+					className="w-full flex items-start gap-4 px-5 py-4 text-right"
+				>
+					<div className="shrink-0 w-14 text-center">
+						<div
+							className="font-display text-2xl tabular-nums leading-none"
+							style={{ color: band.color }}
+						>
+							{row.priorityScore}
 						</div>
-						<p className="text-sm text-ink leading-relaxed">{row.recommendedAction}</p>
+						<div className="text-[10px] font-bold tracking-wider uppercase text-ink-mute mt-1">
+							{band.label}
+						</div>
 					</div>
 
-					{/* Related metadata */}
-					{(row.relatedKeyword || row.relatedPage || row.relatedQuery) && (
-						<div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-							{row.relatedKeyword && (
-								<MetaCard label="מילת יעד" value={row.relatedKeyword} />
+					<div className="flex-1 min-w-0">
+						<div className="flex flex-wrap items-baseline gap-2 mb-1">
+							<h3 className="text-base font-semibold text-ink truncate">{row.title}</h3>
+							<span className="text-[10px] font-bold tracking-wider uppercase text-ink-mute">
+								{typeLabel(row.type)}
+							</span>
+						</div>
+						<p className="text-sm text-ink-dim leading-relaxed line-clamp-2">
+							{row.description}
+						</p>
+						<div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px]">
+							<Pill label="Impact" value={impactLabel(row.impact)} />
+							<Pill label="Effort" value={effortLabel(row.effort)} />
+							<Pill label="Confidence" value={confidenceLabel(row.confidence)} />
+							<StatusPill value={row.status} />
+						</div>
+					</div>
+
+					<ChevronDown
+						className={`w-4 h-4 mt-1 text-ink-mute transition-transform shrink-0 ${open ? "rotate-180" : ""}`}
+					/>
+				</button>
+
+				{/* Body */}
+				{open && (
+					<div className="border-t border-ninja-line px-5 py-5 space-y-5">
+						{/* Approval / apply metadata */}
+						{(row.approvedAt || row.manuallyAppliedAt) && (
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+								{row.approvedAt && (
+									<MetaCard
+										label={`אושר · ${approvedActionTypeLabel(row.approvedActionType)}`}
+										value={`${new Date(row.approvedAt).toLocaleString("he-IL")}${row.approvalNote ? ` · ${row.approvalNote}` : ""}`}
+									/>
+								)}
+								{row.manuallyAppliedAt && (
+									<MetaCard
+										label="בוצע ידנית"
+										value={`${new Date(row.manuallyAppliedAt).toLocaleString("he-IL")}${row.manualActionNote ? ` · ${row.manualActionNote}` : ""}`}
+									/>
+								)}
+							</div>
+						)}
+
+						{/* Recommended action */}
+						<div className="rounded-lg border border-gold/30 bg-gold/5 p-4">
+							<div className="text-[10px] font-bold tracking-wider uppercase text-gold mb-1.5">
+								הפעולה המומלצת
+							</div>
+							<p className="text-sm text-ink leading-relaxed">{row.recommendedAction}</p>
+						</div>
+
+						{/* Related */}
+						{(row.relatedKeyword || row.relatedPage || row.relatedQuery) && (
+							<div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+								{row.relatedKeyword && <MetaCard label="מילת יעד" value={row.relatedKeyword} />}
+								{row.relatedQuery && <MetaCard label="שאילתת חיפוש" value={row.relatedQuery} />}
+								{row.relatedPage && (
+									<MetaCard label="עמוד" value={row.relatedPage} href={row.relatedPage} mono />
+								)}
+							</div>
+						)}
+
+						{/* Evidence */}
+						<div>
+							<div className="text-[10px] font-bold tracking-wider uppercase text-ink-mute mb-2">
+								הראיות שזיהו את ההזדמנות
+							</div>
+							<dl className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2 text-xs">
+								{Object.entries(evidence).map(([k, v]) => (
+									<EvidenceItem key={k} label={k} value={v} />
+								))}
+							</dl>
+						</div>
+
+						{/* Actions */}
+						<div className="flex flex-wrap items-center gap-2 pt-3 border-t border-ninja-line">
+							{(row.status === "detected" ||
+								row.status === "recommended" ||
+								row.status === "needs_human_review") && (
+								<>
+									<ActionButton
+										icon={<Check className="w-3.5 h-3.5" />}
+										label="אישור"
+										tone="good"
+										onClick={() => setModal("approve")}
+										disabled={pending}
+									/>
+									<ActionButton
+										icon={<Eye className="w-3.5 h-3.5" />}
+										label="לסקירה ידנית"
+										tone="warn"
+										active={row.status === "needs_human_review"}
+										onClick={() => setStatus("needs_human_review")}
+										disabled={pending}
+									/>
+									<ActionButton
+										icon={<X className="w-3.5 h-3.5" />}
+										label="דחייה"
+										tone="bad"
+										onClick={() => setModal("reject")}
+										disabled={pending}
+									/>
+									<ActionButton
+										icon={<X className="w-3.5 h-3.5" />}
+										label="הסרה"
+										tone="mute"
+										onClick={() => setStatus("dismissed")}
+										disabled={pending}
+									/>
+								</>
 							)}
-							{row.relatedQuery && (
-								<MetaCard label="שאילתת חיפוש" value={row.relatedQuery} />
-							)}
-							{row.relatedPage && (
-								<MetaCard
-									label="עמוד"
-									value={row.relatedPage}
-									href={row.relatedPage}
-									mono
+
+							{row.status === "approved" && (
+								<ActionButton
+									icon={<CheckCheck className="w-3.5 h-3.5" />}
+									label="סומן כבוצע ידנית"
+									tone="good"
+									onClick={() => setModal("applied")}
+									disabled={pending}
 								/>
 							)}
-						</div>
-					)}
 
-					{/* Evidence */}
-					<div>
-						<div className="text-[10px] font-bold tracking-wider uppercase text-ink-mute mb-2">
-							הראיות שזיהו את ההזדמנות
-						</div>
-						<dl className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2 text-xs">
-							{Object.entries(evidence).map(([k, v]) => (
-								<EvidenceItem key={k} label={k} value={v} />
-							))}
-						</dl>
-					</div>
+							{(row.status === "monitoring" || row.status === "manually_applied" || row.status === "impact_reviewed") && (
+								<>
+									<ActionButton
+										icon={<BarChart3 className="w-3.5 h-3.5" />}
+										label="בדוק 7d"
+										tone="warn"
+										onClick={() => impactReview("7d")}
+										disabled={pending}
+									/>
+									<ActionButton
+										icon={<BarChart3 className="w-3.5 h-3.5" />}
+										label="בדוק 14d"
+										tone="warn"
+										onClick={() => impactReview("14d")}
+										disabled={pending}
+									/>
+									<ActionButton
+										icon={<BarChart3 className="w-3.5 h-3.5" />}
+										label="בדוק 30d"
+										tone="warn"
+										onClick={() => impactReview("30d")}
+										disabled={pending}
+									/>
+								</>
+							)}
 
-					{/* Actions */}
-					<div className="flex flex-wrap items-center gap-2 pt-3 border-t border-ninja-line">
-						<ActionButton
-							icon={<Check className="w-3.5 h-3.5" />}
-							label="אישור"
-							tone="good"
-							active={row.status === "approved"}
-							onClick={() => act("approved")}
-							disabled={pending}
-						/>
-						<ActionButton
-							icon={<Eye className="w-3.5 h-3.5" />}
-							label="לסקירה ידנית"
-							tone="warn"
-							active={row.status === "needs_human_review"}
-							onClick={() => act("needs_human_review")}
-							disabled={pending}
-						/>
-						<ActionButton
-							icon={<X className="w-3.5 h-3.5" />}
-							label="דחייה"
-							tone="bad"
-							active={row.status === "rejected"}
-							onClick={() => act("rejected")}
-							disabled={pending}
-						/>
-						<ActionButton
-							icon={<X className="w-3.5 h-3.5" />}
-							label="הסרה"
-							tone="mute"
-							active={row.status === "dismissed"}
-							onClick={() => act("dismissed")}
-							disabled={pending}
-						/>
-						<div className="flex-1" />
-						<button
-							type="button"
-							onClick={() => {
-								if (!confirm("למחוק את ההזדמנות לחלוטין?")) return;
-								startTransition(async () => {
-									await deleteOpportunity(row.id);
-								});
-							}}
-							disabled={pending}
-							className="inline-flex items-center gap-1.5 text-xs text-ink-mute hover:text-blade transition-colors"
-							title="מחיקה לצמיתות"
-						>
-							<Trash2 className="w-3 h-3" />
-							מחק
-						</button>
+							<div className="flex-1" />
+							<button
+								type="button"
+								onClick={() => {
+									if (!confirm("למחוק את ההזדמנות לחלוטין?")) return;
+									startTransition(async () => {
+										await deleteOpportunity(row.id);
+									});
+								}}
+								disabled={pending}
+								className="inline-flex items-center gap-1.5 text-xs text-ink-mute hover:text-blade transition-colors"
+								title="מחיקה לצמיתות"
+							>
+								<Trash2 className="w-3 h-3" />
+								מחק
+							</button>
+						</div>
 					</div>
-				</div>
-			)}
-		</article>
+				)}
+			</article>
+
+			{modal === "approve" && <ApproveModal opportunityId={row.id} onClose={() => setModal(null)} />}
+			{modal === "applied" && <MarkAppliedModal opportunityId={row.id} onClose={() => setModal(null)} />}
+			{modal === "reject" && <RejectModal opportunityId={row.id} onClose={() => setModal(null)} />}
+		</>
 	);
 }
 
@@ -297,7 +381,7 @@ function ActionButton({
 	icon: React.ReactNode;
 	label: string;
 	tone: "good" | "warn" | "bad" | "mute";
-	active: boolean;
+	active?: boolean;
 	onClick: () => void;
 	disabled?: boolean;
 }) {

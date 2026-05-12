@@ -74,9 +74,50 @@ export const STATUS_OPTIONS = [
 	{ value: "recommended", label: "מומלץ", tone: "neutral" },
 	{ value: "needs_human_review", label: "דורש סקירה ידנית", tone: "warn" },
 	{ value: "approved", label: "אושר", tone: "good" },
+	{ value: "manually_applied", label: "בוצע ידנית", tone: "good" },
+	{ value: "monitoring", label: "במעקב", tone: "neutral" },
+	{ value: "impact_reviewed", label: "נבחנה השפעה", tone: "good" },
 	{ value: "rejected", label: "נדחה", tone: "mute" },
 	{ value: "dismissed", label: "הוסר", tone: "mute" },
-	{ value: "monitoring", label: "במעקב", tone: "neutral" },
+] as const;
+
+export const APPROVED_ACTION_TYPES = [
+	{ value: "title_meta_update", label: "עדכון Title / Meta Description" },
+	{ value: "content_update", label: "עדכון תוכן בעמוד" },
+	{ value: "internal_link_update", label: "עדכון קישורים פנימיים" },
+	{ value: "new_content", label: "יצירת תוכן חדש" },
+	{ value: "technical_fix", label: "תיקון טכני" },
+	{ value: "schema_update", label: "עדכון Schema markup" },
+	{ value: "manual_review", label: "סקירה ידנית בלבד" },
+	{ value: "other", label: "אחר" },
+] as const;
+
+export function approvedActionTypeLabel(v: string | null | undefined): string {
+	if (!v) return "—";
+	return APPROVED_ACTION_TYPES.find((t) => t.value === v)?.label ?? v;
+}
+
+export const IMPACT_RESULT_LABELS: Record<string, { label: string; tone: string }> = {
+	improved: { label: "השתפר", tone: "good" },
+	neutral: { label: "ניטרלי", tone: "mute" },
+	declined: { label: "ירד", tone: "bad" },
+	needs_more_time: { label: "צריך עוד זמן", tone: "warn" },
+	not_enough_data: { label: "אין מספיק נתונים", tone: "mute" },
+};
+
+/** Statuses that show in the active list (not finalised, not yet in monitoring). */
+export const ACTIVE_OPPORTUNITY_STATUSES = [
+	"detected",
+	"recommended",
+	"needs_human_review",
+	"approved",
+] as const;
+
+/** Statuses considered "in flight" — covers active + post-apply tracking. */
+export const IN_FLIGHT_STATUSES = [
+	...ACTIVE_OPPORTUNITY_STATUSES,
+	"manually_applied",
+	"monitoring",
 ] as const;
 
 export const IMPACT_OPTIONS = [

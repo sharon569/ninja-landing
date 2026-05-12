@@ -34,8 +34,9 @@ export default async function OpportunitiesPage({
 	if (sp.type) filter.type = sp.type;
 	if (sp.status) filter.status = sp.status;
 	else
+		// Active list — excludes monitoring/impact_reviewed (those live on /impact).
 		filter.status = {
-			in: ["detected", "recommended", "needs_human_review", "approved", "monitoring"],
+			in: ["detected", "recommended", "needs_human_review", "approved"],
 		};
 	if (sp.impact) filter.impact = sp.impact;
 	if (sp.effort) filter.effort = sp.effort;
@@ -125,6 +126,11 @@ export default async function OpportunitiesPage({
 								relatedKeyword: o.relatedKeyword,
 								relatedPage: o.relatedPage,
 								relatedQuery: o.relatedQuery,
+								approvedActionType: o.approvedActionType,
+								approvalNote: o.approvalNote,
+								approvedAt: o.approvedAt,
+								manuallyAppliedAt: o.manuallyAppliedAt,
+								manualActionNote: o.manualActionNote,
 							}}
 						/>
 					))}

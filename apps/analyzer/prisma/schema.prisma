@@ -92,7 +92,7 @@ model Opportunity {
   effort            String   @default("medium")  // low | medium | high
   confidence        String   @default("medium")  // low | medium | high
 
-  status            String   @default("detected") // detected | recommended | needs_human_review | approved | rejected | dismissed | monitoring
+  status            String   @default("detected") // detected | recommended | needs_human_review | approved | rejected | dismissed | manually_applied | monitoring | impact_reviewed
 
   // Dedupe identity. Empty strings rather than nulls so the UNIQUE works.
   relatedKeyword    String   @default("")
@@ -101,13 +101,103 @@ model Opportunity {
 
   source            String?                      // detector name / "manual"
 
+  // Phase 4 — approval workflow + manual-apply tracking
+  approvedAt          DateTime?
+  approvedBy          String?
+  approvalNote        String?
+  approvedActionType  String?   // title_meta_update | content_update | internal_link_update | new_content | technical_fix | schema_update | manual_review | other
+  rejectedAt          DateTime?
+  rejectedBy          String?
+  manuallyAppliedAt   DateTime?
+  manuallyAppliedBy   String?
+  manualActionNote    String?
+  manualActionUrl     String?
+  monitoringStartedAt DateTime?
+  impactReviewedAt    DateTime?
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   detectedAt        DateTime @default(now())
 
+  actionLogs        OpportunityActionLog[]
+  baseline          ImpactBaseline?
+  impactReviews     ImpactReview[]
+
   @@unique([clientId, type, relatedKeyword, relatedPage, relatedQuery])
   @@index([clientId, status])
   @@index([clientId, priorityScore(sort: Desc)])
+  @@schema("analyzer")
+}
+
+// Audit trail for every status change / note on an Opportunity.
+model OpportunityActionLog {
+  id            String   @id @default(cuid())
+  clientId      String
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  actionType    String   // status_change | approved | rejected | dismissed | marked_manual_applied | monitoring_started | impact_reviewed | note_added
+  fromStatus    String?
+  toStatus      String?
+  note          String?
+  createdBy     String?  // sharon@samp.ninja
+  createdAt     DateTime @default(now())
+
+  @@index([opportunityId, createdAt(sort: Desc)])
+  @@index([clientId, createdAt(sort: Desc)])
+  @@schema("analyzer")
+}
+
+// Snapshot of GSC metrics at the moment an opportunity is marked as
+// manually applied — the "before" half of impact review.
+model ImpactBaseline {
+  id              String   @id @default(cuid())
+  clientId        String
+  opportunityId   String   @unique
+  opportunity     Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  relatedKeyword  String?
+  relatedQuery    String?
+  relatedPage     String?
+
+  baselineStartDate String  // YYYY-MM-DD
+  baselineEndDate   String  // YYYY-MM-DD
+
+  clicks          Int
+  impressions     Int
+  ctr             Float
+  position        Float
+
+  createdAt       DateTime @default(now())
+  @@schema("analyzer")
+}
+
+// 7d / 14d / 30d post-action comparison. One row per opportunity per window.
+model ImpactReview {
+  id                 String   @id @default(cuid())
+  clientId           String
+  opportunityId      String
+  opportunity        Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  reviewWindow       String   // 7d | 14d | 30d
+  reviewDate         DateTime @default(now())
+
+  clicksBefore       Int
+  clicksAfter        Int
+  impressionsBefore  Int
+  impressionsAfter   Int
+  ctrBefore          Float
+  ctrAfter           Float
+  positionBefore     Float
+  positionAfter      Float
+
+  result             String   // improved | neutral | declined | needs_more_time | not_enough_data
+  summary            String
+
+  createdAt          DateTime @default(now())
+
+  @@unique([opportunityId, reviewWindow])
+  @@index([clientId, reviewDate(sort: Desc)])
   @@schema("analyzer")
 }
 
