@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
 	ChevronDown,
 	Check,
@@ -10,6 +11,7 @@ import {
 	ExternalLink,
 	CheckCheck,
 	BarChart3,
+	FileText,
 } from "lucide-react";
 import {
 	typeLabel,
@@ -21,12 +23,14 @@ import {
 	priorityBand,
 	approvedActionTypeLabel,
 } from "@/lib/opportunities";
+import { canCreateBriefFor } from "@/lib/briefs";
 import {
 	setOpportunityStatus,
 	deleteOpportunity,
 	runImpactReview,
 } from "./actions";
 import { ApproveModal, MarkAppliedModal, RejectModal } from "./ActionModals";
+import { createBriefFromOpportunity } from "../briefs/actions";
 
 interface Row {
 	id: string;
@@ -50,7 +54,8 @@ interface Row {
 	manualActionNote?: string | null;
 }
 
-export function OpportunityRow({ row }: { row: Row }) {
+export function OpportunityRow({ row, clientId }: { row: Row; clientId: string }) {
+	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [modal, setModal] = useState<"approve" | "applied" | "reject" | null>(null);
 	const [pending, startTransition] = useTransition();
@@ -256,6 +261,25 @@ export function OpportunityRow({ row }: { row: Row }) {
 										disabled={pending}
 									/>
 								</>
+							)}
+
+							{canCreateBriefFor(row.type) && row.status !== "rejected" && row.status !== "dismissed" && (
+								<ActionButton
+									icon={<FileText className="w-3.5 h-3.5" />}
+									label="צור בריף תוכן"
+									tone="warn"
+									onClick={() =>
+										startTransition(async () => {
+											const r = await createBriefFromOpportunity(row.id);
+											if (r.ok) {
+												router.push(`/clients/${clientId}/briefs`);
+											} else if (r.error) {
+												alert(r.error);
+											}
+										})
+									}
+									disabled={pending}
+								/>
 							)}
 
 							<div className="flex-1" />

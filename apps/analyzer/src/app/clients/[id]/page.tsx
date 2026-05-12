@@ -1,6 +1,6 @@
 ﻿import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, RefreshCw, Clock, AlertTriangle, FileText, Target, Sparkles, Activity, Heart } from "lucide-react";
+import { ArrowRight, RefreshCw, Clock, AlertTriangle, FileText, Target, Sparkles, Activity, Heart, BookOpen } from "lucide-react";
 import { db } from "@/lib/db";
 import { runScan } from "@/app/actions";
 import { ClientProfileCard } from "@/components/ClientProfileCard";
@@ -117,6 +117,19 @@ export default async function ClientOverviewPage({
 	const gscFreshDays = lastGscDate
 		? Math.floor((Date.now() - new Date(lastGscDate.fetchedAt).getTime()) / 86_400_000)
 		: null;
+
+	// Content Briefs summary
+	const briefs = await db.contentBrief.findMany({
+		where: { clientId: id },
+		select: { id: true, status: true, targetKeyword: true, createdAt: true, briefType: true },
+		orderBy: { createdAt: "desc" },
+	});
+	const briefCounts = {
+		total: briefs.length,
+		needsReview: briefs.filter((b) => b.status === "needs_human_review").length,
+		approved: briefs.filter((b) => b.status === "approved").length,
+		latest: briefs[0],
+	};
 
 	const health = calcHealthScore({
 		profileCompletionPct: completion.percent,
@@ -264,6 +277,46 @@ export default async function ClientOverviewPage({
 					</div>
 				)}
 			</Link>
+
+			{/* Content Briefs card */}
+			{briefCounts.total > 0 && (
+				<Link
+					href={`/clients/${id}/briefs`}
+					className="group flex items-center justify-between gap-6 rounded-xl border border-ninja-line bg-ninja-panel/60 px-5 py-4 hover:border-ninja-line-strong transition-colors"
+				>
+					<div className="flex items-center gap-3">
+						<div className="w-9 h-9 rounded-lg bg-ninja-raised border border-ninja-line flex items-center justify-center">
+							<BookOpen className="w-4 h-4 text-gold" />
+						</div>
+						<div>
+							<div className="text-[10px] font-bold tracking-[0.25em] uppercase text-ink-mute">
+								Content Briefs
+							</div>
+							<div className="text-sm text-ink mt-0.5">
+								<span className="font-semibold">{briefCounts.total}</span> בריפים
+								{briefCounts.needsReview > 0 && (
+									<>
+										{" · "}
+										<span className="text-gold">{briefCounts.needsReview}</span> ממתינים לסקירה
+									</>
+								)}
+								{briefCounts.approved > 0 && (
+									<>
+										{" · "}
+										<span className="text-go">{briefCounts.approved}</span> מאושרים
+									</>
+								)}
+							</div>
+							{briefCounts.latest && (
+								<div className="text-[11px] text-ink-mute mt-0.5">
+									אחרון: {briefCounts.latest.targetKeyword}
+								</div>
+							)}
+						</div>
+					</div>
+					<ArrowRight className="w-4 h-4 text-ink-mute group-hover:text-gold transition-colors" />
+				</Link>
+			)}
 
 			{/* Impact Tracking card */}
 			{impactCounts.monitoring > 0 && (

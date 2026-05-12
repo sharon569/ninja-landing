@@ -68,6 +68,7 @@ model Client {
   gscDailyRows   GscDailyRow[]
   targetKeywords TargetKeyword[]
   opportunities  Opportunity[]
+  contentBriefs  ContentBrief[]
 
   @@index([baseUrl])
   @@schema("analyzer")
@@ -122,10 +123,49 @@ model Opportunity {
   actionLogs        OpportunityActionLog[]
   baseline          ImpactBaseline?
   impactReviews     ImpactReview[]
+  contentBriefs     ContentBrief[]
 
   @@unique([clientId, type, relatedKeyword, relatedPage, relatedQuery])
   @@index([clientId, status])
   @@index([clientId, priorityScore(sort: Desc)])
+  @@schema("analyzer")
+}
+
+// Phase 5 — content/optimization brief generated from an Opportunity.
+// Pure draft document — no plugin / write side-effects.
+model ContentBrief {
+  id                       String   @id @default(cuid())
+  clientId                 String
+  client                   Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  opportunityId            String?
+  opportunity              Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  targetKeyword            String
+  relatedQuery             String?
+  relatedPage              String?
+
+  briefType                String   // new_article | new_landing_page | optimize_existing_page | expand_existing_content | faq_section | internal_link_plan | title_meta_update
+  searchIntent             String   @default("unknown") // informational | commercial | transactional | local | navigational | mixed | unknown
+
+  recommendedTitle         String?
+  recommendedMetaDescription String?
+  recommendedH1            String?
+  outline                  String?   // H2/H3 structure (markdown-ish or plain text)
+  secondaryKeywords        String[]  @default([])
+  internalLinks            String[]  @default([])   // ["sourceUrl|anchor|reason", ...]
+  recommendedCTA           String?
+  recommendedSchema        String?
+  contentAngle             String?
+  notes                    String?
+
+  status                   String   @default("draft")  // draft | needs_human_review | approved | rejected | used
+
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@unique([clientId, opportunityId, briefType])
+  @@index([clientId, status])
+  @@index([clientId, briefType])
   @@schema("analyzer")
 }
 

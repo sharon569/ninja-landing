@@ -111,6 +111,7 @@ export default async function OpportunitiesPage({
 					{opportunities.map((o) => (
 						<OpportunityRow
 							key={o.id}
+							clientId={id}
 							row={{
 								id: o.id,
 								type: o.type,

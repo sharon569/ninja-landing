@@ -79,6 +79,16 @@ export default async function ReportPage({
 		include: { impactReviews: { orderBy: { reviewWindow: "asc" } } },
 	});
 
+	// Top approved/used briefs for the client-facing "תוכניות תוכן בהכנה" section
+	const upcomingBriefs = await db.contentBrief.findMany({
+		where: {
+			clientId: id,
+			status: { in: ["approved", "needs_human_review"] },
+		},
+		orderBy: { createdAt: "desc" },
+		take: 3,
+	});
+
 	const findings = latestScan.findings.map(
 		(f) => ({ ...f, parsed: JSON.parse(f.payload) as Finding }),
 	);
@@ -317,6 +327,43 @@ export default async function ReportPage({
 										</div>
 									</div>
 								</div>
+							</li>
+						))}
+					</ol>
+				</section>
+			)}
+
+			{/* Upcoming content plans — friendly preview for the client */}
+			{upcomingBriefs.length > 0 && (
+				<section className="space-y-5">
+					<h2 className="text-xs font-medium uppercase tracking-wider text-ink-dim">
+						תוכניות תוכן בהכנה
+					</h2>
+					<p className="text-sm text-ink-dim max-w-3xl leading-relaxed">
+						אלו תוכניות תוכן שהמערכת והצוות מכינים עבורכם. כל תוכנית מבוססת על הזדמנות שזיהינו בנתונים — ופועלת לחזק את העמוד או ליצור תוכן חדש שיביא תנועה רלוונטית.
+					</p>
+					<ol className="space-y-3">
+						{upcomingBriefs.map((b) => (
+							<li
+								key={b.id}
+								className="rounded-xl border border-ninja-line bg-ninja-panel/40 px-6 py-5"
+							>
+								<div className="flex flex-wrap items-baseline justify-between gap-2">
+									<h3 className="text-base font-semibold text-ink">{b.targetKeyword}</h3>
+									{b.recommendedTitle && (
+										<span className="text-xs text-ink-dim italic max-w-md truncate">
+											{b.recommendedTitle}
+										</span>
+									)}
+								</div>
+								{b.contentAngle && (
+									<p className="text-sm text-ink-dim mt-2 leading-relaxed">
+										<span className="text-[11px] uppercase tracking-wider text-ink-mute mr-2">
+											המטרה:
+										</span>
+										{b.contentAngle}
+									</p>
+								)}
 							</li>
 						))}
 					</ol>
