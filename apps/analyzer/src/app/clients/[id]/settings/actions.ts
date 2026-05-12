@@ -127,14 +127,13 @@ export async function updateExecutionSettings(
 		return { error: parsed.error.issues.map((i) => i.message).join("; ") };
 	}
 
-	// Safety: if executionEnabled flips to false, also clear the allowed list
-	// so a future flip back to true does NOT silently re-enable past selections.
-	const data = parsed.data.executionEnabled
-		? parsed.data
-		: { ...parsed.data, allowedExecutionActions: [] };
-
+	// allowedExecutionActions persists independently of executionEnabled.
+	// The runtime gate (canCreateExecutionAction) requires BOTH flags, so an
+	// orphan allowedActions list while Execution is disabled cannot execute
+	// anything. Wiping silently was a UX bug — it made the natural flow
+	// "configure allowed actions first, enable later" impossible.
 	try {
-		await db.client.update({ where: { id: clientId }, data });
+		await db.client.update({ where: { id: clientId }, data: parsed.data });
 	} catch (err) {
 		return { error: `Database error: ${(err as Error).message}` };
 	}
