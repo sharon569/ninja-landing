@@ -363,6 +363,10 @@ function computeRiskAndConfidence(
 	else if (s.impressions28d < 300) confidence = "medium";
 	if (s.positionBucket === "unknown" || s.positionBucket === "not_ranking") confidence = "low";
 	if (s.intent === "mixed" || s.intent === "unknown") confidence = "low";
+	// When we have no ranking page (e.g. GSC sync skipped the page dimension),
+	// we can't validate page fit or build a protected-queries portfolio. Cap
+	// confidence at medium so the recommendation reflects what we don't know.
+	if (s.pageFit === "unknown" && confidence === "high") confidence = "medium";
 	return { riskLevel: risk, confidence };
 }
 
@@ -485,7 +489,9 @@ function buildActionPlan(args: {
 				stepNumber: n++,
 				actionType: "no_change",
 				action: "לא לשנות Title/H1 בשלב הזה",
-				why: `העמוד כבר ב-Top 3 על "${s.keyword}". שינוי Title הוא הסיכון הגדול ביותר לאיבוד המיקום הזה. ${protectedQueries.length ? `מעבר לכך, העמוד מקבל קליקים גם מ-${protectedQueries.length} ביטויים נוספים: ${protectedQueries.map((q) => `"${q}"`).join(", ")}.` : ""} שינוי Title עלול להזיק לאחד מהם.`,
+				why: protectedQueries.length
+					? `העמוד כבר ב-Top 3 על "${s.keyword}". שינוי Title הוא הסיכון הגדול ביותר לאיבוד המיקום הזה. מעבר לכך, העמוד מקבל קליקים גם מ-${protectedQueries.length} ביטויים נוספים: ${protectedQueries.map((q) => `"${q}"`).join(", ")}. שינוי Title עלול להזיק לאחד מהם.`
+					: `העמוד כבר ב-Top 3 על "${s.keyword}" עם ${fmt(s.impressions28d)} חשיפות. שינוי Title הוא הסיכון הגדול ביותר לאיבוד המיקום הזה — אין כרגע ראייה ב-GSC לאיזה ביטויים נוספים העמוד מדורג (חסרה page dimension), ולכן שינוי Title יהיה בעיוורון.`,
 				expectedImpact: "מניעת נסיגה",
 				risk: "low",
 				effort: "low",
@@ -746,6 +752,12 @@ function buildResearchNotes(s: KeywordResearchSnapshot, type: StrategyType): Res
 	if (s.intent === "mixed" || s.intent === "unknown") dontKnow.push("כוונת החיפוש לא ברורה");
 	if (s.impressions28d < 100) dontKnow.push("מעט נתונים — מתחת ל-100 חשיפות ב-28 ימים");
 	if (s.targetPageMismatch) dontKnow.push("העמוד שמדורג שונה מ-target page שהוגדר");
+	// Critical disclosure when GSC sync skipped the page dimension — without
+	// it we can't see which page Google actually serves for this query, can't
+	// build a protected-queries portfolio, and can't validate page fit.
+	if (!s.rankingPage && s.impressions28d > 0) {
+		dontKnow.push("איזה עמוד גוגל מציג עבור הביטוי הזה — חסרה page dimension ב-GSC sync. בלעדיה האסטרטגיה מוגבלת ולא ניתן להגן על ביטויים אחרים של העמוד");
+	}
 	dontKnow.push("מי המתחרים החיצוניים ב-SERP — דורש בדיקה ידנית");
 
 	check.push("לפתוח את ה-SERP ב-incognito ולראות מי בטופ 10");
