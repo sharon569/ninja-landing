@@ -61,6 +61,12 @@ export default async function RootLayout({
 									לקוחות
 								</Link>
 								<Link
+									href="/integrations"
+									className="px-3 py-1.5 rounded-md text-ink-dim hover:text-ink transition-colors"
+								>
+									חיבורים
+								</Link>
+								<Link
 									href="/clients/new"
 									className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(255,42,60,0.35)] hover:shadow-[0_6px_18px_rgba(255,42,60,0.45)] transition-shadow"
 									style={{

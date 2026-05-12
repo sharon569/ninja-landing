@@ -34,30 +34,26 @@ model Client {
 
   lastScanAt DateTime?
 
+  // GSC property assigned to this client (e.g. "sc-domain:example.com" or
+  // "https://www.example.com/"). Pulled from the shared agency GscAccount.
+  gscPropertyUrl  String?
+  gscLastSyncAt   DateTime?
+
   scans          Scan[]
-  gscConnection  GscConnection?
   gscDailyRows   GscDailyRow[]
 
   @@index([baseUrl])
   @@schema("analyzer")
 }
 
-model GscConnection {
+// Singleton — represents the agency's one Google account used to pull GSC
+// data for all clients. There's exactly one row in this table.
+model GscAccount {
   id           String   @id @default(cuid())
-  clientId     String   @unique
-  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
   googleEmail  String
-
   refreshToken String
-
   accessToken  String?
   expiresAt    DateTime?
-
-  propertyUrl  String?
-
-  lastSyncAt   DateTime?
-
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

@@ -1,20 +1,14 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Search, RefreshCw, ExternalLink, AlertCircle } from "lucide-react";
+import { Search, RefreshCw, ExternalLink, Plug } from "lucide-react";
 import { db } from "@/lib/db";
 import { isGscConfigured } from "@/lib/gsc";
-import {
-	syncGsc,
-	disconnectGsc,
-	pickProperty,
-	loadProperties,
-} from "@/app/actions-gsc";
+import { syncGsc, unassignProperty } from "@/app/actions-gsc";
 
 export const dynamic = "force-dynamic";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
-	searchParams: Promise<{ gsc_error?: string }>;
 }
 
 function timeAgo(date: Date | null): string {
@@ -29,158 +23,81 @@ function timeAgo(date: Date | null): string {
 	return `${d}d ago`;
 }
 
-export default async function SearchConsolePage({ params, searchParams }: PageProps) {
+export default async function SearchConsolePage({ params }: PageProps) {
 	const { id } = await params;
-	const { gsc_error } = await searchParams;
 
-	const client = await db.client.findUnique({
-		where: { id },
-		include: { gscConnection: true },
-	});
+	const client = await db.client.findUnique({ where: { id } });
 	if (!client) notFound();
 
 	const configured = isGscConfigured();
+	const account = await db.gscAccount.findFirst();
 
-	// ─── Case 1: server-side OAuth env vars not present (pre-tomorrow setup)
 	if (!configured) {
 		return (
-			<div className="rounded-xl border-2 border-dashed border-ninja-line-strong bg-ninja-panel/60 px-8 py-16 text-center space-y-4">
-				<div className="mx-auto w-12 h-12 rounded-full bg-ninja-raised flex items-center justify-center">
-					<Search className="w-5 h-5 text-ink-dim" />
-				</div>
-				<div className="space-y-2 max-w-md mx-auto">
-					<h2 className="text-lg font-medium text-ink">
-						Search Console integration not yet active
-					</h2>
-					<p className="text-sm text-ink-dim leading-relaxed">
-						Add <code className="text-xs bg-ninja-raised px-1 py-0.5 rounded">GOOGLE_CLIENT_ID</code> and <code className="text-xs bg-ninja-raised px-1 py-0.5 rounded">GOOGLE_CLIENT_SECRET</code> to <code className="text-xs bg-ninja-raised px-1 py-0.5 rounded">.env</code>, plus the three GCP Console steps documented in the handoff (redirect URI, scope, API enablement). Restart the dev server and this tab becomes interactive.
-					</p>
-				</div>
-			</div>
+			<EmptyState
+				title="Search Console integration not yet active"
+				body={
+					<>
+						Add <Code>GOOGLE_CLIENT_ID</Code>, <Code>GOOGLE_CLIENT_SECRET</Code>, and{" "}
+						<Code>GOOGLE_OAUTH_REDIRECT</Code> to <Code>.env</Code> (and to Vercel) to enable.
+					</>
+				}
+			/>
 		);
 	}
 
-	// ─── Case 2: configured but not yet connected for this client
-	if (!client.gscConnection) {
+	if (!account) {
 		return (
-			<div className="space-y-5">
-				{gsc_error && (
-					<div className="rounded-md border border-blade/30 bg-blade/10 px-4 py-3 text-sm text-ink flex items-start gap-2">
-						<AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-						<div>OAuth error: {decodeURIComponent(gsc_error)}</div>
-					</div>
-				)}
-				<div className="rounded-xl border-2 border-dashed border-ninja-line-strong bg-ninja-panel/60 px-8 py-16 text-center space-y-5">
-					<div className="mx-auto w-12 h-12 rounded-full bg-ninja-raised flex items-center justify-center">
-						<Search className="w-5 h-5 text-ink-dim" />
-					</div>
-					<div className="space-y-2 max-w-md mx-auto">
-						<h2 className="text-lg font-medium text-ink">
-							Connect Search Console
-						</h2>
-						<p className="text-sm text-ink-dim leading-relaxed">
-							Sign in with a Google account that has access to this client&apos;s Search Console property. We&apos;ll pull the last 28 days of queries, impressions, clicks, and positions.
-						</p>
-					</div>
-					<a
-						href={`/api/gsc/connect/${id}`}
-						className="inline-flex items-center gap-2 rounded-md bg-blade px-5 py-2.5 text-sm text-white hover:opacity-90"
+			<EmptyState
+				title="חשבון Google לא מחובר עדיין"
+				body={
+					<>
+						לפני שאפשר לשייך property ללקוח הזה, צריך לחבר חשבון Google אחד ברמת הסוכנות.
+					</>
+				}
+				cta={
+					<Link
+						href="/integrations"
+						className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold text-white"
+						style={{ background: "linear-gradient(135deg, #ff2a3c, #b3001b)" }}
 					>
-						<Search className="w-3.5 h-3.5" />
-						Connect with Google
-					</a>
-				</div>
-			</div>
+						<Plug className="w-4 h-4" />
+						לעמוד החיבורים
+					</Link>
+				}
+			/>
 		);
 	}
 
-	const conn = client.gscConnection;
-
-	// ─── Case 3: connected but no property picked yet
-	if (!conn.propertyUrl) {
-		let properties: Awaited<ReturnType<typeof loadProperties>> = [];
-		let loadError: string | null = null;
-		try {
-			properties = await loadProperties(id);
-		} catch (err) {
-			loadError = (err as Error).message;
-		}
-		const pickWithId = pickProperty.bind(null, id);
-		const disconnectWithId = disconnectGsc.bind(null, id);
-
+	if (!client.gscPropertyUrl) {
 		return (
-			<div className="space-y-5">
-				<div className="rounded-lg bg-ninja-raised px-4 py-3 text-xs text-ink-dim">
-					Connected as <span className="font-medium text-ink">{conn.googleEmail}</span>.{" "}
-					<form action={disconnectWithId} className="inline">
-						<button type="submit" className="underline hover:text-ink">
-							Disconnect
-						</button>
-					</form>
-				</div>
-
-				{loadError && (
-					<div className="rounded-md border border-blade/30 bg-blade/10 px-4 py-3 text-sm text-ink">
-						Failed to load properties: {loadError}
-					</div>
-				)}
-
-				<div className="rounded-xl border border-ninja-line bg-ninja-panel/60 p-6 space-y-4">
-					<div>
-						<h2 className="text-lg font-medium text-ink">Choose a property</h2>
-						<p className="text-sm text-ink-dim mt-1">
-							Pick the Search Console property to pull data from for this client.
-						</p>
-					</div>
-					{properties.length === 0 ? (
-						<p className="text-sm text-ink-dim">
-							No Search Console properties found on this Google account.
-						</p>
-					) : (
-						<form action={pickWithId} className="space-y-3">
-							<div className="divide-y divide-ninja-line rounded-md border border-ninja-line">
-								{properties.map((p) => (
-									<label
-										key={p.siteUrl}
-										className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-ninja-raised"
-									>
-										<input
-											type="radio"
-											name="propertyUrl"
-											value={p.siteUrl}
-											required
-										/>
-										<div className="flex-1 min-w-0">
-											<div className="text-sm font-medium text-ink font-mono truncate">
-												{p.siteUrl}
-											</div>
-											<div className="text-xs text-ink-dim">
-												{p.permissionLevel}
-											</div>
-										</div>
-									</label>
-								))}
-							</div>
-							<button
-								type="submit"
-								className="inline-flex items-center rounded-md bg-blade px-4 py-2 text-sm text-white hover:opacity-90"
-							>
-								Save selection
-							</button>
-						</form>
-					)}
-				</div>
-			</div>
+			<EmptyState
+				title="לא משויך property ללקוח הזה"
+				body={
+					<>
+						חשבון Google מחובר (<span className="text-ink font-mono">{account.googleEmail}</span>),
+						אבל צריך לשייך property ספציפי ללקוח הזה מתוך עמוד החיבורים.
+					</>
+				}
+				cta={
+					<Link
+						href="/integrations"
+						className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold text-white"
+						style={{ background: "linear-gradient(135deg, #ff2a3c, #b3001b)" }}
+					>
+						<Search className="w-4 h-4" />
+						לשייך property
+					</Link>
+				}
+			/>
 		);
 	}
 
-	// ─── Case 4: fully connected with a property — show data
 	const rows = await db.gscDailyRow.findMany({
 		where: { clientId: id },
 		orderBy: [{ date: "desc" }],
 	});
 
-	// Aggregate to top queries (by clicks) over the full stored range
 	const byQuery = new Map<
 		string,
 		{ clicks: number; impressions: number; positionSum: number; days: number }
@@ -209,80 +126,81 @@ export default async function SearchConsolePage({ params, searchParams }: PagePr
 	const avgCtr = totalImpressions > 0 ? totalClicks / totalImpressions : 0;
 
 	const syncWithId = syncGsc.bind(null, id);
-	const disconnectWithId = disconnectGsc.bind(null, id);
+	const unassignWithId = unassignProperty.bind(null, id);
 
 	return (
 		<div className="space-y-8">
-			{/* Connection meta strip */}
-			<div className="flex items-center justify-between gap-4 text-xs text-ink-dim">
+			<div className="flex flex-wrap items-center justify-between gap-4 text-xs text-ink-dim">
 				<div className="flex flex-wrap gap-x-6 gap-y-1">
 					<span>
-						Connected as <span className="text-ink font-medium">{conn.googleEmail}</span>
+						חשבון <span className="text-ink font-mono">{account.googleEmail}</span>
 					</span>
 					<span>
-						Property <span className="text-ink font-mono">{conn.propertyUrl}</span>
+						Property{" "}
+						<span className="text-ink font-mono" dir="ltr">
+							{client.gscPropertyUrl}
+						</span>
 					</span>
-					<span>Last sync {timeAgo(conn.lastSyncAt)}</span>
+					<span>סנכרון אחרון {timeAgo(client.gscLastSyncAt)}</span>
 				</div>
 				<div className="flex gap-3 shrink-0">
 					<form action={syncWithId}>
 						<button
 							type="submit"
-							className="inline-flex items-center gap-1.5 rounded-md bg-blade px-3 py-1.5 text-xs text-white hover:opacity-90"
+							className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold text-white"
+							style={{ background: "linear-gradient(135deg, #ff2a3c, #b3001b)" }}
 						>
 							<RefreshCw className="w-3 h-3" />
-							Sync now
+							סנכרון
 						</button>
 					</form>
-					<form action={disconnectWithId}>
-						<button type="submit" className="text-xs text-ink-dim hover:text-ink underline">
-							Disconnect
+					<form action={unassignWithId}>
+						<button
+							type="submit"
+							className="text-xs text-ink-mute hover:text-blade underline"
+						>
+							הסר שיוך
 						</button>
 					</form>
 				</div>
 			</div>
 
-			{/* Summary metrics */}
 			{rows.length === 0 ? (
-				<div className="rounded-xl border-2 border-dashed border-ninja-line-strong bg-ninja-panel/60 px-8 py-16 text-center">
-					<div className="space-y-4 max-w-md mx-auto">
-						<h2 className="text-lg font-medium text-ink">No data yet</h2>
-						<p className="text-sm text-ink-dim">
-							Click <span className="font-medium">Sync now</span> to pull the last 28 days from Search Console.
-						</p>
-					</div>
-				</div>
+				<EmptyState
+					title="עדיין אין דאטה"
+					body={
+						<>
+							לחץ <span className="text-ink font-bold">סנכרון</span> כדי לשאוב את 28 הימים האחרונים מ-Search Console.
+						</>
+					}
+				/>
 			) : (
 				<>
 					<div className="grid grid-cols-3 gap-4">
-						<Metric label="Clicks" value={totalClicks.toLocaleString()} />
-						<Metric label="Impressions" value={totalImpressions.toLocaleString()} />
-						<Metric
-							label="Avg CTR"
-							value={`${(avgCtr * 100).toFixed(2)}%`}
-						/>
+						<Metric label="קליקים" value={totalClicks.toLocaleString()} />
+						<Metric label="הופעות" value={totalImpressions.toLocaleString()} />
+						<Metric label="CTR ממוצע" value={`${(avgCtr * 100).toFixed(2)}%`} />
 					</div>
 
-					{/* Top queries table */}
 					<section className="space-y-3">
 						<div className="flex items-baseline justify-between">
-							<h2 className="text-sm font-medium text-ink uppercase tracking-wider">
-								Top queries · last 28 days
+							<h2 className="text-xs font-bold tracking-[0.2em] uppercase text-ink-dim">
+								שאילתות מובילות · 28 ימים אחרונים
 							</h2>
-							<span className="text-xs text-ink-dim">
-								{topQueries.length} of {byQuery.size}
+							<span className="text-xs text-ink-mute">
+								{topQueries.length} / {byQuery.size}
 							</span>
 						</div>
-						<div className="overflow-hidden rounded-lg border border-ninja-line bg-ninja-panel/60">
+						<div className="overflow-hidden rounded-lg border border-ninja-line bg-ninja-panel/40">
 							<div className="max-h-[600px] overflow-y-auto">
 								<table className="w-full text-sm">
-									<thead className="bg-ninja-raised text-left text-xs uppercase tracking-wider text-ink-dim sticky top-0">
+									<thead className="bg-ninja-raised text-xs uppercase tracking-wider text-ink-dim sticky top-0">
 										<tr>
-											<th className="px-4 py-2.5 font-medium">Query</th>
-											<th className="px-4 py-2.5 font-medium text-right">Clicks</th>
-											<th className="px-4 py-2.5 font-medium text-right">Impressions</th>
-											<th className="px-4 py-2.5 font-medium text-right">CTR</th>
-											<th className="px-4 py-2.5 font-medium text-right">Position</th>
+											<th className="px-4 py-2.5 font-bold text-right">שאילתה</th>
+											<th className="px-4 py-2.5 font-bold text-left">קליקים</th>
+											<th className="px-4 py-2.5 font-bold text-left">הופעות</th>
+											<th className="px-4 py-2.5 font-bold text-left">CTR</th>
+											<th className="px-4 py-2.5 font-bold text-left">מיקום</th>
 										</tr>
 									</thead>
 									<tbody className="divide-y divide-ninja-line">
@@ -291,16 +209,16 @@ export default async function SearchConsolePage({ params, searchParams }: PagePr
 												<td className="px-4 py-2.5 font-medium text-ink max-w-md truncate">
 													{q.query}
 												</td>
-												<td className="px-4 py-2.5 text-right tabular-nums">
+												<td className="px-4 py-2.5 text-left tabular-nums text-ink">
 													{q.clicks.toLocaleString()}
 												</td>
-												<td className="px-4 py-2.5 text-right tabular-nums text-ink-dim">
+												<td className="px-4 py-2.5 text-left tabular-nums text-ink-dim">
 													{q.impressions.toLocaleString()}
 												</td>
-												<td className="px-4 py-2.5 text-right tabular-nums text-ink-dim">
+												<td className="px-4 py-2.5 text-left tabular-nums text-ink-dim">
 													{(q.ctr * 100).toFixed(1)}%
 												</td>
-												<td className="px-4 py-2.5 text-right tabular-nums text-ink-dim">
+												<td className="px-4 py-2.5 text-left tabular-nums text-ink-dim">
 													{q.position.toFixed(1)}
 												</td>
 											</tr>
@@ -311,15 +229,15 @@ export default async function SearchConsolePage({ params, searchParams }: PagePr
 						</div>
 					</section>
 
-					<p className="text-xs text-ink-dim">
-						Data has a ~2-day delay (Google&apos;s standard).{" "}
+					<p className="text-xs text-ink-mute">
+						לדאטה של Google יש עיכוב של ~2 ימים.{" "}
 						<a
-							href={`https://search.google.com/search-console?resource_id=${encodeURIComponent(conn.propertyUrl)}`}
+							href={`https://search.google.com/search-console?resource_id=${encodeURIComponent(client.gscPropertyUrl)}`}
 							target="_blank"
 							rel="noopener noreferrer"
-							className="inline-flex items-center gap-1 underline hover:text-ink"
+							className="inline-flex items-center gap-1 text-gold hover:text-blade"
 						>
-							Open in Search Console
+							פתח ב-Search Console
 							<ExternalLink className="w-3 h-3" />
 						</a>
 					</p>
@@ -333,7 +251,38 @@ function Metric({ label, value }: { label: string; value: string }) {
 	return (
 		<div className="rounded-lg border border-ninja-line bg-ninja-panel/60 p-5">
 			<div className="text-xs text-ink-dim uppercase tracking-wider">{label}</div>
-			<div className="text-2xl font-semibold text-ink mt-1 tabular-nums">{value}</div>
+			<div className="font-display text-3xl text-ink mt-1 tabular-nums">{value}</div>
+		</div>
+	);
+}
+
+function Code({ children }: { children: React.ReactNode }) {
+	return (
+		<code className="text-xs bg-ninja-raised border border-ninja-line text-gold px-1.5 py-0.5 rounded">
+			{children}
+		</code>
+	);
+}
+
+function EmptyState({
+	title,
+	body,
+	cta,
+}: {
+	title: string;
+	body: React.ReactNode;
+	cta?: React.ReactNode;
+}) {
+	return (
+		<div className="rounded-xl border-2 border-dashed border-ninja-line bg-ninja-panel/40 px-8 py-16 text-center space-y-5">
+			<div className="mx-auto w-12 h-12 rounded-full bg-ninja-raised border border-ninja-line flex items-center justify-center">
+				<Search className="w-5 h-5 text-gold" />
+			</div>
+			<div className="space-y-2 max-w-md mx-auto">
+				<h2 className="font-display text-xl text-ink">{title}</h2>
+				<p className="text-sm text-ink-dim leading-relaxed">{body}</p>
+			</div>
+			{cta}
 		</div>
 	);
 }

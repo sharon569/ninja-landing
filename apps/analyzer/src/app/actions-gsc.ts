@@ -8,44 +8,64 @@ import {
 	defaultDateRange,
 } from "@/lib/gsc";
 
-/** Update which GSC property is bound to this client. */
-export async function pickProperty(clientId: string, formData: FormData): Promise<void> {
+async function getAccount() {
+	return db.gscAccount.findFirst();
+}
+
+/** Assign a GSC property to a client. */
+export async function assignProperty(formData: FormData): Promise<void> {
+	const clientId = String(formData.get("clientId") ?? "").trim();
 	const propertyUrl = String(formData.get("propertyUrl") ?? "").trim();
-	if (!propertyUrl) return;
-	await db.gscConnection.update({
-		where: { clientId },
-		data: { propertyUrl },
+	if (!clientId) return;
+	await db.client.update({
+		where: { id: clientId },
+		data: { gscPropertyUrl: propertyUrl || null },
 	});
+	revalidatePath("/integrations");
 	revalidatePath(`/clients/${clientId}/search`);
 }
 
-/** Disconnect Google account for this client. */
-export async function disconnectGsc(clientId: string): Promise<void> {
-	await db.gscConnection.deleteMany({ where: { clientId } });
+/** Remove a client's GSC property assignment + its synced rows. */
+export async function unassignProperty(clientId: string): Promise<void> {
+	await db.client.update({
+		where: { id: clientId },
+		data: { gscPropertyUrl: null, gscLastSyncAt: null },
+	});
 	await db.gscDailyRow.deleteMany({ where: { clientId } });
+	revalidatePath("/integrations");
 	revalidatePath(`/clients/${clientId}/search`);
 }
 
-/** Pull the last 28 days of top queries from GSC and upsert into GscDailyRow. */
+/** Disconnect the agency Google account entirely + wipe all GSC data. */
+export async function disconnectGsc(): Promise<void> {
+	await db.gscDailyRow.deleteMany({});
+	await db.client.updateMany({
+		data: { gscPropertyUrl: null, gscLastSyncAt: null },
+	});
+	await db.gscAccount.deleteMany({});
+	revalidatePath("/integrations");
+}
+
+/** Pull the last 28 days of top queries for a single client. */
 export async function syncGsc(clientId: string): Promise<void> {
-	const conn = await db.gscConnection.findUnique({ where: { clientId } });
-	if (!conn) throw new Error("Not connected to Google Search Console");
-	if (!conn.propertyUrl) throw new Error("No Search Console property selected");
+	const account = await getAccount();
+	if (!account) throw new Error("Google account not connected. Go to /integrations.");
+
+	const client = await db.client.findUnique({ where: { id: clientId } });
+	if (!client) throw new Error(`Client ${clientId} not found`);
+	if (!client.gscPropertyUrl) throw new Error("No GSC property assigned to this client.");
 
 	const { startDate, endDate } = defaultDateRange();
 
-	// Per-day breakdown so we can chart trends. Dimensions: date + query.
 	const rows = await searchAnalyticsQuery({
-		refreshToken: conn.refreshToken,
-		propertyUrl: conn.propertyUrl,
+		refreshToken: account.refreshToken,
+		propertyUrl: client.gscPropertyUrl,
 		startDate,
 		endDate,
 		dimensions: ["date", "query"],
 		rowLimit: 25_000,
 	});
 
-	// Wipe the same date range before re-inserting — GSC data can change
-	// retroactively as Google finalizes counts.
 	await db.gscDailyRow.deleteMany({
 		where: {
 			clientId,
@@ -68,18 +88,35 @@ export async function syncGsc(clientId: string): Promise<void> {
 		});
 	}
 
-	await db.gscConnection.update({
-		where: { clientId },
-		data: { lastSyncAt: new Date() },
+	await db.client.update({
+		where: { id: clientId },
+		data: { gscLastSyncAt: new Date() },
 	});
 
 	revalidatePath(`/clients/${clientId}/search`);
 	revalidatePath(`/clients/${clientId}/report`);
+	revalidatePath("/integrations");
 }
 
-/** Fetch the list of properties the connected Google account has access to. */
-export async function loadProperties(clientId: string) {
-	const conn = await db.gscConnection.findUnique({ where: { clientId } });
-	if (!conn) return [];
-	return listSites(conn.refreshToken);
+/** Sync all clients that have a GSC property assigned. */
+export async function syncAllGsc(): Promise<void> {
+	const clients = await db.client.findMany({
+		where: { gscPropertyUrl: { not: null } },
+		select: { id: true },
+	});
+	for (const c of clients) {
+		try {
+			await syncGsc(c.id);
+		} catch (err) {
+			console.error(`Sync failed for ${c.id}:`, err);
+		}
+	}
+	revalidatePath("/integrations");
+}
+
+/** List GSC properties the connected account has access to. */
+export async function loadProperties() {
+	const account = await getAccount();
+	if (!account) return [];
+	return listSites(account.refreshToken);
 }

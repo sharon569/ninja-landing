@@ -1,14 +1,10 @@
-// OAuth start: redirect the user to Google's consent screen.
-// State carries the clientId so the callback knows which Client to attach to.
+// OAuth start (global): redirect the user to Google's consent screen.
+// No clientId in state — there's a single agency-wide GscAccount.
 
 import { NextResponse } from "next/server";
 import { buildAuthUrl, isGscConfigured } from "@/lib/gsc";
 
-export async function GET(
-	_req: Request,
-	{ params }: { params: Promise<{ id: string }> },
-) {
-	const { id } = await params;
+export async function GET() {
 	if (!isGscConfigured()) {
 		return NextResponse.json(
 			{
@@ -19,6 +15,8 @@ export async function GET(
 			{ status: 503 },
 		);
 	}
-	const url = buildAuthUrl(id);
+	// Random nonce as state (CSRF protection only — no clientId encoded).
+	const state = crypto.randomUUID();
+	const url = buildAuthUrl(state);
 	return NextResponse.redirect(url);
 }
