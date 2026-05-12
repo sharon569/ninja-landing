@@ -99,6 +99,7 @@ export default async function ClientLayout({
 					{ label: "השפעה", href: `/clients/${id}/impact`, count: monitoringCount },
 					{ label: "אודיט", href: `/clients/${id}/issues`, count: findingsCount },
 					{ label: "מילות מפתח", href: `/clients/${id}/keywords`, count: keywordsCount },
+					{ label: "אסטרטגיה", href: `/clients/${id}/keyword-strategy` },
 					{ label: "Search Console", href: `/clients/${id}/search` },
 					{ label: "דוח", href: `/clients/${id}/report` },
 					{ label: "הגדרות", href: `/clients/${id}/settings` },

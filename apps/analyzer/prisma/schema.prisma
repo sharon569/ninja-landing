@@ -88,6 +88,7 @@ model Client {
   automationRuns          AutomationRun[]
   executionActions        ExecutionAction[]
   executionEvents         ExecutionEvent[]
+  keywordStrategies       KeywordStrategy[]
 
   @@index([baseUrl])
   @@schema("analyzer")
@@ -448,9 +449,63 @@ model TargetKeyword {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  strategies KeywordStrategy[]
+
   @@unique([clientId, keyword])
   @@index([clientId, status])
   @@index([clientId, priority])
+  @@schema("analyzer")
+}
+
+// Phase 14D — per-keyword strategic plan. The engine reads GSC + target
+// keyword + scan and produces a roadmap of recommended steps with Why per
+// step, opportunity score, and measurement plan. The strategy never executes
+// anything — it's the layer that decides what *should* happen and in what
+// order, then links to Opportunities / Briefs / Internal Links / Execution
+// for the operator to act on each step manually.
+model KeywordStrategy {
+  id              String   @id @default(cuid())
+  clientId        String
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  targetKeywordId String
+  targetKeyword   TargetKeyword @relation(fields: [targetKeywordId], references: [id], onDelete: Cascade)
+
+  keyword         String   // denormalised — strategy may outlive a renamed/deleted keyword
+  status          String   @default("draft") // draft | needs_human_review | approved | active | monitoring | completed | paused | rejected
+
+  // Classification
+  strategyType    String   // protect_position | quick_win | content_boost | internal_link_boost | new_content_needed | cannibalization_fix | technical_blocker | monitor_only | not_worth_targeting_now
+  riskLevel       String   // low | medium | high | critical
+  confidence      String   // low | medium | high
+  opportunityScore Int     @default(0) // 0..100
+
+  // Snapshot at compute time
+  rankingPage       String?
+  currentPosition   Float?
+  currentClicks     Int?
+  currentImpressions Int?
+  currentCtr        Float?  // 0..1
+  trend             String? // up | down | flat | unknown
+  targetPageMismatch Boolean @default(false)
+
+  // Full structured payload (JSON) — actionPlan steps, research notes,
+  // measurement plan, related items. Kept as JSON so the engine can evolve
+  // without migrations every time we add a step kind.
+  summary         String   // Hebrew top-line recommendation
+  payload         String   // JSON: { snapshot, actionPlan, researchNotes, measurementPlan, ... }
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  approvedAt      DateTime?
+  approvedBy      String?
+  approvalNote    String?
+  pausedAt        DateTime?
+  completedAt    DateTime?
+
+  @@index([clientId, status])
+  @@index([clientId, strategyType])
+  @@index([clientId, opportunityScore(sort: Desc)])
+  @@index([targetKeywordId])
   @@schema("analyzer")
 }
 
