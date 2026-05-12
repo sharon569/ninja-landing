@@ -1,11 +1,10 @@
 import type { NextConfig } from "next";
-import path from "node:path";
 
 const nextConfig: NextConfig = {
-	// Silence the multi-lockfile warning — analyzer lives inside ninja-landing monorepo.
-	turbopack: {
-		root: path.resolve(__dirname),
-	},
+	// On Vercel, the monorepo detection sets `outputFileTracingRoot` to the
+	// repo root. Setting `turbopack.root` here as well caused a "they must
+	// have the same value" warning. Leaving Turbopack to infer the root is fine
+	// — Next.js does the right thing both locally and on Vercel.
 };
 
 export default nextConfig;
