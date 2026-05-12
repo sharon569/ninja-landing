@@ -1,8 +1,10 @@
 ﻿import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink, Lightbulb } from "lucide-react";
+import { ArrowLeft, ExternalLink, Lightbulb, EyeOff } from "lucide-react";
 import { db } from "@/lib/db";
 import type { Finding } from "@/lib/audit/types";
+import { classifyPage, type ClientScopeConfig, type PageClassification } from "@/lib/page-scope";
+import { ScopeBadge } from "@/components/ScopeBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +35,25 @@ export default async function FindingDetailPage({
 	if (!row || row.scan.clientId !== id) notFound();
 
 	const finding = JSON.parse(row.payload) as Finding;
+
+	// Phase 15C.3 — classify every affected URL once so we can badge each row
+	// and summarize "X / Y excluded from SEO scope".
+	const client = row.scan.client;
+	const scopeCfg: ClientScopeConfig = {
+		targetPages: client.targetPages,
+		seoIgnoredUrls: client.seoIgnoredUrls,
+		seoIgnoredPatterns: client.seoIgnoredPatterns,
+		seoForcedTargetUrls: client.seoForcedTargetUrls,
+	};
+	const classifications = new Map<string, PageClassification>();
+	for (const u of finding.affectedUrls) {
+		if (u.url && !classifications.has(u.url)) {
+			classifications.set(u.url, classifyPage(u.url, scopeCfg));
+		}
+	}
+	const ignoredCount = Array.from(classifications.values()).filter(
+		(c) => !c.isSeoEligible,
+	).length;
 
 	return (
 		<div className="space-y-6">
@@ -69,6 +90,21 @@ export default async function FindingDetailPage({
 				</aside>
 			)}
 
+			{ignoredCount > 0 && (
+				<aside className="rounded-lg border border-gold/30 bg-gold/5 px-5 py-3 flex items-start gap-3">
+					<EyeOff className="w-4 h-4 mt-0.5 shrink-0 text-gold" />
+					<div className="text-xs text-ink leading-relaxed">
+						<div className="font-bold text-gold mb-0.5">
+							{ignoredCount} מתוך {classifications.size} עמודים מסומנים לא נכללים באסטרטגיית SEO
+						</div>
+						<p>
+							עמודים כמו checkout, cart, my-account, privacy, terms וכו׳ נסרקים לצורך מידע כללי, אך לא נכללים
+							באסטרטגיית SEO — לא ייווצרו מהם Opportunities, Briefs או Execution Suggestions. ניתן לעקוף ב-Settings → SEO Crawl Scope.
+						</p>
+					</div>
+				</aside>
+			)}
+
 			<section>
 				<div className="flex items-baseline justify-between mb-3">
 					<h2 className="text-sm font-medium text-ink">
@@ -90,32 +126,38 @@ export default async function FindingDetailPage({
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-ninja-line">
-								{finding.affectedUrls.slice(0, 500).map((u, idx) => (
-									<tr key={`${u.blog_id}-${u.post_id}-${idx}`}>
-										<td className="px-4 py-2.5">
-											<div className="font-medium text-ink truncate max-w-md">
-												{u.title || u.detail || "(ללא כותרת)"}
-											</div>
-											<div className="text-xs text-ink-dim font-mono truncate max-w-md" dir="ltr">
-												{u.url}
-											</div>
-										</td>
-										<td className="px-4 py-2.5 text-ink-dim text-xs">
-											{u.post_type}
-										</td>
-										<td className="px-4 py-2.5 text-left">
-											<a
-												href={u.url}
-												target="_blank"
-												rel="noopener noreferrer"
-												className="inline-flex items-center gap-1 text-xs text-ink-dim hover:text-ink"
-											>
-												פתח
-												<ExternalLink className="w-3 h-3" />
-											</a>
-										</td>
-									</tr>
-								))}
+								{finding.affectedUrls.slice(0, 500).map((u, idx) => {
+									const cls = u.url ? classifications.get(u.url) : null;
+									return (
+										<tr key={`${u.blog_id}-${u.post_id}-${idx}`}>
+											<td className="px-4 py-2.5">
+												<div className="flex items-center gap-2 flex-wrap">
+													<div className="font-medium text-ink truncate max-w-md">
+														{u.title || u.detail || "(ללא כותרת)"}
+													</div>
+													{cls && <ScopeBadge classification={cls} variant="compact" />}
+												</div>
+												<div className="text-xs text-ink-dim font-mono truncate max-w-md" dir="ltr">
+													{u.url}
+												</div>
+											</td>
+											<td className="px-4 py-2.5 text-ink-dim text-xs">
+												{u.post_type}
+											</td>
+											<td className="px-4 py-2.5 text-left">
+												<a
+													href={u.url}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="inline-flex items-center gap-1 text-xs text-ink-dim hover:text-ink"
+												>
+													פתח
+													<ExternalLink className="w-3 h-3" />
+												</a>
+											</td>
+										</tr>
+									);
+								})}
 							</tbody>
 						</table>
 					</div>

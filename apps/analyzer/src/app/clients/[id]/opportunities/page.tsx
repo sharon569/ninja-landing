@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { db } from "@/lib/db";
 import { priorityBand } from "@/lib/opportunities";
+import { classifyPage, type ClientScopeConfig, type PageClassification } from "@/lib/page-scope";
 import { OpportunityRow } from "./OpportunityRow";
 import { AnalyzeButton } from "./AnalyzeButton";
 import { Filters } from "./Filters";
@@ -66,6 +67,26 @@ export default async function OpportunitiesPage({
 
 	const lastDetected = opportunities[0]?.detectedAt;
 
+	// Phase 15C.3 — pre-classify each opportunity's relatedPage so the row can
+	// surface "Ignored for SEO" on historical opportunities that wouldn't be
+	// generated today. Live engine already filters; this only catches rows
+	// that existed before Phase 15C.2.
+	const scopeCfg: ClientScopeConfig = {
+		targetPages: client.targetPages,
+		seoIgnoredUrls: client.seoIgnoredUrls,
+		seoIgnoredPatterns: client.seoIgnoredPatterns,
+		seoForcedTargetUrls: client.seoForcedTargetUrls,
+	};
+	const classificationCache = new Map<string, PageClassification>();
+	function classify(url: string): PageClassification | null {
+		if (!url) return null;
+		const cached = classificationCache.get(url);
+		if (cached) return cached;
+		const c = classifyPage(url, scopeCfg);
+		classificationCache.set(url, c);
+		return c;
+	}
+
 	return (
 		<div className="space-y-8">
 			{/* Header */}
@@ -112,6 +133,7 @@ export default async function OpportunitiesPage({
 						<OpportunityRow
 							key={o.id}
 							clientId={id}
+							pageScope={classify(o.relatedPage)}
 							row={{
 								id: o.id,
 								type: o.type,

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ClipboardCheck, ArrowRight } from "lucide-react";
 import { db } from "@/lib/db";
+import { classifyPage, type ClientScopeConfig, type PageClassification } from "@/lib/page-scope";
 import { OpportunityRow } from "../opportunities/OpportunityRow";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,24 @@ export default async function ApprovalsPage({
 		},
 		orderBy: [{ priorityScore: "desc" }, { detectedAt: "desc" }],
 	});
+
+	// Phase 15C.3 — classify each opportunity's relatedPage so OpportunityRow
+	// can render the "Ignored for SEO" badge on historical rows.
+	const scopeCfg: ClientScopeConfig = {
+		targetPages: client.targetPages,
+		seoIgnoredUrls: client.seoIgnoredUrls,
+		seoIgnoredPatterns: client.seoIgnoredPatterns,
+		seoForcedTargetUrls: client.seoForcedTargetUrls,
+	};
+	const classificationCache = new Map<string, PageClassification>();
+	function classify(url: string): PageClassification | null {
+		if (!url) return null;
+		const cached = classificationCache.get(url);
+		if (cached) return cached;
+		const c = classifyPage(url, scopeCfg);
+		classificationCache.set(url, c);
+		return c;
+	}
 
 	return (
 		<div className="space-y-8">
@@ -60,6 +79,7 @@ export default async function ApprovalsPage({
 						<OpportunityRow
 							key={o.id}
 							clientId={id}
+							pageScope={classify(o.relatedPage)}
 							row={{
 								id: o.id,
 								type: o.type,

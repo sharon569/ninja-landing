@@ -3,7 +3,9 @@
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { DecisionSummary } from "@/lib/decision";
+import type { PageClassification } from "@/lib/page-scope";
 import { DecisionCard } from "./DecisionCard";
+import { ScopeBadge, ScopeExplainer } from "@/components/ScopeBadge";
 import { getOpportunityDecision } from "./actions";
 import {
 	ChevronDown,
@@ -59,7 +61,15 @@ interface Row {
 	manualActionNote?: string | null;
 }
 
-export function OpportunityRow({ row, clientId }: { row: Row; clientId: string }) {
+export function OpportunityRow({
+	row,
+	clientId,
+	pageScope,
+}: {
+	row: Row;
+	clientId: string;
+	pageScope: PageClassification | null;
+}) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [modal, setModal] = useState<"approve" | "applied" | "reject" | "execution" | null>(null);
@@ -147,6 +157,7 @@ export function OpportunityRow({ row, clientId }: { row: Row; clientId: string }
 							<span className="text-[10px] font-bold tracking-wider uppercase text-ink-mute">
 								{typeLabel(row.type)}
 							</span>
+							{pageScope && <ScopeBadge classification={pageScope} variant="compact" />}
 						</div>
 						<p className="text-sm text-ink-dim leading-relaxed line-clamp-2">
 							{row.description}
@@ -167,6 +178,9 @@ export function OpportunityRow({ row, clientId }: { row: Row; clientId: string }
 				{/* Body */}
 				{open && (
 					<div className="border-t border-ninja-line px-5 py-5 space-y-5">
+						{pageScope && !pageScope.isSeoEligible && (
+							<ScopeExplainer classification={pageScope} />
+						)}
 						{/* Phase 14C — Decision Intelligence card */}
 						{decisionLoading && (
 							<div className="text-xs text-ink-mute italic">טוען Decision Summary…</div>
