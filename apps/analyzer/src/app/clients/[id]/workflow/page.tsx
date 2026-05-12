@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
-import { Inbox } from "lucide-react";
+import Link from "next/link";
+import { Inbox, Layers, ArrowLeft } from "lucide-react";
 import { db } from "@/lib/db";
 import { loadWorkflow, computeCounts, filterByTab } from "@/lib/workflow-server";
+import { getActiveWorkPlanSummary } from "@/lib/work-plan-server";
+import { PLAN_STATUS_LABEL } from "@/lib/work-plan";
 import { Tabs } from "./Tabs";
 import { WorkflowList } from "./WorkflowList";
 
@@ -24,7 +27,10 @@ export default async function WorkflowPage({
 	const client = await db.client.findUnique({ where: { id } });
 	if (!client) notFound();
 
-	const items = await loadWorkflow(id);
+	const [items, planSummary] = await Promise.all([
+		loadWorkflow(id),
+		getActiveWorkPlanSummary(id),
+	]);
 	const counts = computeCounts(items);
 	const tab = sp.tab ?? "all";
 	const visibleItems = filterByTab(items, tab);
@@ -42,6 +48,46 @@ export default async function WorkflowPage({
 					כאן מרוכזות כל הפעולות שממתינות להחלטה, אישור או מעקב — Opportunities, Briefs, Internal Link Suggestions, ופעולות במעקב Impact. תור עבודה ממוקד, לא דוח.
 				</p>
 			</div>
+
+			{/* Active Work Plan banner */}
+			{planSummary && (
+				<Link
+					href={`/clients/${id}/work-plan`}
+					className="block rounded-xl border border-gold/30 bg-gold/5 hover:bg-gold/10 p-4 transition-colors"
+				>
+					<div className="flex items-start justify-between gap-4 flex-wrap">
+						<div className="flex items-start gap-3">
+							<Layers className="w-5 h-5 text-gold shrink-0 mt-0.5" />
+							<div>
+								<div className="text-sm font-bold text-ink flex items-center gap-2 flex-wrap">
+									תוכנית עבודה פעילה: {planSummary.title}
+									<span className="text-[10px] font-bold tracking-wider rounded-full border bg-ninja-raised text-ink-dim border-ninja-line px-2 py-0.5">
+										{PLAN_STATUS_LABEL[planSummary.status as keyof typeof PLAN_STATUS_LABEL] ?? planSummary.status}
+									</span>
+								</div>
+								<p className="text-xs text-ink-dim mt-1">
+									{planSummary.totalItems} פריטים · {planSummary.safeItemsCount} בטוחים · {planSummary.reviewItemsCount} סקירה · {planSummary.blockedItemsCount} חסומים · {planSummary.monitorItemsCount} במעקב
+								</p>
+							</div>
+						</div>
+						<span className="inline-flex items-center gap-1 text-xs text-gold">
+							פתח תוכנית עבודה
+							<ArrowLeft className="w-3 h-3" />
+						</span>
+					</div>
+				</Link>
+			)}
+			{!planSummary && (
+				<div className="rounded-xl border border-dashed border-gold/30 bg-gold/5 px-4 py-3 text-sm text-ink-dim flex items-center justify-between gap-3 flex-wrap">
+					<span>
+						<Layers className="w-4 h-4 inline-block me-2 text-gold" />
+						עדיין אין תוכנית עבודה פעילה. בנה תוכנית כדי לקבץ את כל הפריטים לקבוצות בטוחות / סקירה / חסום.
+					</span>
+					<Link href={`/clients/${id}/work-plan`} className="text-xs text-gold hover:text-blade">
+						בנה תוכנית →
+					</Link>
+				</div>
+			)}
 
 			{/* Summary chips */}
 			<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">

@@ -98,8 +98,96 @@ model Client {
   executionActions        ExecutionAction[]
   executionEvents         ExecutionEvent[]
   keywordStrategies       KeywordStrategy[]
+  seoWorkPlans            SeoWorkPlan[]
 
   @@index([baseUrl])
+  @@schema("analyzer")
+}
+
+// Phase 15D.0 — SEO Work Plan. A curated, grouped, risk-scored snapshot of
+// the recommendation pipeline (opportunities + strategies + briefs + links)
+// rolled up into a single plan the operator can approve by group.
+// Invariants: only one active plan per client at a time. Building a new plan
+// archives the previous one. Approval prepares safe items only — no live
+// site writes, no auto Dry Run, no auto Execute.
+model SeoWorkPlan {
+  id          String   @id @default(cuid())
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  planType    String   @default("monthly_seo_work") // monthly_seo_work | quick_wins | technical_cleanup | meta_optimization | content_strategy | internal_links | mixed
+  title       String
+  status      String   @default("draft")
+  // draft | needs_review | approved | preparing | prepared | partially_prepared | completed | cancelled | superseded
+  summary     String?  // JSON: { byGroup: {...}, byDecision: {...}, byAutomationMode: {...} }
+
+  totalItems          Int      @default(0)
+  safeItemsCount      Int      @default(0)
+  reviewItemsCount    Int      @default(0)
+  blockedItemsCount   Int      @default(0)
+  monitorItemsCount   Int      @default(0)
+
+  estimatedImpact     String?  // low | medium | high — aggregate guess
+  estimatedRisk       String?  // low | medium | high | critical
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  approvedAt  DateTime?
+  approvedBy  String?
+  preparedAt  DateTime?
+  completedAt DateTime?
+
+  items       SeoWorkPlanItem[]
+
+  @@index([clientId, status])
+  @@index([clientId, createdAt(sort: Desc)])
+  @@schema("analyzer")
+}
+
+// Each row points to a source (opportunity/strategy/brief/link) and carries
+// the classifier's decision so we don't recompute on every page render.
+model SeoWorkPlanItem {
+  id          String   @id @default(cuid())
+  workPlanId  String
+  workPlan    SeoWorkPlan @relation(fields: [workPlanId], references: [id], onDelete: Cascade)
+  clientId    String
+
+  sourceType  String   // opportunity | keyword_strategy | content_brief | internal_link_suggestion
+  sourceId    String
+
+  // Classifier output
+  group       String   // safe_meta | quick_wins | content_expansion | internal_linking | human_review | blocked | monitor_only
+  decision    String   // auto_prepare | human_review | blocked | monitor_only | skip
+  automationMode String  // prepare_only | manual_only
+
+  // What we want to do with this item
+  actionType  String?  // yoast_title_update | yoast_description_update | content_brief | internal_link | monitor | ...
+  targetUrl   String?
+  title       String
+  summary     String?
+
+  riskLevel   String   // low | medium | high | critical
+  confidence  String   // low | medium | high
+  priorityScore Int    @default(0)
+
+  status      String   @default("planned")
+  // planned | approved | preparing | prepared | failed | skipped | needs_human_review | completed
+
+  reason          String?  // Hebrew: why we placed it in this group
+  blockedReason   String?  // Hebrew: why it's blocked (if blocked)
+  // When prepared, point at the downstream artifact for navigation.
+  preparedSourceType String?  // execution_action | content_brief
+  preparedSourceId   String?
+  error           String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  preparedAt  DateTime?
+
+  @@index([workPlanId, group])
+  @@index([workPlanId, decision])
+  @@index([clientId, status])
+  @@index([sourceType, sourceId])
   @@schema("analyzer")
 }
 
