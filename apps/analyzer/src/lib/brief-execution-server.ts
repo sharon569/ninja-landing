@@ -142,7 +142,14 @@ export async function computeBriefExecutionReadiness(
 				why?: string;
 				requiresHumanReview?: boolean;
 			};
-			if (ctx.requiresHumanReview) {
+			// Phase 15D Bundle C — Brief-level human-review override.
+			// If the operator explicitly approved the brief for execution, the
+			// strategyStep.requiresHumanReview gate is unlocked. Other gates
+			// (scope, allowed actions, plugin, risk=critical) stay enforced.
+			const briefReviewed =
+				brief.humanReviewedAt != null &&
+				brief.humanReviewDecision === "approved_for_execution";
+			if (ctx.requiresHumanReview && !briefReviewed) {
 				decisionAllows = false;
 				decisionReason = "השלב באסטרטגיה דורש סקירה אנושית";
 			} else if (ctx.confidence === "low") {

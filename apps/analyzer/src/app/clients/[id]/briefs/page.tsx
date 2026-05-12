@@ -150,6 +150,10 @@ export default async function BriefsPage({
 								keywordStrategyId: b.keywordStrategyId,
 								strategyStepIndex: b.strategyStepIndex,
 								strategyContext: b.strategyContext,
+								humanReviewedAt: b.humanReviewedAt,
+								humanReviewedBy: b.humanReviewedBy,
+								humanReviewedNote: b.humanReviewedNote,
+								humanReviewDecision: b.humanReviewDecision,
 							}}
 						/>
 					))}

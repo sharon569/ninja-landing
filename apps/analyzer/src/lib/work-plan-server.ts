@@ -34,7 +34,11 @@ import {
 	GROUP_LABEL,
 	APPROVABLE_GROUPS,
 } from "./work-plan";
-import { generateBriefFromStrategyStep, actionTypeToBriefType } from "./briefs-server";
+import {
+	generateBriefFromStrategyStep,
+	actionTypeToBriefType,
+	generateBriefFromOpportunity,
+} from "./briefs-server";
 import { createExecutionActionFromBrief } from "./brief-execution-server";
 import { computeBriefExecutionReadiness } from "./brief-execution-server";
 
@@ -1051,7 +1055,7 @@ async function prepareItem(
 		case "internal_link_suggestion":
 			return prepareInternalLinkItem(item.sourceId);
 		case "opportunity":
-			return prepareOpportunityItem(item.sourceId);
+			return prepareOpportunityItem(item.sourceId, item.actionType);
 		default:
 			return { skipped: true, error: `sourceType ${item.sourceType} not supported` };
 	}
@@ -1148,24 +1152,110 @@ async function prepareInternalLinkItem(linkId: string): Promise<PreparedItemResu
 	return { preparedSourceType: "internal_link_suggestion", preparedSourceId: link.id };
 }
 
-async function prepareOpportunityItem(oppId: string): Promise<PreparedItemResult> {
+async function prepareOpportunityItem(oppId: string, itemActionType: string | null): Promise<PreparedItemResult> {
 	const o = await db.opportunity.findUnique({ where: { id: oppId } });
 	if (!o) return { skipped: true, error: "Opportunity not found" };
-	if (o.status === "approved") {
-		return { preparedSourceType: "opportunity", preparedSourceId: o.id };
-	}
 	if (["dismissed", "rejected", "monitoring"].includes(o.status)) {
 		return { skipped: true, error: `opportunity already ${o.status}` };
 	}
-	await db.opportunity.update({
-		where: { id: oppId },
-		data: {
-			status: "approved",
-			approvedAt: new Date(),
-			approvedBy: "work_plan",
-			approvalNote: "אושר אוטומטית דרך תוכנית עבודה",
-		},
-	});
+
+	// Phase 15D.0 fix (Bundle B) — when the classifier put this opportunity
+	// into a brief-able group (safe_meta or quick_wins or content_expansion
+	// with actionType=title_meta_update / content_brief), don't just flip the
+	// opp to approved. Generate the brief so the operator has a real next
+	// step. Briefs from opps default to needs_human_review unless the opp is
+	// low-risk + high-confidence — we don't auto-approve briefs because the
+	// editorial copy still needs a glance.
+	const wantsBrief =
+		itemActionType === "yoast_title_update" ||
+		itemActionType === "yoast_description_update" ||
+		itemActionType === "content_brief";
+
+	if (wantsBrief) {
+		// Don't recreate if a brief from this opp + matching briefType already exists.
+		const generated = await generateBriefFromOpportunity(oppId);
+		if (!generated) {
+			return { skipped: true, error: "Brief generator returned null (likely scope-blocked or missing keyword)" };
+		}
+		const existing = await db.contentBrief.findUnique({
+			where: {
+				clientId_opportunityId_briefType: {
+					clientId: o.clientId,
+					opportunityId: oppId,
+					briefType: generated.briefType,
+				},
+			},
+		});
+		if (existing) {
+			// Already prepared in a prior cycle. Just ensure opp is approved.
+			if (o.status !== "approved") {
+				await db.opportunity.update({
+					where: { id: oppId },
+					data: {
+						status: "approved",
+						approvedAt: new Date(),
+						approvedBy: "work_plan",
+						approvalNote: "אושר אוטומטית דרך תוכנית עבודה (brief קיים)",
+					},
+				});
+			}
+			return { preparedSourceType: "content_brief", preparedSourceId: existing.id };
+		}
+
+		// Initial brief status by opp risk/confidence: low+high → draft, else needs_review.
+		const initialStatus =
+			o.impact === "high" && o.confidence === "high" && o.effort !== "high"
+				? "draft"
+				: "needs_human_review";
+
+		const brief = await db.contentBrief.create({
+			data: {
+				clientId: o.clientId,
+				opportunityId: oppId,
+				targetKeyword: generated.targetKeyword,
+				relatedQuery: generated.relatedQuery ?? null,
+				relatedPage: generated.relatedPage ?? null,
+				briefType: generated.briefType,
+				searchIntent: generated.searchIntent,
+				recommendedTitle: generated.recommendedTitle ?? null,
+				recommendedMetaDescription: generated.recommendedMetaDescription ?? null,
+				recommendedH1: generated.recommendedH1 ?? null,
+				outline: generated.outline ?? null,
+				secondaryKeywords: generated.secondaryKeywords,
+				internalLinks: generated.internalLinks,
+				recommendedCTA: generated.recommendedCTA ?? null,
+				recommendedSchema: generated.recommendedSchema ?? null,
+				contentAngle: generated.contentAngle ?? null,
+				notes: generated.notes ?? null,
+				status: initialStatus,
+			},
+		});
+
+		await db.opportunity.update({
+			where: { id: oppId },
+			data: {
+				status: "approved",
+				approvedAt: o.approvedAt ?? new Date(),
+				approvedBy: o.approvedBy ?? "work_plan",
+				approvalNote: o.approvalNote ?? "אושר אוטומטית דרך תוכנית עבודה (brief נוצר)",
+			},
+		});
+
+		return { preparedSourceType: "content_brief", preparedSourceId: brief.id };
+	}
+
+	// Non-brief opportunity types (cannibalization, technical) — just approve.
+	if (o.status !== "approved") {
+		await db.opportunity.update({
+			where: { id: oppId },
+			data: {
+				status: "approved",
+				approvedAt: new Date(),
+				approvedBy: "work_plan",
+				approvalNote: "אושר אוטומטית דרך תוכנית עבודה",
+			},
+		});
+	}
 	return { preparedSourceType: "opportunity", preparedSourceId: o.id };
 }
 

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowRight, ExternalLink } from "lucide-react";
 import { db } from "@/lib/db";
 import { SubNav } from "@/components/SubNav";
+import { RefreshAllButton } from "./RefreshAllButton";
 
 export const dynamic = "force-dynamic";
 
@@ -72,7 +73,7 @@ export default async function ClientLayout({
 					<ArrowRight className="w-3.5 h-3.5" />
 					כל הלקוחות
 				</Link>
-				<div className="mt-3 flex flex-wrap items-baseline gap-4">
+				<div className="mt-3 flex flex-wrap items-center gap-4">
 					<h1 className="font-display text-4xl text-ink">{client.name}</h1>
 					<a
 						href={homeUrl}
@@ -84,6 +85,8 @@ export default async function ClientLayout({
 						{host}
 						<ExternalLink className="w-3 h-3" />
 					</a>
+					<div className="flex-1" />
+					<RefreshAllButton clientId={id} />
 				</div>
 			</div>
 

@@ -457,6 +457,16 @@ model ContentBrief {
   strategyStepIndex        Int?
   strategyContext          String?  // JSON: { why, riskLevel, confidence, measurementPlan, researchNotes }
 
+  // Phase 15D bundle C — operator-level review override. When humanReviewedAt
+  // is set AND humanReviewDecision="approved_for_execution", the Decision
+  // Guard accepts the brief even when source strategyStep.requiresHumanReview
+  // was true. Other gates (scope, plugin readiness, allowed actions, risk
+  // critical) remain enforced.
+  humanReviewedAt          DateTime?
+  humanReviewedBy          String?
+  humanReviewedNote        String?
+  humanReviewDecision      String?   // approved_for_execution | needs_changes | rejected | keep_as_draft
+
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 

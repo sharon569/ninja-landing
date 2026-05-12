@@ -25,6 +25,7 @@ import {
 import { setBriefStatus, deleteBrief, getBriefExecutionReadiness } from "./actions";
 import { BriefEditModal } from "./BriefEditModal";
 import { PrepareBriefExecutionModal } from "./PrepareBriefExecutionModal";
+import { HumanReviewModal } from "./HumanReviewModal";
 
 interface Row {
 	id: string;
@@ -52,12 +53,18 @@ interface Row {
 	keywordStrategyId?: string | null;
 	strategyStepIndex?: number | null;
 	strategyContext?: string | null;
+	// Phase 15D Bundle C — Brief-level human review
+	humanReviewedAt?: Date | string | null;
+	humanReviewedBy?: string | null;
+	humanReviewedNote?: string | null;
+	humanReviewDecision?: string | null;
 }
 
 export function BriefRow({ row }: { row: Row }) {
 	const [open, setOpen] = useState(false);
 	const [editing, setEditing] = useState(false);
 	const [preparingExec, setPreparingExec] = useState(false);
+	const [reviewing, setReviewing] = useState(false);
 	const [pending, startTransition] = useTransition();
 
 	function act(status: string) {
@@ -97,6 +104,11 @@ export function BriefRow({ row }: { row: Row }) {
 							{row.sourceType === "keyword_strategy" && (
 								<span className="text-[10px] font-bold tracking-wider rounded-full border bg-gold/10 text-gold border-gold/30 px-1.5 py-0.5">
 									מאסטרטגיה
+								</span>
+							)}
+							{row.humanReviewedAt && row.humanReviewDecision === "approved_for_execution" && (
+								<span className="text-[10px] font-bold tracking-wider rounded-full border bg-go/10 text-go border-go/30 px-1.5 py-0.5">
+									ביקורת אנושית ✓
 								</span>
 							)}
 						</div>
@@ -233,6 +245,12 @@ export function BriefRow({ row }: { row: Row }) {
 								tone="warn"
 								onClick={() => setEditing(true)}
 							/>
+							<ActionButton
+								icon={<Brain className="w-3.5 h-3.5" />}
+								label={row.humanReviewedAt ? "עדכן סקירה" : "סמן כעבר סקירה אנושית"}
+								tone={row.humanReviewedAt && row.humanReviewDecision === "approved_for_execution" ? "good" : "warn"}
+								onClick={() => setReviewing(true)}
+							/>
 							{(row.status === "draft" || row.status === "needs_human_review") && (
 								<>
 									<ActionButton
@@ -309,6 +327,20 @@ export function BriefRow({ row }: { row: Row }) {
 					briefId={row.id}
 					clientId={row.clientId}
 					onClose={() => setPreparingExec(false)}
+				/>
+			)}
+
+			{reviewing && (
+				<HumanReviewModal
+					briefId={row.id}
+					briefTitle={row.targetKeyword}
+					current={{
+						humanReviewedAt: row.humanReviewedAt ?? null,
+						humanReviewDecision: row.humanReviewDecision ?? null,
+						humanReviewedNote: row.humanReviewedNote ?? null,
+						humanReviewedBy: row.humanReviewedBy ?? null,
+					}}
+					onClose={() => setReviewing(false)}
 				/>
 			)}
 		</>

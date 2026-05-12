@@ -211,6 +211,58 @@ export async function deleteBrief(briefId: string): Promise<void> {
 	revalAll(row.clientId);
 }
 
+// ─── Phase 15D Bundle C — Brief human-review override ───────────
+
+export type HumanReviewDecision =
+	| "approved_for_execution"
+	| "needs_changes"
+	| "rejected"
+	| "keep_as_draft";
+
+export interface BriefReviewState {
+	ok?: boolean;
+	error?: string;
+}
+
+/**
+ * Mark a Brief as human-reviewed. When humanReviewDecision is
+ * `approved_for_execution`, the Decision Guard bypasses
+ * strategyStep.requiresHumanReview during Prepare Execution.
+ * Does NOT bypass other gates (scope / plugin / risk critical / etc.)
+ */
+export async function setBriefHumanReview(
+	briefId: string,
+	decision: HumanReviewDecision,
+	note: string,
+): Promise<BriefReviewState> {
+	const brief = await db.contentBrief.findUnique({ where: { id: briefId } });
+	if (!brief) return { error: "Brief not found" };
+	const actor = await actorEmail();
+	const data: {
+		humanReviewedAt: Date;
+		humanReviewedBy: string;
+		humanReviewDecision: HumanReviewDecision;
+		humanReviewedNote: string | null;
+		status?: string;
+	} = {
+		humanReviewedAt: new Date(),
+		humanReviewedBy: actor,
+		humanReviewDecision: decision,
+		humanReviewedNote: note?.trim() || null,
+	};
+	// Mirror the editorial decision into the brief's main status when it lines up.
+	if (decision === "approved_for_execution" && brief.status !== "approved") {
+		data.status = "approved";
+	} else if (decision === "rejected" && brief.status !== "rejected") {
+		data.status = "rejected";
+	} else if (decision === "needs_changes" && brief.status !== "needs_human_review") {
+		data.status = "needs_human_review";
+	}
+	await db.contentBrief.update({ where: { id: briefId }, data });
+	revalAll(brief.clientId);
+	return { ok: true };
+}
+
 // ─── Phase 15D — Brief → Execution ──────────────────────────────
 
 export async function getBriefExecutionReadiness(
