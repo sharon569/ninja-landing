@@ -31,6 +31,8 @@ import {
 } from "./execution";
 import { createBaseline } from "./impact-server";
 import { logExecutionEvent } from "./execution-events-server";
+import { computeDecisionForOpportunity } from "./decision-server";
+import { decisionAllowsExecution } from "./decision";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -262,6 +264,32 @@ export async function createExecutionActionFromOpportunity(args: {
 		throw new Error(`Execution לא מוכן: ${gate.missing.join(", ")}`);
 	}
 
+	// Phase 14C — Decision Intelligence guard. The engine refuses to back
+	// an executable recommendation that it cannot substantively justify.
+	// `humanReviewedAt` on the Opportunity acts as the explicit override:
+	// if Sharon manually marked the opp as reviewed, we trust him to know
+	// what he's doing even if the engine would have blocked.
+	const decision = await computeDecisionForOpportunity(opportunityId);
+	if (!DRY_RUN_ONLY_ACTIONS.includes(actionType)) {
+		const reviewed = opp.humanReviewedAt;
+		if (!decisionAllowsExecution(decision, reviewed ?? null)) {
+			const headline =
+				decision.recommendedNextStep === "no_change"
+					? "המערכת לא ממליצה לבצע שינוי בעמוד הזה כרגע."
+					: decision.recommendedNextStep === "research_needed"
+						? "אין מספיק נתונים להמליץ על שינוי. נדרש מחקר נוסף."
+						: decision.recommendedNextStep === "monitor"
+							? "המערכת ממליצה להמשיך לעקוב ולא לשנות כרגע."
+							: decision.recommendedNextStep === "human_review"
+								? "ההמלצה דורשת סקירה אנושית. סמן את ה-Opportunity כ-Reviewed להפעלת ביצוע."
+								: "המערכת לא יכולה להמליץ על שינוי כי אין הסבר עם נתונים שמצדיק אותו.";
+			const reason = decision.whyNot.possibleRisks.length
+				? ` סיכונים: ${decision.whyNot.possibleRisks.join("; ")}.`
+				: "";
+			throw new Error(`${headline}${reason}`);
+		}
+	}
+
 	// Concurrency guard — block a second open ExecutionAction for the same source+action
 	const existingOpen = await db.executionAction.findFirst({
 		where: {
@@ -287,6 +315,11 @@ export async function createExecutionActionFromOpportunity(args: {
 			targetUrl: payload.targetUrl ?? opp.relatedPage ?? null,
 			targetPostId: payload.targetPostId ?? null,
 			payload: JSON.stringify(payload),
+			// Phase 14C — snapshot the decision so Impact Review can compare
+			// actual outcomes against the measurement plan that was in effect
+			// when the action was created, even if the Opportunity gets
+			// recomputed later.
+			decisionSnapshot: JSON.stringify(decision),
 		},
 	});
 

@@ -194,6 +194,59 @@ export async function addOpportunityNote(formData: FormData): Promise<{ ok?: boo
 	return { ok: true };
 }
 
+// Phase 14C — server action loader for the Decision Card. The engine is
+// expensive (GSC aggregation + portfolio compute) so we lazy-load on the
+// first expand of an Opportunity row rather than pre-compute for every row.
+export async function getOpportunityDecision(opportunityId: string) {
+	const { computeDecisionForOpportunity } = await import("@/lib/decision-server");
+	try {
+		const decision = await computeDecisionForOpportunity(opportunityId);
+		const opp = await db.opportunity.findUnique({
+			where: { id: opportunityId },
+			select: { humanReviewedAt: true },
+		});
+		return { ok: true, decision, alreadyReviewed: !!opp?.humanReviewedAt };
+	} catch (err) {
+		return { ok: false, error: (err as Error).message };
+	}
+}
+
+// Phase 14C — Mark Opportunity as Human-Reviewed. Override the Decision
+// Intelligence guard so high-risk / human_review recommendations can become
+// executable. Recorded with actor + timestamp + optional note for audit.
+export async function markOpportunityReviewed(
+	formData: FormData,
+): Promise<{ ok?: boolean; error?: string }> {
+	const opportunityId = String(formData.get("opportunityId") ?? "");
+	const note = String(formData.get("note") ?? "").trim();
+	if (!opportunityId) return { error: "opportunityId missing" };
+	const actor = await actorEmail();
+	const opp = await db.opportunity.findUnique({
+		where: { id: opportunityId },
+		select: { clientId: true, status: true },
+	});
+	if (!opp) return { error: "Opportunity not found" };
+	await db.opportunity.update({
+		where: { id: opportunityId },
+		data: {
+			humanReviewedAt: new Date(),
+			humanReviewedBy: actor,
+			humanReviewNote: note || null,
+		},
+	});
+	await log(
+		opp.clientId,
+		opportunityId,
+		"human_reviewed",
+		opp.status,
+		opp.status,
+		note || "סומן כ-Reviewed לעקיפת Decision Guard",
+	);
+	revalidatePath(`/clients/${opp.clientId}/opportunities`);
+	revalidatePath(`/clients/${opp.clientId}/workflow`);
+	return { ok: true };
+}
+
 export async function deleteOpportunity(opportunityId: string): Promise<void> {
 	const row = await db.opportunity.findUnique({ where: { id: opportunityId } });
 	if (!row) return;

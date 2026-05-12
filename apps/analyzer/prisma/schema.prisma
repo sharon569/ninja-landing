@@ -165,6 +165,10 @@ model ExecutionAction {
   // No WP call; status moves to 'finalized' and the action is closed.
   finalizedAt   DateTime?
   finalizedBy   String?
+  // Phase 14C — frozen DecisionSummary at the moment Prepare Execution ran.
+  // Used by Impact Review to compare actual results to the measurement plan
+  // even if the underlying Opportunity has been recomputed since.
+  decisionSnapshot String?
 
   events        ExecutionEvent[]
 
@@ -250,6 +254,19 @@ model Opportunity {
   manualActionUrl     String?
   monitoringStartedAt DateTime?
   impactReviewedAt    DateTime?
+
+  // Phase 14C — Human Review tracking. When set, decisions that would
+  // otherwise be blocked (high risk / low confidence / human_review) become
+  // executable. A reviewedAt without reviewedNote is allowed but discouraged.
+  humanReviewedAt     DateTime?
+  humanReviewedBy     String?
+  humanReviewNote     String?
+  // Cached decision fields for fast filtering on the workflow/agency pages
+  // without recomputing the full DecisionSummary. Refreshed by the engine.
+  decisionRiskCache       String?  // RiskLevel: low|medium|high|critical
+  decisionConfidenceCache String?  // Confidence: low|medium|high
+  decisionNextStepCache   String?  // RecommendedNextStep
+  decisionComputedAt      DateTime?
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

@@ -250,7 +250,42 @@ export async function computeImpactReview(
 	if (impressionsDelta !== 0)
 		parts.push(`חשיפות: ${baseline.impressions.toLocaleString()} → ${after.impressions.toLocaleString()}`);
 
-	const summary = parts.length > 0 ? parts.join(" · ") : "אין שינויים מובהקים בנתונים.";
+	let summary = parts.length > 0 ? parts.join(" · ") : "אין שינויים מובהקים בנתונים.";
+
+	// Phase 14C — if there's a successful ExecutionAction with a snapshot,
+	// evaluate against its measurementPlan and append the verdict to the
+	// summary so the operator sees "primary metric improved AND protected
+	// queries held" (or where they didn't).
+	const execAction = await db.executionAction.findFirst({
+		where: {
+			sourceType: "opportunity",
+			sourceId: opportunityId,
+			status: { in: ["executed", "rollback_available", "finalized"] },
+		},
+		orderBy: { executedAt: "desc" },
+		select: { decisionSnapshot: true },
+	});
+	if (execAction?.decisionSnapshot) {
+		try {
+			const decision = JSON.parse(execAction.decisionSnapshot);
+			const mp = decision.measurementPlan;
+			if (mp?.primaryMetric) {
+				const goalMet = mp.primaryMetric === "ctr"
+					? ctrImproved
+					: mp.primaryMetric === "clicks"
+						? clicksImproved
+						: mp.primaryMetric === "position"
+							? positionImproved
+							: clicksImproved;
+				summary += ` · יעד מדידה (${mp.primaryMetric}): ${goalMet ? "הושג ✓" : "טרם הושג"}`;
+				if (mp.protectedMetrics?.length) {
+					summary += ` · מוגנים לבדיקה: ${mp.protectedMetrics.length}`;
+				}
+			}
+		} catch {
+			/* snapshot unparseable — ignore */
+		}
+	}
 
 	await db.impactReview.upsert({
 		where: { opportunityId_reviewWindow: { opportunityId, reviewWindow } },

@@ -38,6 +38,10 @@ export interface WorkflowItem {
 	// the user the current state of any prepared ExecutionAction; the actual
 	// Execute click lives only on the /execution page.
 	executionBadge?: ExecutionWorkflowBadge | null;
+
+	// Phase 14C — read-only Decision Intelligence badge driven by cached
+	// fields on Opportunity. Updated by the decision engine; never blocks here.
+	decisionBadge?: DecisionWorkflowBadge | null;
 }
 
 export type ExecutionWorkflowBadge =
@@ -48,6 +52,37 @@ export type ExecutionWorkflowBadge =
 	| "executed"
 	| "rollback_available"
 	| "finalized";
+
+// Phase 14C — Decision Intelligence badges (separate from execution-flow
+// badges). Driven by the cached decisionNextStepCache field on Opportunity.
+export type DecisionWorkflowBadge =
+	| "safe_to_test"
+	| "quick_win"
+	| "needs_human_review"
+	| "high_risk"
+	| "monitor_only"
+	| "do_not_change_yet"
+	| "research_needed";
+
+export const DECISION_BADGE_LABEL: Record<DecisionWorkflowBadge, string> = {
+	safe_to_test: "בטוח לבדיקה",
+	quick_win: "Quick Win",
+	needs_human_review: "דורש סקירה",
+	high_risk: "סיכון גבוה",
+	monitor_only: "מעקב בלבד",
+	do_not_change_yet: "אל תשנה",
+	research_needed: "נדרש מחקר",
+};
+
+export const DECISION_BADGE_TONE: Record<DecisionWorkflowBadge, "good" | "warn" | "bad" | "neutral"> = {
+	safe_to_test: "good",
+	quick_win: "good",
+	needs_human_review: "warn",
+	high_risk: "bad",
+	monitor_only: "neutral",
+	do_not_change_yet: "bad",
+	research_needed: "warn",
+};
 
 export const EXECUTION_BADGE_LABEL: Record<ExecutionWorkflowBadge, string> = {
 	execution_ready: "Execution Ready",

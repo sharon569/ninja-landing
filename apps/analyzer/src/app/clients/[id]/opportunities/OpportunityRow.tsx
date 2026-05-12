@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import type { DecisionSummary } from "@/lib/decision";
+import { DecisionCard } from "./DecisionCard";
+import { getOpportunityDecision } from "./actions";
 import {
 	ChevronDown,
 	Check,
@@ -61,6 +64,28 @@ export function OpportunityRow({ row, clientId }: { row: Row; clientId: string }
 	const [open, setOpen] = useState(false);
 	const [modal, setModal] = useState<"approve" | "applied" | "reject" | "execution" | null>(null);
 	const [pending, startTransition] = useTransition();
+	// Phase 14C — lazy-load Decision on first expand
+	const [decision, setDecision] = useState<DecisionSummary | null>(null);
+	const [decisionLoaded, setDecisionLoaded] = useState(false);
+	const [decisionLoading, setDecisionLoading] = useState(false);
+	const [decisionError, setDecisionError] = useState<string | null>(null);
+	const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+
+	useEffect(() => {
+		if (open && !decisionLoaded && !decisionLoading) {
+			setDecisionLoading(true);
+			getOpportunityDecision(row.id).then((r) => {
+				if (r.ok && r.decision) {
+					setDecision(r.decision);
+					setAlreadyReviewed(!!r.alreadyReviewed);
+				} else {
+					setDecisionError(r.error ?? "Failed to compute decision");
+				}
+				setDecisionLoaded(true);
+				setDecisionLoading(false);
+			});
+		}
+	}, [open, decisionLoaded, decisionLoading, row.id]);
 
 	const band = priorityBand(row.priorityScore);
 	const evidence = (() => {
@@ -142,6 +167,20 @@ export function OpportunityRow({ row, clientId }: { row: Row; clientId: string }
 				{/* Body */}
 				{open && (
 					<div className="border-t border-ninja-line px-5 py-5 space-y-5">
+						{/* Phase 14C — Decision Intelligence card */}
+						{decisionLoading && (
+							<div className="text-xs text-ink-mute italic">טוען Decision Summary…</div>
+						)}
+						{decisionError && (
+							<div className="text-xs text-blade">{decisionError}</div>
+						)}
+						{decision && (
+							<DecisionCard
+								decision={decision}
+								opportunityId={row.id}
+								alreadyReviewed={alreadyReviewed}
+							/>
+						)}
 						{/* Approval / apply metadata */}
 						{(row.approvedAt || row.manuallyAppliedAt) && (
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">

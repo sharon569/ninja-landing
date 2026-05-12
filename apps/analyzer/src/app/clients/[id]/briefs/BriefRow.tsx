@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import {
 	ChevronDown,
 	Pencil,
@@ -9,7 +9,10 @@ import {
 	CheckCheck,
 	Trash2,
 	ExternalLink,
+	Brain,
 } from "lucide-react";
+import type { DecisionSummary } from "@/lib/decision";
+import { getOpportunityDecision } from "../opportunities/actions";
 import {
 	briefTypeLabel,
 	searchIntentLabel,
@@ -117,6 +120,9 @@ export function BriefRow({ row }: { row: Row }) {
 
 				{open && (
 					<div className="border-t border-ninja-line px-5 py-5 space-y-5">
+						{/* Phase 14C — research notes from source opportunity */}
+						{row.opportunityId && <BriefDecisionPanel opportunityId={row.opportunityId} />}
+
 						{/* Title / Meta / H1 */}
 						<div className="grid sm:grid-cols-2 gap-3 text-sm">
 							{row.recommendedTitle && (
@@ -333,3 +339,76 @@ function ActionButton({
 		</button>
 	);
 }
+
+function BriefDecisionPanel({ opportunityId }: { opportunityId: string }) {
+	const [decision, setDecision] = useState<DecisionSummary | null>(null);
+	const [loading, setLoading] = useState(true);
+
+	useEffect(() => {
+		getOpportunityDecision(opportunityId).then((r) => {
+			if (r.ok && r.decision) setDecision(r.decision);
+			setLoading(false);
+		});
+	}, [opportunityId]);
+
+	if (loading) return <div className="text-xs text-ink-mute italic">טוען Research Notes…</div>;
+	if (!decision) return null;
+
+	const cj = decision.contentJustification;
+	const research = decision.researchNotes;
+
+	return (
+		<div className="rounded-lg border border-ninja-line bg-ninja-black/40 p-4 space-y-3">
+			<div className="flex items-center gap-2">
+				<Brain className="w-4 h-4 text-gold" />
+				<h3 className="text-sm font-bold uppercase tracking-wider text-ink">Research Notes</h3>
+			</div>
+			{cj ? (
+				<div className="space-y-2 text-xs">
+					<NoteLine label="הפער הקיים בתוכן" value={cj.currentContentGap} />
+					<NoteLine label="כוונת החיפוש" value={cj.searchIntentReasoning} />
+					<NoteLine label="עדויות GSC" value={cj.gscEvidence} />
+					<NoteLine label="למה התוכן הזה עוזר" value={cj.whyThisContentHelps} />
+					<NoteLine label="למה לא לסגור עם Meta בלבד" value={cj.whyNotOnlyMetaChange} />
+					<NoteLine label="למה לא ליצור עמוד חדש" value={cj.whyNotNewPage} />
+					<NoteLine label="התאמה לעסק" value={cj.businessFit} />
+					<NoteLine label="מדידת הצלחה" value={cj.successMeasurement} />
+				</div>
+			) : (
+				<div className="text-xs text-ink-dim">{decision.whyThisIsBetter || "אין הצדקת תוכן ספציפית."}</div>
+			)}
+			<div className="grid md:grid-cols-2 gap-3 text-xs pt-2 border-t border-ninja-line">
+				<NotesBlock title="מה אנחנו יודעים" items={research.whatWeKnow} tone="go" />
+				<NotesBlock title="מה לא בטוח" items={research.whatWeDontKnow} tone="gold" />
+				<NotesBlock title="למה צריך להיזהר" items={research.whyThisIsRisky} tone="gold" />
+				<NotesBlock title="איך נמדוד הצלחה" items={research.howWeMeasureSuccess} tone="go" />
+			</div>
+		</div>
+	);
+}
+
+function NoteLine({ label, value }: { label: string; value: string }) {
+	if (!value) return null;
+	return (
+		<div>
+			<span className="text-[10px] tracking-wider uppercase text-ink-mute">{label}: </span>
+			<span className="text-ink-dim">{value}</span>
+		</div>
+	);
+}
+
+function NotesBlock({ title, items, tone }: { title: string; items: string[]; tone: "go" | "gold" }) {
+	if (items.length === 0) return null;
+	const cls = tone === "go" ? "text-go" : "text-gold";
+	return (
+		<div>
+			<div className={`text-[10px] tracking-wider uppercase mb-1 ${cls}`}>{title}</div>
+			<ul className="space-y-0.5 list-disc ms-4 text-ink-dim">
+				{items.map((it, i) => (
+					<li key={i} className="text-[11px] leading-snug">{it}</li>
+				))}
+			</ul>
+		</div>
+	);
+}
+

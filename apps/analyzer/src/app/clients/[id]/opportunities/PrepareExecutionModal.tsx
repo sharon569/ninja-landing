@@ -1,10 +1,19 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { X, AlertTriangle, Loader2 } from "lucide-react";
+import { X, AlertTriangle, Loader2, Brain, ShieldAlert } from "lucide-react";
 import { ACTION_TYPE_LABELS, type ExecutionActionType } from "@/lib/execution";
+import {
+	BADGE_LABEL,
+	BADGE_TONE,
+	RISK_LABEL,
+	CONFIDENCE_LABEL,
+	NEXT_STEP_LABEL,
+	type DecisionSummary,
+} from "@/lib/decision";
 import { prepareExecutionForOpportunity } from "../execution/actions";
+import { getOpportunityDecision } from "./actions";
 
 export function PrepareExecutionModal({
 	opportunityId,
@@ -31,6 +40,31 @@ export function PrepareExecutionModal({
 	const [placementHint, setPlacementHint] = useState("");
 	const [snippet, setSnippet] = useState("");
 	const [placement, setPlacement] = useState("append");
+	// Phase 14C — load decision when modal opens
+	const [decision, setDecision] = useState<DecisionSummary | null>(null);
+	const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+	const [decisionLoaded, setDecisionLoaded] = useState(false);
+
+	useEffect(() => {
+		getOpportunityDecision(opportunityId).then((r) => {
+			if (r.ok && r.decision) {
+				setDecision(r.decision);
+				setAlreadyReviewed(!!r.alreadyReviewed);
+			}
+			setDecisionLoaded(true);
+		});
+	}, [opportunityId]);
+
+	// Server may still reject — surface in UX even before form submit.
+	const decisionBlocks =
+		decision &&
+		!alreadyReviewed &&
+		(decision.recommendedNextStep === "no_change" ||
+			decision.recommendedNextStep === "research_needed" ||
+			decision.recommendedNextStep === "monitor" ||
+			(decision.recommendedNextStep === "human_review" && !alreadyReviewed) ||
+			decision.riskLevel === "critical" ||
+			(decision.riskLevel === "high" && !alreadyReviewed));
 
 	function submit() {
 		setError(null);
@@ -80,6 +114,14 @@ export function PrepareExecutionModal({
 				</div>
 
 				<div className="space-y-4">
+					{/* Phase 14C — Decision summary at top of modal */}
+					{!decisionLoaded && (
+						<div className="text-xs text-ink-mute italic">בודק את ה-Decision Intelligence…</div>
+					)}
+					{decision && (
+						<DecisionMini decision={decision} alreadyReviewed={alreadyReviewed} clientId={clientId} opportunityId={opportunityId} />
+					)}
+
 					<div>
 						<label className="block text-xs uppercase tracking-wider text-ink-dim mb-1.5">סוג פעולה</label>
 						<select
@@ -241,15 +283,79 @@ export function PrepareExecutionModal({
 					<button
 						type="button"
 						onClick={submit}
-						disabled={pending}
-						className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
+						disabled={pending || !!decisionBlocks}
+						title={decisionBlocks ? "ה-Decision Intelligence חוסם את היצירה. סמן את ה-Opportunity כ-Reviewed אם אתה בטוח." : ""}
+						className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-bold text-white disabled:opacity-60 disabled:cursor-not-allowed"
 						style={{ background: "linear-gradient(135deg, #ff2a3c, #b3001b)" }}
 					>
 						{pending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-						צור Execution Action
+						{decisionBlocks ? "חסום ע״י Decision Guard" : "צור Execution Action"}
 					</button>
 				</div>
 			</div>
+		</div>
+	);
+}
+
+function DecisionMini({
+	decision,
+	alreadyReviewed,
+	clientId,
+	opportunityId,
+}: {
+	decision: DecisionSummary;
+	alreadyReviewed: boolean;
+	clientId: string;
+	opportunityId: string;
+}) {
+	const tone = BADGE_TONE[decision.badge];
+	const cls =
+		tone === "good"
+			? "border-go/30 bg-go/5"
+			: tone === "warn"
+				? "border-gold/30 bg-gold/5"
+				: tone === "bad"
+					? "border-blade/30 bg-blade/5"
+					: "border-ninja-line bg-ninja-black/40";
+	const blocked =
+		!alreadyReviewed &&
+		(decision.recommendedNextStep === "no_change" ||
+			decision.recommendedNextStep === "research_needed" ||
+			decision.recommendedNextStep === "monitor" ||
+			decision.recommendedNextStep === "human_review" ||
+			decision.riskLevel === "critical" ||
+			decision.riskLevel === "high");
+	return (
+		<div className={`rounded-md border px-3 py-2.5 ${cls}`}>
+			<div className="flex items-center gap-2 mb-1.5 flex-wrap">
+				<Brain className="w-4 h-4 text-gold" />
+				<span className="text-[10px] font-bold tracking-wider uppercase text-ink-dim">
+					Decision: {NEXT_STEP_LABEL[decision.recommendedNextStep]}
+				</span>
+				<span className="text-[10px] text-ink-mute">·</span>
+				<span className="text-[10px] text-ink-mute">{RISK_LABEL[decision.riskLevel]}</span>
+				<span className="text-[10px] text-ink-mute">·</span>
+				<span className="text-[10px] text-ink-mute">{CONFIDENCE_LABEL[decision.confidence]}</span>
+				{alreadyReviewed && (
+					<span className="text-[10px] text-go ms-auto">✓ Reviewed</span>
+				)}
+			</div>
+			{decision.whyThisIsBetter ? (
+				<div className="text-xs text-ink-dim leading-relaxed">{decision.whyThisIsBetter}</div>
+			) : (
+				<div className="text-xs text-blade">
+					המערכת לא בנתה הסבר עם נתונים מצדיקים — Execution חסום.
+				</div>
+			)}
+			{blocked && (
+				<div className="mt-2 text-xs text-blade flex items-start gap-1.5">
+					<ShieldAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+					<span>
+						היצירה חסומה ע״י Decision Guard. כדי לעקוף — היכנס לרשימת ה-Opportunities של הלקוח, פתח את ההזדמנות הזו, וסמן אותה כ-Reviewed{" "}
+						(<a href={`/clients/${clientId}/opportunities`} className="text-gold underline">פתח</a>).
+					</span>
+				</div>
+			)}
 		</div>
 	);
 }

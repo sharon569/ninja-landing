@@ -7,6 +7,7 @@ import type {
 	WorkflowAction,
 	WorkflowCounts,
 	ExecutionWorkflowBadge,
+	DecisionWorkflowBadge,
 } from "./workflow";
 import { priorityBand } from "./opportunities";
 
@@ -44,6 +45,25 @@ function needsDecisionFlag(sourceType: string, status: string): boolean {
 	if (sourceType === "content_brief" && status === "draft") return true;
 	if (sourceType === "internal_link" && status === "suggested") return true;
 	return false;
+}
+
+function decisionCacheToBadge(nextStep: string | null): DecisionWorkflowBadge | null {
+	switch (nextStep) {
+		case "safe_to_execute":
+			return "safe_to_test";
+		case "quick_win":
+			return "quick_win";
+		case "human_review":
+			return "needs_human_review";
+		case "monitor":
+			return "monitor_only";
+		case "no_change":
+			return "do_not_change_yet";
+		case "research_needed":
+			return "research_needed";
+		default:
+			return null;
+	}
 }
 
 function executionStatusToBadge(status: string): ExecutionWorkflowBadge | null {
@@ -117,6 +137,7 @@ export async function loadWorkflow(clientId: string): Promise<WorkflowItem[]> {
 			isMonitoring,
 			availableActions: actionsForOpportunity(o.status),
 			executionBadge: latestExecutionBySource.get(o.id) ?? null,
+			decisionBadge: decisionCacheToBadge(o.decisionNextStepCache),
 			sourceMeta: {
 				type: o.type,
 				manualActionUrl: o.manualActionUrl,
