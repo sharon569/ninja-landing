@@ -1,6 +1,8 @@
-﻿import { notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { deleteClient } from "@/app/actions";
+import { ProfileForm } from "./ProfileForm";
+import { calcProfileCompletion } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
 
@@ -28,12 +30,66 @@ export default async function SettingsPage({
 	});
 	if (!client) notFound();
 
+	const completion = calcProfileCompletion(client);
 	const deleteWithId = deleteClient.bind(null, client.id);
 
 	return (
 		<div className="space-y-10">
+			{/* SEO Profile */}
+			<section className="space-y-5">
+				<div className="flex flex-wrap items-end justify-between gap-3">
+					<div>
+						<h2 className="font-display text-2xl text-ink">
+							פרופיל <span className="text-brand-gradient">SEO</span>
+						</h2>
+						<p className="text-xs text-ink-dim mt-1">
+							ההגדרות שמכוונות את כל מנועי ה-SEO של הלקוח. ערכים מעודכנים נטענים אוטומטית לכל מנוע.
+						</p>
+					</div>
+					<div className="flex items-center gap-3 text-xs">
+						<div className="flex items-center gap-2">
+							<div className="w-32 h-1.5 rounded-full bg-ninja-raised overflow-hidden">
+								<div
+									className="h-full transition-all"
+									style={{
+										width: `${completion.percent}%`,
+										background:
+											completion.percent >= 100
+												? "#2ee685"
+												: completion.percent >= 70
+													? "#ffd166"
+													: "#ff2a3c",
+									}}
+								/>
+							</div>
+							<span className="tabular-nums text-ink font-bold">{completion.percent}%</span>
+						</div>
+						<span className="text-ink-dim">
+							{completion.percent === 100 ? "פרופיל מלא" : `${completion.missing.length} שדות חסרים`}
+						</span>
+					</div>
+				</div>
+
+				<ProfileForm
+					clientId={client.id}
+					initial={{
+						vertical: client.vertical,
+						language: client.language,
+						country: client.country,
+						serviceAreas: client.serviceAreas,
+						seoGoals: client.seoGoals,
+						targetPages: client.targetPages,
+						competitors: client.competitors,
+						brandVoice: client.brandVoice,
+						notes: client.notes,
+						automationLevel: client.automationLevel,
+						requireApprovalFor: client.requireApprovalFor,
+					}}
+				/>
+			</section>
+
 			{/* Connection details */}
-			<section className="space-y-3">
+			<section className="space-y-3 border-t border-ninja-line pt-10">
 				<h2 className="text-sm font-medium uppercase tracking-wider text-ink-dim">
 					Connection
 				</h2>
@@ -105,10 +161,10 @@ export default async function SettingsPage({
 
 			{/* Danger zone */}
 			<section className="space-y-3 border-t border-ninja-line pt-8">
-				<h2 className="text-sm font-medium uppercase tracking-wider text-red-700">
+				<h2 className="text-sm font-medium uppercase tracking-wider text-blade">
 					Danger zone
 				</h2>
-				<div className="rounded-lg border border-blade/30 bg-blade/10/50 px-5 py-4 flex items-center justify-between gap-6">
+				<div className="rounded-lg border border-blade/30 bg-blade/10 px-5 py-4 flex items-center justify-between gap-6">
 					<div>
 						<div className="text-sm font-medium text-ink">
 							Disconnect this client
@@ -120,7 +176,7 @@ export default async function SettingsPage({
 					<form action={deleteWithId}>
 						<button
 							type="submit"
-							className="inline-flex items-center rounded-md border border-red-300 bg-ninja-panel/60 px-3 py-1.5 text-sm text-red-700 hover:bg-blade/10"
+							className="inline-flex items-center rounded-md border border-blade/30 bg-ninja-panel/60 px-3 py-1.5 text-sm text-blade hover:bg-blade/10"
 						>
 							Disconnect
 						</button>

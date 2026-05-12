@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowRight, RefreshCw, Clock, AlertTriangle, FileText } from "lucide-react";
 import { db } from "@/lib/db";
 import { runScan } from "@/app/actions";
+import { ClientProfileCard } from "@/components/ClientProfileCard";
 
 export const dynamic = "force-dynamic";
 
@@ -70,6 +71,23 @@ export default async function ClientOverviewPage({
 
 	return (
 		<div className="space-y-8">
+			{/* SEO Profile summary */}
+			<ClientProfileCard
+				clientId={client.id}
+				profile={{
+					vertical: client.vertical,
+					language: client.language,
+					country: client.country,
+					serviceAreas: client.serviceAreas,
+					seoGoals: client.seoGoals,
+					targetPages: client.targetPages,
+					competitors: client.competitors,
+					brandVoice: client.brandVoice,
+					automationLevel: client.automationLevel,
+					requireApprovalFor: client.requireApprovalFor,
+				}}
+			/>
+
 			{/* Connection meta — compact strip, not a wall of cards */}
 			<dl className="flex flex-wrap items-baseline gap-x-8 gap-y-2 text-sm">
 				<MetaItem

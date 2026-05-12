@@ -39,6 +39,31 @@ model Client {
   gscPropertyUrl  String?
   gscLastSyncAt   DateTime?
 
+  // =====================================================================
+  // SEO Profile (Phase 1) — the "business brain" of the client.
+  // All optional so existing rows stay valid. Drives every downstream
+  // opportunity / recommendation engine.
+  // =====================================================================
+
+  // Business context
+  vertical        String?    // service | ecommerce | local_business | medical | legal | home_services | saas | content_site | other
+  language        String?    // he | en | ar | multi
+  country         String?    // ISO code or free text (e.g. "IL", "US")
+  serviceAreas    String[]   @default([])  // cities/regions for local businesses
+  seoGoals        String?    // free-text business goals
+
+  // SEO strategy
+  targetPages     String[]   @default([])  // URLs of money pages
+  competitors     String[]   @default([])  // competitor domains
+
+  // Content & brand
+  brandVoice      String?    // tone description
+  notes           String?    // internal notes
+
+  // Automation & approval policy
+  automationLevel    String    @default("balanced") // strict | balanced | aggressive
+  requireApprovalFor String[]  @default(["publish", "title_change", "meta_change", "content_change", "internal_link", "schema_change", "wordpress_update"])
+
   scans          Scan[]
   gscDailyRows   GscDailyRow[]
 
