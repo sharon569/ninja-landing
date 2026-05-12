@@ -28,6 +28,10 @@ export default async function ClientLayout({
 				select: { id: true, status: true },
 			},
 			contentBriefs: { select: { id: true } },
+			internalLinkSuggestions: {
+				where: { status: { in: ["suggested", "needs_human_review", "approved"] } },
+				select: { id: true },
+			},
 		},
 	});
 	if (!client) notFound();
@@ -38,6 +42,7 @@ export default async function ClientLayout({
 		(o) => o.status === "recommended" || o.status === "needs_human_review",
 	).length;
 	const briefsCount = client.contentBriefs.length;
+	const internalLinksCount = client.internalLinkSuggestions.length;
 
 	const host = (() => {
 		try {
@@ -82,6 +87,7 @@ export default async function ClientLayout({
 					{ label: "הזדמנויות", href: `/clients/${id}/opportunities`, count: opportunitiesCount },
 					{ label: "אישורים", href: `/clients/${id}/approvals`, count: approvalCount },
 					{ label: "בריפים", href: `/clients/${id}/briefs`, count: briefsCount },
+					{ label: "קישורים פנימיים", href: `/clients/${id}/internal-links`, count: internalLinksCount },
 					{ label: "השפעה", href: `/clients/${id}/impact`, count: monitoringCount },
 					{ label: "אודיט", href: `/clients/${id}/issues`, count: findingsCount },
 					{ label: "מילות מפתח", href: `/clients/${id}/keywords`, count: keywordsCount },

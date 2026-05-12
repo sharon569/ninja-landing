@@ -64,11 +64,12 @@ model Client {
   automationLevel    String    @default("balanced") // strict | balanced | aggressive
   requireApprovalFor String[]  @default(["publish", "title_change", "meta_change", "content_change", "internal_link", "schema_change", "wordpress_update"])
 
-  scans          Scan[]
-  gscDailyRows   GscDailyRow[]
-  targetKeywords TargetKeyword[]
-  opportunities  Opportunity[]
-  contentBriefs  ContentBrief[]
+  scans                   Scan[]
+  gscDailyRows            GscDailyRow[]
+  targetKeywords          TargetKeyword[]
+  opportunities           Opportunity[]
+  contentBriefs           ContentBrief[]
+  internalLinkSuggestions InternalLinkSuggestion[]
 
   @@index([baseUrl])
   @@schema("analyzer")
@@ -120,14 +121,52 @@ model Opportunity {
   updatedAt         DateTime @updatedAt
   detectedAt        DateTime @default(now())
 
-  actionLogs        OpportunityActionLog[]
-  baseline          ImpactBaseline?
-  impactReviews     ImpactReview[]
-  contentBriefs     ContentBrief[]
+  actionLogs              OpportunityActionLog[]
+  baseline                ImpactBaseline?
+  impactReviews           ImpactReview[]
+  contentBriefs           ContentBrief[]
+  internalLinkSuggestions InternalLinkSuggestion[]
 
   @@unique([clientId, type, relatedKeyword, relatedPage, relatedQuery])
   @@index([clientId, status])
   @@index([clientId, priorityScore(sort: Desc)])
+  @@schema("analyzer")
+}
+
+// Phase 6 — internal-linking suggestion. Heuristic graph analysis over
+// scan + GSC + keyword bank. No edge data from the plugin (counts only),
+// so this is a candidate-pair recommender, not a true graph mutator.
+model InternalLinkSuggestion {
+  id              String   @id @default(cuid())
+  clientId        String
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  sourcePage      String
+  sourceTitle     String?
+  targetPage      String
+  targetTitle     String?
+  suggestedAnchor String
+  reason          String
+  evidence        String   // JSON
+
+  priorityScore   Int      @default(0)
+  impact          String   @default("medium")  // low | medium | high
+  effort          String   @default("low")     // low | medium | high
+  confidence      String   @default("medium")  // low | medium | high
+  status          String   @default("suggested") // suggested | needs_human_review | approved | rejected | used | dismissed
+
+  opportunityId   String?
+  opportunity     Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  source          String?  // detector name
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([clientId, sourcePage, targetPage, suggestedAnchor])
+  @@index([clientId, status])
+  @@index([clientId, priorityScore(sort: Desc)])
+  @@index([clientId, targetPage])
   @@schema("analyzer")
 }
 

@@ -1,6 +1,6 @@
 ﻿import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, RefreshCw, Clock, AlertTriangle, FileText, Target, Sparkles, Activity, Heart, BookOpen } from "lucide-react";
+import { ArrowRight, RefreshCw, Clock, AlertTriangle, FileText, Target, Sparkles, Activity, Heart, BookOpen, Link2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { runScan } from "@/app/actions";
 import { ClientProfileCard } from "@/components/ClientProfileCard";
@@ -117,6 +117,21 @@ export default async function ClientOverviewPage({
 	const gscFreshDays = lastGscDate
 		? Math.floor((Date.now() - new Date(lastGscDate.fetchedAt).getTime()) / 86_400_000)
 		: null;
+
+	// Internal link suggestions summary
+	const links = await db.internalLinkSuggestion.findMany({
+		where: {
+			clientId: id,
+			status: { in: ["suggested", "needs_human_review", "approved"] },
+		},
+		select: { id: true, status: true, priorityScore: true, source: true },
+	});
+	const linkCounts = {
+		total: links.length,
+		highImpact: links.filter((l) => priorityBand(l.priorityScore).bucket === "high").length,
+		orphanSupport: links.filter((l) => l.source === "detectOrphanPageSupport").length,
+		approved: links.filter((l) => l.status === "approved").length,
+	};
 
 	// Content Briefs summary
 	const briefs = await db.contentBrief.findMany({
@@ -277,6 +292,47 @@ export default async function ClientOverviewPage({
 					</div>
 				)}
 			</Link>
+
+			{/* Internal Links card */}
+			{linkCounts.total > 0 && (
+				<Link
+					href={`/clients/${id}/internal-links`}
+					className="group flex items-center justify-between gap-6 rounded-xl border border-ninja-line bg-ninja-panel/60 px-5 py-4 hover:border-ninja-line-strong transition-colors"
+				>
+					<div className="flex items-center gap-3">
+						<div className="w-9 h-9 rounded-lg bg-ninja-raised border border-ninja-line flex items-center justify-center">
+							<Link2 className="w-4 h-4 text-gold" />
+						</div>
+						<div>
+							<div className="text-[10px] font-bold tracking-[0.25em] uppercase text-ink-mute">
+								Internal Links
+							</div>
+							<div className="text-sm text-ink mt-0.5">
+								<span className="font-semibold">{linkCounts.total}</span> הצעות פתוחות
+								{linkCounts.highImpact > 0 && (
+									<>
+										{" · "}
+										<span className="text-blade">{linkCounts.highImpact}</span> High Impact
+									</>
+								)}
+								{linkCounts.orphanSupport > 0 && (
+									<>
+										{" · "}
+										<span className="text-gold">{linkCounts.orphanSupport}</span> תמיכה ביתומים
+									</>
+								)}
+								{linkCounts.approved > 0 && (
+									<>
+										{" · "}
+										<span className="text-go">{linkCounts.approved}</span> מאושרות
+									</>
+								)}
+							</div>
+						</div>
+					</div>
+					<ArrowRight className="w-4 h-4 text-ink-mute group-hover:text-gold transition-colors" />
+				</Link>
+			)}
 
 			{/* Content Briefs card */}
 			{briefCounts.total > 0 && (

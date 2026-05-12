@@ -89,6 +89,16 @@ export default async function ReportPage({
 		take: 3,
 	});
 
+	// Top internal-link suggestions for the client-facing section
+	const topLinkSuggestions = await db.internalLinkSuggestion.findMany({
+		where: {
+			clientId: id,
+			status: { in: ["suggested", "needs_human_review", "approved"] },
+		},
+		orderBy: { priorityScore: "desc" },
+		take: 3,
+	});
+
 	const findings = latestScan.findings.map(
 		(f) => ({ ...f, parsed: JSON.parse(f.payload) as Finding }),
 	);
@@ -330,6 +340,34 @@ export default async function ReportPage({
 							</li>
 						))}
 					</ol>
+				</section>
+			)}
+
+			{/* Internal link opportunities — client-friendly */}
+			{topLinkSuggestions.length > 0 && (
+				<section className="space-y-5">
+					<h2 className="text-xs font-medium uppercase tracking-wider text-ink-dim">
+						הזדמנויות לקישורים פנימיים
+					</h2>
+					<p className="text-sm text-ink-dim max-w-3xl leading-relaxed">
+						זיהינו עמודים חשובים שיכולים לקבל קישורים פנימיים נוספים מעמודים אחרים באתר. קישורים פנימיים נכונים מחזקים את העמודים הרלוונטיים בעיני גוגל, ועוזרים למשתמשים למצוא את התוכן הנכון.
+					</p>
+					<ul className="space-y-3">
+						{topLinkSuggestions.map((s) => (
+							<li
+								key={s.id}
+								className="rounded-xl border border-ninja-line bg-ninja-panel/40 px-6 py-5"
+							>
+								<div className="text-sm text-ink leading-relaxed">
+									<span className="font-semibold">חיזוק עמוד:</span>{" "}
+									<span className="text-ink-dim">{s.targetTitle || s.targetPage}</span>
+								</div>
+								<p className="text-sm text-ink-dim mt-2 leading-relaxed">
+									{s.reason}
+								</p>
+							</li>
+						))}
+					</ul>
 				</section>
 			)}
 
