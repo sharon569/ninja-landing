@@ -22,6 +22,7 @@ export default async function ClientLayout({
 				take: 1,
 				include: { findings: { select: { id: true } } },
 			},
+			targetKeywords: { select: { id: true } },
 		},
 	});
 	if (!client) notFound();
@@ -35,6 +36,7 @@ export default async function ClientLayout({
 	})();
 	const homeUrl = client.baseUrl.replace(/\/wp-json.*/, "");
 	const findingsCount = client.scans[0]?.findings.length ?? 0;
+	const keywordsCount = client.targetKeywords.length;
 
 	return (
 		<div className="space-y-7">
@@ -65,6 +67,7 @@ export default async function ClientLayout({
 				items={[
 					{ label: "סקירה", href: `/clients/${id}` },
 					{ label: "אודיט", href: `/clients/${id}/issues`, count: findingsCount },
+					{ label: "מילות מפתח", href: `/clients/${id}/keywords`, count: keywordsCount },
 					{ label: "Search Console", href: `/clients/${id}/search` },
 					{ label: "דוח", href: `/clients/${id}/report` },
 					{ label: "הגדרות", href: `/clients/${id}/settings` },

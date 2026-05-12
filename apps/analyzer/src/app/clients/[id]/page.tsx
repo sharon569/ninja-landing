@@ -1,6 +1,6 @@
 ﻿import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, RefreshCw, Clock, AlertTriangle, FileText } from "lucide-react";
+import { ArrowRight, RefreshCw, Clock, AlertTriangle, FileText, Target } from "lucide-react";
 import { db } from "@/lib/db";
 import { runScan } from "@/app/actions";
 import { ClientProfileCard } from "@/components/ClientProfileCard";
@@ -57,9 +57,21 @@ export default async function ClientOverviewPage({
 					},
 				},
 			},
+			targetKeywords: {
+				select: { id: true, status: true, priority: true },
+			},
 		},
 	});
 	if (!client) notFound();
+
+	// Keyword summary
+	const kwTotal = client.targetKeywords.length;
+	const kwActive = client.targetKeywords.filter(
+		(k) => k.status === "active" || k.status === "ranking",
+	).length;
+	const kwTopPriority = client.targetKeywords.filter(
+		(k) => k.priority === "high" || k.priority === "critical",
+	).length;
 
 	const info: InfoCached = client.lastInfo ? JSON.parse(client.lastInfo) : {};
 	const latestScan = client.scans[0];
@@ -87,6 +99,40 @@ export default async function ClientOverviewPage({
 					requireApprovalFor: client.requireApprovalFor,
 				}}
 			/>
+
+			{/* Keyword bank chips */}
+			<Link
+				href={`/clients/${id}/keywords`}
+				className="group flex items-center justify-between gap-6 rounded-xl border border-ninja-line bg-ninja-panel/60 px-5 py-4 hover:border-ninja-line-strong transition-colors"
+			>
+				<div className="flex items-center gap-3">
+					<div className="w-9 h-9 rounded-lg bg-ninja-raised border border-ninja-line flex items-center justify-center">
+						<Target className="w-4 h-4 text-gold" />
+					</div>
+					<div>
+						<div className="text-[10px] font-bold tracking-[0.25em] uppercase text-ink-mute">
+							Keyword Bank
+						</div>
+						<div className="text-sm text-ink mt-0.5">
+							{kwTotal === 0 ? (
+								<span className="text-ink-dim">עדיין אין מילות יעד — לחץ להוספה</span>
+							) : (
+								<>
+									<span className="font-semibold">{kwTotal}</span> מילות מפתח ·{" "}
+									<span className="text-go">{kwActive}</span> פעילות
+									{kwTopPriority > 0 && (
+										<>
+											{" · "}
+											<span className="text-blade">{kwTopPriority}</span> עדיפות גבוהה/קריטית
+										</>
+									)}
+								</>
+							)}
+						</div>
+					</div>
+				</div>
+				<ArrowRight className="w-4 h-4 text-ink-mute group-hover:text-gold transition-colors" />
+			</Link>
 
 			{/* Connection meta — compact strip, not a wall of cards */}
 			<dl className="flex flex-wrap items-baseline gap-x-8 gap-y-2 text-sm">

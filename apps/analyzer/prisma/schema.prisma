@@ -66,8 +66,32 @@ model Client {
 
   scans          Scan[]
   gscDailyRows   GscDailyRow[]
+  targetKeywords TargetKeyword[]
 
   @@index([baseUrl])
+  @@schema("analyzer")
+}
+
+// Phase 2 — keywords the agency is trying to rank this client for.
+// Joined to GSC data on `keyword = query` for performance + opportunity views.
+model TargetKeyword {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  keyword   String                                // normalized to lowercase + trimmed at write time
+  intent    String?                               // commercial | informational | local | navigational | transactional | unknown
+  priority  String   @default("medium")           // low | medium | high | critical
+  targetUrl String?                               // the page this keyword should rank
+  status    String   @default("active")           // active | paused | won | lost | needs_content | needs_optimization | not_ranking | ranking
+  notes     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clientId, keyword])
+  @@index([clientId, status])
+  @@index([clientId, priority])
   @@schema("analyzer")
 }
 
