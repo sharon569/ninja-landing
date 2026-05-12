@@ -259,6 +259,30 @@ export async function setBriefHumanReview(
 		data.status = "needs_human_review";
 	}
 	await db.contentBrief.update({ where: { id: briefId }, data });
+
+	// Propagate the editorial approval back to the source Opportunity when the
+	// brief came from one. The Decision Guard for opp-sourced briefs checks
+	// `Opportunity.humanReviewedAt` (Phase 14C), not `Brief.humanReviewedAt`.
+	// Without this, approving the brief leaves the opp-level gate held — which
+	// surfaced in the 15E.2 pilot as "Decision Guard ביקש סקירה אנושית — סמן
+	// את ה-Opportunity המקור כ-Reviewed".
+	if (decision === "approved_for_execution" && brief.opportunityId) {
+		const opp = await db.opportunity.findUnique({
+			where: { id: brief.opportunityId },
+			select: { humanReviewedAt: true },
+		});
+		if (opp && !opp.humanReviewedAt) {
+			await db.opportunity.update({
+				where: { id: brief.opportunityId },
+				data: {
+					humanReviewedAt: new Date(),
+					humanReviewedBy: actor,
+					humanReviewNote: `Approved via brief ${briefId} — ${note?.trim() || "no note"}`,
+				},
+			});
+		}
+	}
+
 	revalAll(brief.clientId);
 	return { ok: true };
 }
