@@ -99,6 +99,27 @@ export default async function ReportPage({
 		take: 3,
 	});
 
+	// Technical SEO state summary
+	const techFindingsRaw = latestScan.findings.filter((f) =>
+		f.ruleId.startsWith("tech_"),
+	);
+	const techHighCount = techFindingsRaw.filter((f) => f.severity === "high").length;
+	const techMediumCount = techFindingsRaw.filter((f) => f.severity === "medium").length;
+	const techTopFindings = techFindingsRaw
+		.sort((a, b) => {
+			const order: Record<string, number> = { high: 0, medium: 1, low: 2, info: 3 };
+			return (order[a.severity] ?? 9) - (order[b.severity] ?? 9);
+		})
+		.slice(0, 4)
+		.map((f) => {
+			try {
+				return JSON.parse(f.payload) as Finding;
+			} catch {
+				return null;
+			}
+		})
+		.filter((f): f is Finding => f !== null);
+
 	const findings = latestScan.findings.map(
 		(f) => ({ ...f, parsed: JSON.parse(f.payload) as Finding }),
 	);
@@ -340,6 +361,48 @@ export default async function ReportPage({
 							</li>
 						))}
 					</ol>
+				</section>
+			)}
+
+			{/* Technical SEO state — client-friendly summary */}
+			{(techHighCount > 0 || techMediumCount > 0) && (
+				<section className="space-y-5">
+					<h2 className="text-xs font-medium uppercase tracking-wider text-ink-dim">
+						מצב טכני של האתר
+					</h2>
+					<p className="text-sm text-ink-dim max-w-3xl leading-relaxed">
+						אלו הבעיות הטכניות העיקריות שזיהינו (Sitemap, Robots, Indexability, ביצועים). תיקון מהיר של בעיות טכניות הוא לרוב ה-ROI הגדול ביותר ב-SEO — לפני שמשקיעים בתוכן או בקישורים.
+					</p>
+					<ul className="space-y-3">
+						{techTopFindings.map((f) => (
+							<li
+								key={f.ruleId}
+								className="rounded-xl border border-ninja-line bg-ninja-panel/40 px-6 py-5"
+							>
+								<div className="flex items-baseline justify-between gap-3 flex-wrap">
+									<h3 className="text-base font-semibold text-ink">{f.title}</h3>
+									<span
+										className={`text-[10px] font-bold tracking-wider uppercase rounded-full border px-2 py-0.5 ${
+											f.severity === "high"
+												? "text-blade border-blade/30 bg-blade/10"
+												: "text-gold border-gold/30 bg-gold/10"
+										}`}
+									>
+										{f.severity === "high" ? "קריטי" : "חשוב"}
+									</span>
+								</div>
+								<p className="text-sm text-ink-dim mt-2 leading-relaxed">{f.description}</p>
+								{f.fixHint && (
+									<p className="text-xs text-ink mt-3 rounded-md bg-ninja-raised/60 border border-ninja-line px-3 py-2">
+										<span className="text-[11px] uppercase tracking-wider text-ink-mute mr-2">
+											מה נעשה:
+										</span>
+										{f.fixHint}
+									</p>
+								)}
+							</li>
+						))}
+					</ul>
 				</section>
 			)}
 

@@ -17,7 +17,13 @@ export type AuditCategory =
 	| "images"
 	| "internal-linking"
 	| "schema"
-	| "cannibalization";
+	| "cannibalization"
+	// Phase 7 — technical SEO categories (filled by tech-audit-server.ts)
+	| "sitemap"
+	| "robots"
+	| "redirects"
+	| "performance"
+	| "multi-language";
 
 export const CATEGORY_LABELS: Record<AuditCategory, string> = {
 	"indexation": "אינדוקס וזחילה",
@@ -28,10 +34,18 @@ export const CATEGORY_LABELS: Record<AuditCategory, string> = {
 	"internal-linking": "קישוריות פנימית",
 	"schema": "סכמה מובנית",
 	"cannibalization": "קניבליזציה וכפילויות",
+	"sitemap": "Sitemap",
+	"robots": "Robots.txt",
+	"redirects": "Redirects & 404",
+	"performance": "ביצועים ו-Core Web Vitals",
+	"multi-language": "רב-לשוני (Hreflang)",
 };
 
 export const CATEGORY_ORDER: AuditCategory[] = [
 	"indexation",
+	"redirects",
+	"sitemap",
+	"robots",
 	"on-page-meta",
 	"content-structure",
 	"content-quality",
@@ -39,6 +53,8 @@ export const CATEGORY_ORDER: AuditCategory[] = [
 	"internal-linking",
 	"schema",
 	"cannibalization",
+	"performance",
+	"multi-language",
 ];
 
 export interface AffectedUrl {

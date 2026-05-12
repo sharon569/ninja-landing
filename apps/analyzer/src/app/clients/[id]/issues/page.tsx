@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { db } from "@/lib/db";
 import { CATEGORY_LABELS, CATEGORY_ORDER, type AuditCategory, type Finding } from "@/lib/audit/types";
+import { TechAuditButton } from "./TechAuditButton";
 
 export const dynamic = "force-dynamic";
 
@@ -71,19 +72,27 @@ export default async function AuditPage({
 
 	const totalAffected = findings.reduce((s, f) => s + f.count, 0);
 
+	const techFindingsCount = findings.filter((f) => f.parsed.ruleId.startsWith("tech_")).length;
+
 	return (
 		<div className="space-y-10">
 			{/* Top summary line */}
-			<div className="flex items-baseline justify-between gap-4">
+			<div className="flex flex-wrap items-start justify-between gap-4">
 				<div>
 					<p className="text-sm text-ink-dim">
 						{findings.length} סוגי ממצאים ב-{sections.length} קטגוריות, משפיעים על{" "}
 						<span className="font-semibold text-ink tabular-nums">{totalAffected.toLocaleString()}</span> דפים.
+						{techFindingsCount > 0 && (
+							<>
+								{" "}· <span className="text-gold">{techFindingsCount} טכניים</span>
+							</>
+						)}
 					</p>
 					<p className="text-xs text-ink-dim mt-1">
 						מתוך סריקה ב-{new Date(latestScan.ranAt).toLocaleString("he-IL")}
 					</p>
 				</div>
+				<TechAuditButton clientId={id} />
 			</div>
 
 			{/* Section per category */}
