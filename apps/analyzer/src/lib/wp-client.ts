@@ -84,6 +84,10 @@ export interface WritePostBody {
 	placement?: string;
 	dryRun: boolean;
 	requestId: string;
+	// Plugin v0.3.2+ — set true for rollback writes so the plugin accepts
+	// an empty title/desc/alt and DELETES the meta key (Yoast falls back to
+	// its template). Default false — normal writes still reject empty.
+	allowEmpty?: boolean;
 }
 
 export async function callWriteEndpoint(

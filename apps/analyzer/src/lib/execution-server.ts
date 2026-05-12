@@ -771,7 +771,18 @@ export async function rollbackAction(actionId: string, actor: string): Promise<{
 
 	let resp: WriteResponse;
 	try {
-		resp = await callPluginForAction(action.actionType as ExecutionActionType, client.baseUrl, client.token, rollbackPayload, /*dryRun*/ false, `${action.id}-rollback`);
+		// allowEmpty=true tells the plugin (v0.3.2+) to accept an empty
+		// rollback value and DELETE the Yoast/alt meta key, restoring the
+		// page to its pre-execute state (Yoast template fallback).
+		resp = await callPluginForAction(
+			action.actionType as ExecutionActionType,
+			client.baseUrl,
+			client.token,
+			rollbackPayload,
+			/*dryRun*/ false,
+			`${action.id}-rollback`,
+			/*allowEmpty*/ true,
+		);
 	} catch (err) {
 		await logExecutionEvent({
 			clientId: action.clientId,
@@ -900,10 +911,12 @@ async function callPluginForAction(
 	payload: CreatePayload,
 	dryRun: boolean,
 	requestId: string,
+	allowEmpty: boolean = false,
 ): Promise<WriteResponse> {
 	const common = {
 		dryRun,
 		requestId,
+		allowEmpty,
 		postId: payload.targetPostId,
 		url: payload.targetUrl,
 	};
