@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { deleteClient } from "@/app/actions";
 import { ProfileForm } from "./ProfileForm";
+import { AutomationToggles } from "./AutomationToggles";
 import { calcProfileCompletion } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
@@ -84,6 +85,29 @@ export default async function SettingsPage({
 						notes: client.notes,
 						automationLevel: client.automationLevel,
 						requireApprovalFor: client.requireApprovalFor,
+					}}
+				/>
+			</section>
+
+			{/* Automation */}
+			<section className="space-y-5 border-t border-ninja-line pt-10">
+				<div>
+					<h2 className="font-display text-2xl text-ink">
+						אוטומציה <span className="text-brand-gradient">יומית</span>
+					</h2>
+					<p className="text-xs text-ink-dim mt-1">
+						הגדרות הסנכרון האוטומטי שרץ כל יום ב-5:00. כשמשהו כבוי, הלקוח הזה לא נכלל בסנכרון האוטומטי הזה.
+					</p>
+				</div>
+				<AutomationToggles
+					clientId={client.id}
+					initial={{
+						status: client.status ?? "active",
+						automationEnabled: client.automationEnabled,
+						autoGscSyncEnabled: client.autoGscSyncEnabled,
+						autoTechAuditEnabled: client.autoTechAuditEnabled,
+						autoOpportunityAnalysisEnabled: client.autoOpportunityAnalysisEnabled,
+						autoImpactReviewEnabled: client.autoImpactReviewEnabled,
 					}}
 				/>
 			</section>

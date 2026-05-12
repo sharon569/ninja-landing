@@ -64,14 +64,53 @@ model Client {
   automationLevel    String    @default("balanced") // strict | balanced | aggressive
   requireApprovalFor String[]  @default(["publish", "title_change", "meta_change", "content_change", "internal_link", "schema_change", "wordpress_update"])
 
+  // Phase 10 — per-client automation toggles
+  status                          String  @default("active") // active | paused | archived
+  automationEnabled               Boolean @default(true)
+  autoGscSyncEnabled              Boolean @default(true)
+  autoTechAuditEnabled            Boolean @default(true)
+  autoOpportunityAnalysisEnabled  Boolean @default(true)
+  autoImpactReviewEnabled         Boolean @default(true)
+
   scans                   Scan[]
   gscDailyRows            GscDailyRow[]
   targetKeywords          TargetKeyword[]
   opportunities           Opportunity[]
   contentBriefs           ContentBrief[]
   internalLinkSuggestions InternalLinkSuggestion[]
+  automationRuns          AutomationRun[]
 
   @@index([baseUrl])
+  @@schema("analyzer")
+}
+
+// Phase 10 — log of every automation run (cron + manual). Parent agency
+// runs have clientId=null and children inherit a "parentRunId" reference
+// via the source field. Failures of one client don't fail siblings.
+model AutomationRun {
+  id            String   @id @default(cuid())
+  runType       String   // agency_auto_sync | gsc_sync | technical_audit | opportunity_analysis | impact_review | full_client_refresh
+  clientId      String?
+  client        Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  status        String   @default("running") // queued | running | success | partial_success | failed | skipped
+  triggeredBy   String?  // 'cron' | 'manual' | actor email
+  parentRunId   String?
+
+  startedAt     DateTime @default(now())
+  finishedAt    DateTime?
+  durationMs    Int?
+
+  summary       String?  // JSON blob with counts / details
+  error         String?
+  skippedReason String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([clientId, startedAt(sort: Desc)])
+  @@index([runType, startedAt(sort: Desc)])
+  @@index([status, startedAt(sort: Desc)])
+  @@index([parentRunId])
   @@schema("analyzer")
 }
 

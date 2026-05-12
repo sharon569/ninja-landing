@@ -8,7 +8,14 @@ export async function proxy(req: NextRequest) {
 	const { pathname } = req.nextUrl;
 	const res = NextResponse.next({ request: req });
 
-	if (PUBLIC_PATHS.has(pathname) || pathname.startsWith("/_next") || pathname.startsWith("/favicon")) {
+	if (
+		PUBLIC_PATHS.has(pathname) ||
+		pathname.startsWith("/_next") ||
+		pathname.startsWith("/favicon") ||
+		pathname.startsWith("/api/cron/")
+	) {
+		// /api/cron/ paths protect themselves with a CRON_SECRET bearer header,
+		// so they bypass the Supabase admin gate.
 		return res;
 	}
 

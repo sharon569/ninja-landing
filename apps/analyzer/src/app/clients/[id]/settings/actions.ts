@@ -84,3 +84,49 @@ export async function updateClientProfile(
 	revalidatePath("/");
 	return { ok: true };
 }
+
+// ─── Phase 10: automation toggles ─────────────────────────────
+
+export interface AutomationToggleState {
+	ok?: boolean;
+	error?: string;
+}
+
+const automationSchema = z.object({
+	status: z.enum(["active", "paused", "archived"]).default("active"),
+	automationEnabled: z.boolean().default(true),
+	autoGscSyncEnabled: z.boolean().default(true),
+	autoTechAuditEnabled: z.boolean().default(true),
+	autoOpportunityAnalysisEnabled: z.boolean().default(true),
+	autoImpactReviewEnabled: z.boolean().default(true),
+});
+
+export async function updateClientAutomation(
+	clientId: string,
+	_prev: AutomationToggleState | undefined,
+	formData: FormData,
+): Promise<AutomationToggleState> {
+	const parsed = automationSchema.safeParse({
+		status: (formData.get("status") as string) || "active",
+		automationEnabled: formData.get("automationEnabled") === "on",
+		autoGscSyncEnabled: formData.get("autoGscSyncEnabled") === "on",
+		autoTechAuditEnabled: formData.get("autoTechAuditEnabled") === "on",
+		autoOpportunityAnalysisEnabled: formData.get("autoOpportunityAnalysisEnabled") === "on",
+		autoImpactReviewEnabled: formData.get("autoImpactReviewEnabled") === "on",
+	});
+	if (!parsed.success) {
+		return { error: parsed.error.issues.map((i) => i.message).join("; ") };
+	}
+	try {
+		await db.client.update({
+			where: { id: clientId },
+			data: parsed.data,
+		});
+	} catch (err) {
+		return { error: `Database error: ${(err as Error).message}` };
+	}
+	revalidatePath(`/clients/${clientId}/settings`);
+	revalidatePath("/");
+	revalidatePath("/automation");
+	return { ok: true };
+}

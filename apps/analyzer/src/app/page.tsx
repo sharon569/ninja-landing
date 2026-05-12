@@ -11,10 +11,13 @@ import {
 	ShieldAlert,
 	BookOpen,
 	Clock,
+	Bot,
 } from "lucide-react";
 import { loadAgencyDashboard } from "@/lib/agency-server";
 import { bandToneClass, type ClientSummary, type HealthBandFilter } from "@/lib/agency";
 import { priorityBand } from "@/lib/opportunities";
+import { db } from "@/lib/db";
+import { runStatusLabel, runStatusTone } from "@/lib/automation";
 import { AgencyFilters } from "./AgencyFilters";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +48,22 @@ export default async function AgencyDashboard({
 	searchParams: Promise<SearchParams>;
 }) {
 	const sp = await searchParams;
-	const data = await loadAgencyDashboard();
+	const [data, lastAgencyRun] = await Promise.all([
+		loadAgencyDashboard(),
+		db.automationRun.findFirst({
+			where: { runType: "agency_auto_sync" },
+			orderBy: { startedAt: "desc" },
+			select: {
+				id: true,
+				status: true,
+				summary: true,
+				startedAt: true,
+				finishedAt: true,
+				durationMs: true,
+				error: true,
+			},
+		}),
+	]);
 
 	if (data.clients.length === 0) {
 		return (
@@ -121,6 +139,9 @@ export default async function AgencyDashboard({
 				<Chip label="טכני חמור" value={data.totals.totalTechCritical} tone="bad" />
 				<Chip label="בריפים לסקירה" value={data.totals.totalBriefsPending} tone="warn" />
 			</div>
+
+			{/* Automation Status */}
+			<AutomationStatusCard run={lastAgencyRun} />
 
 			{/* Health band distribution */}
 			<HealthBandStrip totals={data.totals} totalClients={data.clients.length} />
@@ -323,6 +344,89 @@ export default async function AgencyDashboard({
 				</section>
 			)}
 		</div>
+	);
+}
+
+function AutomationStatusCard({
+	run,
+}: {
+	run: {
+		id: string;
+		status: string;
+		summary: string | null;
+		startedAt: Date;
+		finishedAt: Date | null;
+		durationMs: number | null;
+		error: string | null;
+	} | null;
+}) {
+	if (!run) {
+		return (
+			<Link
+				href="/automation"
+				className="flex items-center justify-between gap-4 rounded-xl border border-dashed border-ninja-line bg-ninja-panel/40 px-5 py-4 hover:border-ninja-line-strong transition-colors"
+			>
+				<div className="flex items-center gap-3">
+					<Bot className="w-5 h-5 text-ink-mute" />
+					<div>
+						<div className="text-sm text-ink">אוטומציה לא הופעלה עדיין</div>
+						<div className="text-xs text-ink-dim mt-0.5">לחץ להגדרה והפעלה ראשונה</div>
+					</div>
+				</div>
+				<ArrowLeft className="w-4 h-4 text-ink-mute" />
+			</Link>
+		);
+	}
+
+	let s: Record<string, number> = {};
+	try {
+		s = run.summary ? JSON.parse(run.summary) : {};
+	} catch {
+		s = {};
+	}
+	const tone = runStatusTone(run.status);
+	const toneClass =
+		tone === "good"
+			? "border-go/30 bg-go/5"
+			: tone === "warn"
+				? "border-gold/30 bg-gold/5"
+				: tone === "bad"
+					? "border-blade/30 bg-blade/5"
+					: "border-ninja-line bg-ninja-panel/60";
+	const min = Math.floor((Date.now() - run.startedAt.getTime()) / 60_000);
+	const agoText =
+		min < 60 ? `לפני ${min} דק׳` : min < 24 * 60 ? `לפני ${Math.floor(min / 60)} שע׳` : `לפני ${Math.floor(min / (24 * 60))} ימים`;
+	return (
+		<Link
+			href="/automation"
+			className={`flex flex-wrap items-center justify-between gap-4 rounded-xl border px-5 py-4 transition-colors hover:bg-ninja-raised/30 ${toneClass}`}
+		>
+			<div className="flex items-center gap-3 min-w-0">
+				<Bot className="w-5 h-5 text-gold shrink-0" />
+				<div className="min-w-0">
+					<div className="text-sm text-ink flex items-baseline gap-2 flex-wrap">
+						<span className="font-bold">סנכרון סוכנות אחרון</span>
+						<span className="text-xs text-ink-dim">· {runStatusLabel(run.status)} ·</span>
+						<span className="text-xs text-ink-mute">{agoText}</span>
+					</div>
+					<div className="text-xs text-ink-dim mt-0.5 truncate">
+						{run.error ? (
+							<span className="text-blade">{run.error}</span>
+						) : (
+							<>
+								{s.clientsProcessed ?? 0} לקוחות עובדו · {s.clientsSkipped ?? 0} דולגו · {s.clientsFailed ?? 0} כשלים ·{" "}
+								{s.totalOpportunitiesCreatedOrUpdated ?? 0} הזדמנויות · {s.totalTechFindings ?? 0} ממצאים טכניים ·{" "}
+								{s.totalImpactReviews ?? 0} Impact Reviews
+							</>
+						)}
+					</div>
+				</div>
+			</div>
+			<div className="flex items-center gap-2 text-xs text-ink-dim shrink-0">
+				צפה בלוג
+				<ArrowLeft className="w-4 h-4" />
+			</div>
+		</Link>
 	);
 }
 
