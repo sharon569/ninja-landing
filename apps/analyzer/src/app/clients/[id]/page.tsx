@@ -1,9 +1,10 @@
 ﻿import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, RefreshCw, Clock, AlertTriangle, FileText, Target } from "lucide-react";
+import { ArrowRight, RefreshCw, Clock, AlertTriangle, FileText, Target, Sparkles } from "lucide-react";
 import { db } from "@/lib/db";
 import { runScan } from "@/app/actions";
 import { ClientProfileCard } from "@/components/ClientProfileCard";
+import { priorityBand } from "@/lib/opportunities";
 
 export const dynamic = "force-dynamic";
 
@@ -60,9 +61,29 @@ export default async function ClientOverviewPage({
 			targetKeywords: {
 				select: { id: true, status: true, priority: true },
 			},
+			opportunities: {
+				where: { status: { in: ["detected", "recommended", "needs_human_review", "approved"] } },
+				orderBy: { priorityScore: "desc" },
+				take: 1,
+				select: { id: true, title: true, priorityScore: true, type: true },
+			},
 		},
 	});
 	if (!client) notFound();
+
+	const opps = await db.opportunity.findMany({
+		where: {
+			clientId: id,
+			status: { in: ["detected", "recommended", "needs_human_review", "approved"] },
+		},
+		select: { priorityScore: true, status: true },
+	});
+	const oppCounts = {
+		total: opps.length,
+		high: opps.filter((o) => priorityBand(o.priorityScore).bucket === "high").length,
+		quick: opps.filter((o) => priorityBand(o.priorityScore).bucket === "quick").length,
+	};
+	const topOpp = client.opportunities[0];
 
 	// Keyword summary
 	const kwTotal = client.targetKeywords.length;
@@ -99,6 +120,63 @@ export default async function ClientOverviewPage({
 					requireApprovalFor: client.requireApprovalFor,
 				}}
 			/>
+
+			{/* Opportunities card */}
+			<Link
+				href={`/clients/${id}/opportunities`}
+				className="group block rounded-xl border border-ninja-line bg-ninja-panel/60 px-5 py-4 hover:border-ninja-line-strong transition-colors"
+			>
+				<div className="flex items-center justify-between gap-6">
+					<div className="flex items-center gap-3">
+						<div className="w-9 h-9 rounded-lg bg-ninja-raised border border-ninja-line flex items-center justify-center">
+							<Sparkles className="w-4 h-4 text-gold" />
+						</div>
+						<div>
+							<div className="text-[10px] font-bold tracking-[0.25em] uppercase text-ink-mute">
+								SEO Opportunities
+							</div>
+							<div className="text-sm text-ink mt-0.5">
+								{oppCounts.total === 0 ? (
+									<span className="text-ink-dim">לא הורצה ניתוח עדיין — לחץ לעבור לעמוד</span>
+								) : (
+									<>
+										<span className="font-semibold">{oppCounts.total}</span> פעילות
+										{oppCounts.high > 0 && (
+											<>
+												{" · "}
+												<span className="text-blade">{oppCounts.high}</span> High Impact
+											</>
+										)}
+										{oppCounts.quick > 0 && (
+											<>
+												{" · "}
+												<span className="text-gold">{oppCounts.quick}</span> Quick Wins
+											</>
+										)}
+									</>
+								)}
+							</div>
+						</div>
+					</div>
+					<ArrowRight className="w-4 h-4 text-ink-mute group-hover:text-gold transition-colors" />
+				</div>
+				{topOpp && (
+					<div className="mt-3 pt-3 border-t border-ninja-line">
+						<div className="text-[10px] font-bold tracking-wider uppercase text-ink-mute mb-1">
+							הפעולה החשובה ביותר השבוע
+						</div>
+						<div className="flex items-baseline gap-3">
+							<span
+								className="font-display text-lg tabular-nums"
+								style={{ color: priorityBand(topOpp.priorityScore).color }}
+							>
+								{topOpp.priorityScore}
+							</span>
+							<span className="text-sm text-ink">{topOpp.title}</span>
+						</div>
+					</div>
+				)}
+			</Link>
 
 			{/* Keyword bank chips */}
 			<Link

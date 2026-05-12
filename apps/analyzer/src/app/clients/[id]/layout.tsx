@@ -23,6 +23,10 @@ export default async function ClientLayout({
 				include: { findings: { select: { id: true } } },
 			},
 			targetKeywords: { select: { id: true } },
+			opportunities: {
+				where: { status: { in: ["detected", "recommended", "needs_human_review", "approved"] } },
+				select: { id: true },
+			},
 		},
 	});
 	if (!client) notFound();
@@ -37,6 +41,7 @@ export default async function ClientLayout({
 	const homeUrl = client.baseUrl.replace(/\/wp-json.*/, "");
 	const findingsCount = client.scans[0]?.findings.length ?? 0;
 	const keywordsCount = client.targetKeywords.length;
+	const opportunitiesCount = client.opportunities.length;
 
 	return (
 		<div className="space-y-7">
@@ -66,6 +71,7 @@ export default async function ClientLayout({
 			<SubNav
 				items={[
 					{ label: "סקירה", href: `/clients/${id}` },
+					{ label: "הזדמנויות", href: `/clients/${id}/opportunities`, count: opportunitiesCount },
 					{ label: "אודיט", href: `/clients/${id}/issues`, count: findingsCount },
 					{ label: "מילות מפתח", href: `/clients/${id}/keywords`, count: keywordsCount },
 					{ label: "Search Console", href: `/clients/${id}/search` },

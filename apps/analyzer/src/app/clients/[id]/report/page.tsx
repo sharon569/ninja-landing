@@ -61,6 +61,16 @@ export default async function ReportPage({
 	const totalImpressions = gscRows.reduce((s, r) => s + r.impressions, 0);
 	const hasGsc = gscRows.length > 0;
 
+	// Top 5 active opportunities for the client-facing recommendations section
+	const topOpps = await db.opportunity.findMany({
+		where: {
+			clientId: id,
+			status: { in: ["detected", "recommended", "needs_human_review", "approved"] },
+		},
+		orderBy: { priorityScore: "desc" },
+		take: 5,
+	});
+
 	const findings = latestScan.findings.map(
 		(f) => ({ ...f, parsed: JSON.parse(f.payload) as Finding }),
 	);
@@ -266,6 +276,42 @@ export default async function ReportPage({
 							</article>
 						))}
 					</div>
+				</section>
+			)}
+
+			{/* Opportunities — client-friendly recommendations */}
+			{topOpps.length > 0 && (
+				<section className="space-y-5">
+					<h2 className="text-xs font-medium uppercase tracking-wider text-ink-dim">
+						הזדמנויות SEO שזיהינו
+					</h2>
+					<p className="text-sm text-ink-dim max-w-3xl leading-relaxed">
+						אלו ההזדמנויות המובילות שהמערכת זיהתה מתוך ניתוח הנתונים — בסדר עדיפויות, כאשר העליונה היא בעלת הפוטנציאל הגדול ביותר לתוצאות מהירות.
+					</p>
+					<ol className="space-y-3">
+						{topOpps.map((o, i) => (
+							<li
+								key={o.id}
+								className="rounded-xl border border-ninja-line bg-ninja-panel/40 px-6 py-5"
+							>
+								<div className="flex items-start gap-4">
+									<div className="flex-shrink-0 w-7 h-7 rounded-full bg-ninja-raised border border-ninja-line flex items-center justify-center text-sm font-semibold text-ink">
+										{i + 1}
+									</div>
+									<div className="flex-1 min-w-0">
+										<h3 className="text-base font-semibold text-ink">{o.title}</h3>
+										<p className="text-sm text-ink-dim mt-2 leading-relaxed">{o.description}</p>
+										<div className="mt-3 rounded-md bg-ninja-raised/60 border border-ninja-line px-4 py-3">
+											<div className="text-[11px] uppercase tracking-wider text-ink-mute mb-1">
+												מה אנחנו עומדים לעשות
+											</div>
+											<p className="text-sm text-ink leading-relaxed">{o.recommendedAction}</p>
+										</div>
+									</div>
+								</div>
+							</li>
+						))}
+					</ol>
 				</section>
 			)}
 

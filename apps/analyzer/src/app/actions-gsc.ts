@@ -57,12 +57,14 @@ export async function syncGsc(clientId: string): Promise<void> {
 
 	const { startDate, endDate } = defaultDateRange();
 
+	// Phase 3: pull page dimension too so we can detect cannibalization,
+	// per-page declines, and which page is ranking for a given keyword.
 	const rows = await searchAnalyticsQuery({
 		refreshToken: account.refreshToken,
 		propertyUrl: client.gscPropertyUrl,
 		startDate,
 		endDate,
-		dimensions: ["date", "query"],
+		dimensions: ["date", "query", "page"],
 		rowLimit: 25_000,
 	});
 
@@ -79,7 +81,7 @@ export async function syncGsc(clientId: string): Promise<void> {
 				clientId,
 				date: r.keys[0],
 				query: r.keys[1],
-				page: null,
+				page: r.keys[2] ?? null,
 				clicks: r.clicks,
 				impressions: r.impressions,
 				ctr: r.ctr,
