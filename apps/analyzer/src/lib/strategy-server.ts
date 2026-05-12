@@ -74,15 +74,21 @@ export async function computeKeywordStrategy(
 			select: { id: true, status: true, sourcePage: true, targetPage: true, suggestedAnchor: true },
 			take: 5,
 		}),
-		db.executionAction.findMany({
-			where: {
-				clientId: tk.clientId,
-				targetUrl: snapshot.rankingPage ?? "_never",
-			},
-			select: { id: true, status: true, actionType: true },
-			orderBy: { updatedAt: "desc" },
-			take: 5,
-		}),
+		(async () => {
+			// Match executions on either the ranking page (preferred) OR the
+			// keyword's target URL when no ranking page was identified — for
+			// clients whose GSC sync skipped the page dimension.
+			const urls: string[] = [];
+			if (snapshot.rankingPage) urls.push(snapshot.rankingPage);
+			if (tk.targetUrl && !urls.includes(tk.targetUrl)) urls.push(tk.targetUrl);
+			if (urls.length === 0) return [];
+			return db.executionAction.findMany({
+				where: { clientId: tk.clientId, targetUrl: { in: urls } },
+				select: { id: true, status: true, actionType: true },
+				orderBy: { updatedAt: "desc" },
+				take: 5,
+			});
+		})(),
 	]);
 
 	const strategyType = classifyStrategy(snapshot);
@@ -157,6 +163,10 @@ async function buildSnapshot(
 	let bestPage: string | null = null;
 	let bestScore = -1;
 	for (const [page, e] of byPage.entries()) {
+		// Ignore null pages when picking the ranking page — they're query-only
+		// GSC rows (sync that didn't pull page dim). They still count toward
+		// impressions/position but they can't be a "ranking page".
+		if (page === null) continue;
 		const score = e.clicks * 1000 + e.impressions;
 		if (score > bestScore) {
 			bestScore = score;
@@ -164,10 +174,28 @@ async function buildSnapshot(
 		}
 	}
 	const bestEntry = bestPage !== null ? byPage.get(bestPage) : null;
-	const bestPosition = bestEntry && bestEntry.weights.reduce((a, b) => a + b, 0) > 0
-		? bestEntry.positions.reduce((acc, p, i) => acc + p * bestEntry.weights[i], 0) /
-			bestEntry.weights.reduce((a, b) => a + b, 0)
-		: null;
+	// Position: prefer the ranking page's position; fall back to the
+	// query-level weighted average over ALL rows (including page=null). This
+	// matters for clients whose GSC sync runs without the page dimension —
+	// we still know the average rank even if we can't attribute to one page.
+	let bestPosition: number | null = null;
+	if (bestEntry && bestEntry.weights.reduce((a, b) => a + b, 0) > 0) {
+		bestPosition =
+			bestEntry.positions.reduce((acc, p, i) => acc + p * bestEntry.weights[i], 0) /
+			bestEntry.weights.reduce((a, b) => a + b, 0);
+	} else if (totalImpressions > 0) {
+		// Aggregate over all rows regardless of page
+		const allPositions: number[] = [];
+		const allWeights: number[] = [];
+		for (const e of byPage.values()) {
+			allPositions.push(...e.positions);
+			allWeights.push(...e.weights);
+		}
+		const w = allWeights.reduce((a, b) => a + b, 0);
+		if (w > 0) {
+			bestPosition = allPositions.reduce((acc, p, i) => acc + p * allWeights[i], 0) / w;
+		}
+	}
 
 	const positionBucket = bucketize(bestPosition, totalImpressions);
 	const ctrPct = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
@@ -431,7 +459,7 @@ function buildActionPlan(args: {
 				stepNumber: n++,
 				actionType: "monitor",
 				action: "מעקב יומי על המיקום והקליקים של הביטוי",
-				why: `הביטוי "${s.keyword}" מדורג ${s.currentPosition?.toFixed(1) ?? "?"} (Top 3) עם ${fmt(s.clicks28d)} קליקים מתוך ${fmt(s.impressions28d)} חשיפות. כל שינוי אגרסיבי מסכן את הביצוע הקיים. ראשית — לוודא שאין נסיגה לא מוסברת.`,
+				why: `הביטוי "${s.keyword}" מדורג ${s.currentPosition?.toFixed(1) ?? "?"} (Top 3) עם ${clickPhrase(s.clicks28d)} מתוך ${fmt(s.impressions28d)} חשיפות. כל שינוי אגרסיבי מסכן את הביצוע הקיים. ראשית — לוודא שאין נסיגה לא מוסברת.`,
 				expectedImpact: "שמירה על המיקום הקיים, זיהוי מוקדם של ירידה",
 				risk: "low",
 				effort: "low",
@@ -484,8 +512,8 @@ function buildActionPlan(args: {
 			steps.push({
 				stepNumber: n++,
 				actionType: "internal_linking",
-				action: `הוספת 2-3 קישורים פנימיים מעמודים קרובים אלוfו עם anchor שמכיל את "${s.keyword}" או וריאציה`,
-				why: `העמוד כבר מקבל ${fmt(s.clicks28d)} קליקים אז יש בסיס. חיזוק authority פנימי בעדינות יכול לדחוף את המיקום ל-Top 5 בלי שינוי חזיתי באתר. בחר מקורות מעמודים שמדורגים על ביטויים קרובים.`,
+				action: `הוספת 2-3 קישורים פנימיים מעמודים קרובים אליו עם anchor שמכיל את "${s.keyword}" או וריאציה`,
+				why: `העמוד כבר מקבל ${clickPhrase(s.clicks28d)} אז יש בסיס מינימלי. חיזוק authority פנימי בעדינות יכול לדחוף את המיקום ל-Top 5 בלי שינוי חזיתי באתר. בחר מקורות מעמודים שמדורגים על ביטויים קרובים.`,
 				expectedImpact: "תמיכה הדרגתית במיקום, נמדדת ב-30 ימים",
 				risk: "low",
 				effort: "low",
@@ -513,7 +541,7 @@ function buildActionPlan(args: {
 				stepNumber: n++,
 				actionType: "content_expansion",
 				action: `הוספת פסקה/H2 שעונה ישירות על "${s.keyword}" עם פרטים ספציפיים`,
-				why: `העמוד במיקום ${s.currentPosition?.toFixed(1)} (${POSITION_BUCKET_HEBREW(s.positionBucket)}) עם ${fmt(s.impressions28d)} חשיפות אבל רק ${fmt(s.clicks28d)} קליקים. במיקום הזה Title/Meta יעזרו פחות — צריך לחזק את התשובה שגוגל רואה כדי לעלות למעלה. ${s.intent === "informational" ? "כוונת החיפוש מידעית — תוכן מעמיק הוא הדרך." : "תוכן ספציפי יותר יעזור לטרגוט מדויק."}`,
+				why: `העמוד במיקום ${s.currentPosition?.toFixed(1)} (${POSITION_BUCKET_HEBREW(s.positionBucket)}) עם ${fmt(s.impressions28d)} חשיפות אבל רק ${clickPhrase(s.clicks28d)}. במיקום הזה Title/Meta יעזרו פחות — צריך לחזק את התשובה שגוגל רואה כדי לעלות למעלה. ${s.intent === "informational" ? "כוונת החיפוש מידעית — תוכן מעמיק הוא הדרך." : "תוכן ספציפי יותר יעזור לטרגוט מדויק."}`,
 				expectedImpact: "עלייה הדרגתית במיקום מ-" + (s.currentPosition?.toFixed(1) ?? "?") + " ל-6-10 תוך 30 ימים",
 				risk: "medium",
 				effort: "medium",
@@ -556,7 +584,7 @@ function buildActionPlan(args: {
 				stepNumber: n++,
 				actionType: "internal_linking",
 				action: `הוספת 3-5 קישורים פנימיים לעמוד הזה מעמודים שמקבלים תנועה`,
-				why: `העמוד במיקום ${s.currentPosition?.toFixed(1)} (Top 5) עם ${fmt(s.clicks28d)} קליקים — קרוב מאוד אבל לא בפסגה. שינוי Title באזור הזה מסוכן (יכול לזרוק ל-6-10). חיזוק authority פנימי הוא הצעד הבטוח: anchor טבעי שמכיל את "${s.keyword}" או וריאציה.`,
+				why: `העמוד במיקום ${s.currentPosition?.toFixed(1)} (Top 5) עם ${clickPhrase(s.clicks28d)} — קרוב מאוד אבל לא בפסגה. שינוי Title באזור הזה מסוכן (יכול לזרוק ל-6-10). חיזוק authority פנימי הוא הצעד הבטוח: anchor טבעי שמכיל את "${s.keyword}" או וריאציה.`,
 				expectedImpact: "עלייה הדרגתית מ-" + (s.currentPosition?.toFixed(1) ?? "?") + " לכיוון Top 3 תוך 30 ימים",
 				risk: "low",
 				effort: "medium",
@@ -676,6 +704,14 @@ function buildActionPlan(args: {
 	return steps.filter((s) => isSubstantiveActionWhy(s.why));
 }
 
+/** Hebrew pluralization for clicks/impressions counts. */
+function clickPhrase(n: number): string {
+	if (n === 0) return "0 קליקים";
+	if (n === 1) return "קליק אחד";
+	if (n === 2) return "2 קליקים";
+	return `${n.toLocaleString()} קליקים`;
+}
+
 function POSITION_BUCKET_HEBREW(b: KeywordResearchSnapshot["positionBucket"]): string {
 	switch (b) {
 		case "1-3": return "Top 3";
@@ -698,7 +734,7 @@ function buildResearchNotes(s: KeywordResearchSnapshot, type: StrategyType): Res
 
 	const fmt = (n: number) => new Intl.NumberFormat("he-IL").format(Math.round(n));
 
-	know.push(`"${s.keyword}" — מיקום ${s.currentPosition?.toFixed(1) ?? "?"} (${POSITION_BUCKET_HEBREW(s.positionBucket)}) · ${fmt(s.impressions28d)} חשיפות · ${fmt(s.clicks28d)} קליקים · CTR ${s.ctrPct.toFixed(1)}%`);
+	know.push(`"${s.keyword}" — מיקום ${s.currentPosition?.toFixed(1) ?? "?"} (${POSITION_BUCKET_HEBREW(s.positionBucket)}) · ${fmt(s.impressions28d)} חשיפות · ${clickPhrase(s.clicks28d)} · CTR ${s.ctrPct.toFixed(1)}%`);
 	if (s.rankingPage) know.push(`עמוד שמדורג: ${s.rankingPage}`);
 	if (s.topQueriesOnRankingPage.length > 0) {
 		know.push(`${s.topQueriesOnRankingPage.length} ביטויים נוספים מובילים על אותו עמוד`);
@@ -770,5 +806,5 @@ function buildSummary(args: {
 
 	const fmt = (n: number) => new Intl.NumberFormat("he-IL").format(Math.round(n));
 
-	return `"${s.keyword}" · מיקום ${pos} · ${fmt(s.impressions28d)} חשיפות · ${fmt(s.clicks28d)} קליקים · CTR ${s.ctrPct.toFixed(1)}% — ${verdict} (${score}/100). אסטרטגיה: ${args.strategyType}.`;
+	return `"${s.keyword}" · מיקום ${pos} · ${fmt(s.impressions28d)} חשיפות · ${clickPhrase(s.clicks28d)} · CTR ${s.ctrPct.toFixed(1)}% — ${verdict} (${score}/100). אסטרטגיה: ${args.strategyType}.`;
 }
