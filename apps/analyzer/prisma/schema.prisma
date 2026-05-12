@@ -87,6 +87,7 @@ model Client {
   internalLinkSuggestions InternalLinkSuggestion[]
   automationRuns          AutomationRun[]
   executionActions        ExecutionAction[]
+  executionEvents         ExecutionEvent[]
 
   @@index([baseUrl])
   @@schema("analyzer")
@@ -161,9 +162,46 @@ model ExecutionAction {
   cancelledAt   DateTime?
   rolledBackAt  DateTime?
 
+  events        ExecutionEvent[]
+
   @@index([clientId, status, updatedAt(sort: Desc)])
   @@index([sourceType, sourceId])
   @@index([clientId, actionType])
+  @@schema("analyzer")
+}
+
+// Phase 13 — Execution telemetry feed. One row per noteworthy moment in the
+// Execution Engine lifecycle. Designed as an append-only feed for UI display
+// + alert dispatch. The Engine itself never reads back from this table; it's
+// pure observability + alerting.
+model ExecutionEvent {
+  id                  String   @id @default(cuid())
+  clientId            String
+  client              Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  executionActionId   String?
+  executionAction     ExecutionAction? @relation(fields: [executionActionId], references: [id], onDelete: SetNull)
+
+  eventType           String   // dry_run_completed | dry_run_failed | dry_run_stale | execution_started | execution_succeeded | execution_failed | rollback_succeeded | rollback_blocked_drift | execution_stuck | readiness_failed | plugin_unreachable | write_api_disabled | test_alert
+  severity            String   @default("info") // info | success | warning | error | critical
+
+  title               String
+  message             String?
+  metadata            String?  // JSON — short, sanitized
+
+  createdAt           DateTime @default(now())
+
+  // Alerting bookkeeping. notificationStatus values:
+  // "skipped_disabled" | "skipped_severity" | "skipped_dedupe" | "sent" |
+  // "partial" | "failed" | "no_channel"
+  notifiedAt          DateTime?
+  notificationStatus  String?
+  notificationChannel String?  // 'slack' | 'email' | 'slack,email'
+
+  @@index([clientId, createdAt(sort: Desc)])
+  @@index([eventType, createdAt(sort: Desc)])
+  @@index([executionActionId])
+  @@index([severity, createdAt(sort: Desc)])
   @@schema("analyzer")
 }
 

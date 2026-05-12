@@ -129,3 +129,22 @@ export async function testWriteApi(clientId: string): Promise<TestApiResult> {
 		return { error: (err as Error).message };
 	}
 }
+
+// Phase 13 — Manual alert test. Logs a test_alert event which (gated by env)
+// dispatches a real Slack/email notification so Sharon can validate config.
+export interface TestAlertResult {
+	ok?: boolean;
+	error?: string;
+}
+
+export async function sendTestAlertAction(clientId: string): Promise<TestAlertResult> {
+	try {
+		const { sendTestAlert } = await import("@/lib/execution-events-server");
+		const a = await actor();
+		await sendTestAlert(clientId, a);
+		revalidatePath(`/clients/${clientId}/execution`);
+		return { ok: true };
+	} catch (err) {
+		return { error: (err as Error).message };
+	}
+}

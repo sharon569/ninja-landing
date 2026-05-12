@@ -97,6 +97,22 @@ export interface ExecutionAgencyStats {
 	dryRunFailed: number;             // status in dry_run_failed | dry_run_stale
 	executedLast7d: number;
 	rollbackAvailable: number;
+	criticalEventsLast7d: number;     // Phase 13 — events with severity in (error|critical)
+}
+
+// Phase 13 — cross-client telemetry feed row for Agency Dashboard.
+export interface AgencyExecutionEvent {
+	id: string;
+	clientId: string;
+	clientName: string;
+	clientHost: string;
+	eventType: string;
+	severity: string;
+	title: string;
+	message: string | null;
+	createdAt: string;                // ISO
+	notificationStatus: string | null;
+	executionActionId: string | null;
 }
 
 export interface ActivityEntry {
@@ -118,6 +134,7 @@ export interface AgencyDashboard {
 	bottlenecks: Bottlenecks;
 	recent: ActivityEntry[];
 	execution: ExecutionAgencyStats;
+	executionEvents: AgencyExecutionEvent[]; // Phase 13 — latest 10 cross-client
 }
 
 // Filter buckets used in the matrix

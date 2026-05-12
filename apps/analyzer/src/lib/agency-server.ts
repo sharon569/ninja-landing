@@ -553,6 +553,8 @@ export async function loadAgencyDashboard(): Promise<AgencyDashboard> {
 		dryRunFailed,
 		executedLast7d,
 		rollbackAvailable,
+		criticalEventsLast7d,
+		latestEvents,
 	] = await Promise.all([
 		db.client.count({ where: { executionEnabled: true } }),
 		db.executionAction.count({
@@ -565,6 +567,19 @@ export async function loadAgencyDashboard(): Promise<AgencyDashboard> {
 			where: { status: { in: ["executed", "rollback_available"] }, executedAt: { gte: sevenDaysAgo } },
 		}),
 		db.executionAction.count({ where: { status: "rollback_available" } }),
+		// Phase 13 — critical/error events in the last 7 days
+		db.executionEvent.count({
+			where: {
+				severity: { in: ["error", "critical"] },
+				createdAt: { gte: sevenDaysAgo },
+			},
+		}),
+		// Phase 13 — feed (latest 10 across all clients)
+		db.executionEvent.findMany({
+			orderBy: { createdAt: "desc" },
+			take: 10,
+			include: { client: { select: { id: true, name: true, baseUrl: true } } },
+		}),
 	]);
 
 	const execution = {
@@ -573,7 +588,30 @@ export async function loadAgencyDashboard(): Promise<AgencyDashboard> {
 		dryRunFailed,
 		executedLast7d,
 		rollbackAvailable,
+		criticalEventsLast7d,
 	};
+
+	const executionEvents = latestEvents.map((e) => {
+		let host = "";
+		try {
+			host = new URL(e.client.baseUrl).host.replace(/^www\./, "");
+		} catch {
+			host = e.client.baseUrl;
+		}
+		return {
+			id: e.id,
+			clientId: e.clientId,
+			clientName: e.client.name,
+			clientHost: host,
+			eventType: e.eventType,
+			severity: e.severity,
+			title: e.title,
+			message: e.message,
+			createdAt: e.createdAt.toISOString(),
+			notificationStatus: e.notificationStatus,
+			executionActionId: e.executionActionId,
+		};
+	});
 
 	return {
 		clients: summaries,
@@ -583,5 +621,6 @@ export async function loadAgencyDashboard(): Promise<AgencyDashboard> {
 		bottlenecks,
 		recent,
 		execution,
+		executionEvents,
 	};
 }

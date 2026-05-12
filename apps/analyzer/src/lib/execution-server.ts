@@ -30,6 +30,7 @@ import {
 	type ExecutionReadiness,
 } from "./execution";
 import { createBaseline } from "./impact-server";
+import { logExecutionEvent } from "./execution-events-server";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -326,6 +327,14 @@ export async function runDryRun(actionId: string, actor: string): Promise<{
 			where: { id: actionId },
 			data: { status: "dry_run_failed", error: "Client missing baseUrl/token" },
 		});
+		await logExecutionEvent({
+			clientId: action.clientId,
+			executionActionId: actionId,
+			eventType: "dry_run_failed",
+			title: "Dry Run נכשל — חסר Token/Base URL",
+			message: "ה-Client בלי baseUrl או token. עדכן בפרופיל הלקוח.",
+			metadata: { actionType: action.actionType, status: "dry_run_failed" },
+		});
 		return { ok: false, status: "dry_run_failed", diff: emptyDiff(), error: "Client missing baseUrl/token" };
 	}
 
@@ -335,6 +344,14 @@ export async function runDryRun(actionId: string, actor: string): Promise<{
 			where: { id: actionId },
 			data: { status: "dry_run_failed", error: `Plugin not reachable: ${caps.reason}` },
 		});
+		await logExecutionEvent({
+			clientId: action.clientId,
+			executionActionId: actionId,
+			eventType: "plugin_unreachable",
+			title: "פלאגין לא נגיש",
+			message: caps.reason ?? null,
+			metadata: { actionType: action.actionType, status: "dry_run_failed" },
+		});
 		return { ok: false, status: "dry_run_failed", diff: emptyDiff(), error: caps.reason };
 	}
 	if (!caps.writeApiEnabled) {
@@ -342,12 +359,28 @@ export async function runDryRun(actionId: string, actor: string): Promise<{
 			where: { id: actionId },
 			data: { status: "dry_run_failed", error: "Write API disabled on plugin" },
 		});
+		await logExecutionEvent({
+			clientId: action.clientId,
+			executionActionId: actionId,
+			eventType: "write_api_disabled",
+			title: "Write API כבוי בפלאגין",
+			message: "ה-kill switch באדמין WordPress מכבה את כל הכתיבה.",
+			metadata: { actionType: action.actionType, status: "dry_run_failed" },
+		});
 		return { ok: false, status: "dry_run_failed", diff: emptyDiff(), error: "Write API disabled on plugin" };
 	}
 	if (!caps.supportedActions?.includes(action.actionType)) {
 		await db.executionAction.update({
 			where: { id: actionId },
 			data: { status: "dry_run_failed", error: `actionType ${action.actionType} not supported by plugin` },
+		});
+		await logExecutionEvent({
+			clientId: action.clientId,
+			executionActionId: actionId,
+			eventType: "dry_run_failed",
+			title: "סוג פעולה לא נתמך בפלאגין",
+			message: `actionType ${action.actionType} לא ב-supported_write_actions של הפלאגין.`,
+			metadata: { actionType: action.actionType, status: "dry_run_failed" },
 		});
 		return { ok: false, status: "dry_run_failed", diff: emptyDiff(), error: "actionType not supported by plugin" };
 	}
@@ -360,6 +393,14 @@ export async function runDryRun(actionId: string, actor: string): Promise<{
 		await db.executionAction.update({
 			where: { id: actionId },
 			data: { status: "dry_run_failed", error: (err as Error).message },
+		});
+		await logExecutionEvent({
+			clientId: action.clientId,
+			executionActionId: actionId,
+			eventType: "dry_run_failed",
+			title: "Dry Run נכשל",
+			message: (err as Error).message,
+			metadata: { actionType: action.actionType, status: "dry_run_failed" },
 		});
 		return { ok: false, status: "dry_run_failed", diff: emptyDiff(), error: (err as Error).message };
 	}
@@ -396,6 +437,21 @@ export async function runDryRun(actionId: string, actor: string): Promise<{
 			},
 		});
 	}
+
+	await logExecutionEvent({
+		clientId: action.clientId,
+		executionActionId: actionId,
+		eventType: "dry_run_completed",
+		title: `Dry Run הסתיים · ${action.actionType}`,
+		message: `changed=${diff.changed}${diff.warnings.length ? ` · warnings=${diff.warnings.join(",")}` : ""}`,
+		metadata: {
+			actionType: action.actionType,
+			targetUrl: action.targetUrl,
+			status: nextStatus,
+			changed: diff.changed,
+			isPreviewOnly,
+		},
+	});
 
 	return { ok: true, status: nextStatus, diff };
 }
@@ -437,6 +493,14 @@ export async function executeAction(actionId: string, actor: string): Promise<{
 			where: { id: actionId },
 			data: { status: "dry_run_failed", error: `Readiness lost: ${gate.missing.join(", ")}` },
 		});
+		await logExecutionEvent({
+			clientId: action.clientId,
+			executionActionId: actionId,
+			eventType: "readiness_failed",
+			title: "Readiness אבד בין Dry Run ל-Execute",
+			message: `Missing: ${gate.missing.join(", ")}`,
+			metadata: { actionType: action.actionType, status: "dry_run_failed" },
+		});
 		throw new Error("Execution is not enabled for this client (state changed since Dry Run).");
 	}
 
@@ -447,6 +511,14 @@ export async function executeAction(actionId: string, actor: string): Promise<{
 		await db.executionAction.update({
 			where: { id: actionId },
 			data: { status: "dry_run_stale", error: `Dry Run הוא מלפני ${Math.floor(ageHours)} שעות (מעל ${DRY_RUN_MAX_AGE_HOURS}). הרץ Dry Run חדש.` },
+		});
+		await logExecutionEvent({
+			clientId: action.clientId,
+			executionActionId: actionId,
+			eventType: "dry_run_stale",
+			title: "Dry Run ישן — נדרש Dry Run חדש",
+			message: `Dry Run מלפני ${Math.floor(ageHours)} שעות (מעל ${DRY_RUN_MAX_AGE_HOURS} שעות).`,
+			metadata: { actionType: action.actionType, targetUrl: action.targetUrl, ageHours: Math.floor(ageHours), status: "dry_run_stale" },
 		});
 		throw new Error(`Dry Run ישן (${Math.floor(ageHours)} שעות) — נדרש Dry Run חדש.`);
 	}
@@ -479,6 +551,18 @@ export async function executeAction(actionId: string, actor: string): Promise<{
 						dryRunAt: new Date(),
 					},
 				});
+				await logExecutionEvent({
+					clientId: action.clientId,
+					executionActionId: actionId,
+					eventType: "dry_run_stale",
+					title: "ערך באתר השתנה מאז Dry Run",
+					message: "Freshness probe גילה drift — Execute נחסם.",
+					metadata: {
+						actionType: action.actionType,
+						targetUrl: action.targetUrl,
+						status: "dry_run_stale",
+					},
+				});
 				throw new Error("הערך באתר השתנה מאז ה-Dry Run. יש להריץ Dry Run מחדש.");
 			}
 		} catch (err) {
@@ -508,6 +592,15 @@ export async function executeAction(actionId: string, actor: string): Promise<{
 		throw new Error("Concurrent execute — action state changed");
 	}
 
+	await logExecutionEvent({
+		clientId: action.clientId,
+		executionActionId: actionId,
+		eventType: "execution_started",
+		title: `Execute התחיל · ${action.actionType}`,
+		message: `מבוצע ע״י ${actor}.`,
+		metadata: { actionType: action.actionType, targetUrl: action.targetUrl, status: "executing" },
+	});
+
 	const payload: CreatePayload = JSON.parse(action.payload);
 	let resp: WriteResponse;
 	try {
@@ -516,6 +609,14 @@ export async function executeAction(actionId: string, actor: string): Promise<{
 		await db.executionAction.update({
 			where: { id: actionId },
 			data: { status: "failed", error: (err as Error).message },
+		});
+		await logExecutionEvent({
+			clientId: action.clientId,
+			executionActionId: actionId,
+			eventType: "execution_failed",
+			title: "Execute נכשל",
+			message: (err as Error).message,
+			metadata: { actionType: action.actionType, targetUrl: action.targetUrl, status: "failed" },
 		});
 		return { ok: false, status: "failed", error: (err as Error).message };
 	}
@@ -532,6 +633,14 @@ export async function executeAction(actionId: string, actor: string): Promise<{
 				auditLogId: resp.auditLogId ?? null,
 				error: resp.error ?? "Plugin returned ok=false or executed=false",
 			},
+		});
+		await logExecutionEvent({
+			clientId: action.clientId,
+			executionActionId: actionId,
+			eventType: "execution_failed",
+			title: "Execute נכשל מהפלאגין",
+			message: resp.error ?? "Plugin returned ok=false or executed=false",
+			metadata: { actionType: action.actionType, targetUrl: action.targetUrl, status: "failed" },
 		});
 		return { ok: false, status: "failed", error: resp.error ?? "execute failed" };
 	}
@@ -555,6 +664,22 @@ export async function executeAction(actionId: string, actor: string): Promise<{
 	if (action.sourceType === "opportunity" && !wasNoOp) {
 		await onOpportunityExecuted(action.sourceId, actor, action.actionType);
 	}
+
+	await logExecutionEvent({
+		clientId: action.clientId,
+		executionActionId: actionId,
+		eventType: "execution_succeeded",
+		title: `Execute הצליח · ${action.actionType}`,
+		message: wasNoOp
+			? "no-op (before == after) — לא בוצע שינוי בפועל."
+			: `שינוי חי בוצע בהצלחה ע״י ${actor}.`,
+		metadata: {
+			actionType: action.actionType,
+			targetUrl: action.targetUrl,
+			status: nextStatus,
+			wasNoOp,
+		},
+	});
 
 	return { ok: true, status: nextStatus };
 }
@@ -606,8 +731,24 @@ export async function rollbackAction(actionId: string, actor: string): Promise<{
 		const msg = (err as Error).message;
 		// Bubble the drift message verbatim; only convert true probe failures.
 		if (msg.includes("Rollback אוטומטי לא בטוח")) {
+			await logExecutionEvent({
+				clientId: action.clientId,
+				executionActionId: actionId,
+				eventType: "rollback_blocked_drift",
+				title: "Rollback נחסם — drift",
+				message: msg,
+				metadata: { actionType: action.actionType, targetUrl: action.targetUrl, status: action.status },
+			});
 			return { ok: false, status: action.status, error: msg };
 		}
+		await logExecutionEvent({
+			clientId: action.clientId,
+			executionActionId: actionId,
+			eventType: "rollback_failed",
+			title: "Rollback drift probe נכשל",
+			message: msg,
+			metadata: { actionType: action.actionType, status: action.status },
+		});
 		return { ok: false, status: action.status, error: `Rollback drift probe failed: ${msg}` };
 	}
 
@@ -632,9 +773,25 @@ export async function rollbackAction(actionId: string, actor: string): Promise<{
 	try {
 		resp = await callPluginForAction(action.actionType as ExecutionActionType, client.baseUrl, client.token, rollbackPayload, /*dryRun*/ false, `${action.id}-rollback`);
 	} catch (err) {
+		await logExecutionEvent({
+			clientId: action.clientId,
+			executionActionId: actionId,
+			eventType: "rollback_failed",
+			title: "Rollback נכשל",
+			message: (err as Error).message,
+			metadata: { actionType: action.actionType, status: action.status },
+		});
 		return { ok: false, status: action.status, error: (err as Error).message };
 	}
 	if (!resp.ok) {
+		await logExecutionEvent({
+			clientId: action.clientId,
+			executionActionId: actionId,
+			eventType: "rollback_failed",
+			title: "Rollback נכשל מהפלאגין",
+			message: resp.error ?? "Rollback failed",
+			metadata: { actionType: action.actionType, status: action.status },
+		});
 		return { ok: false, status: action.status, error: resp.error ?? "Rollback failed" };
 	}
 	await db.executionAction.update({
@@ -644,6 +801,14 @@ export async function rollbackAction(actionId: string, actor: string): Promise<{
 			rolledBackAt: new Date(),
 			executionResult: JSON.stringify({ ...JSON.parse(action.executionResult ?? "{}"), rollback: resp }),
 		},
+	});
+	await logExecutionEvent({
+		clientId: action.clientId,
+		executionActionId: actionId,
+		eventType: "rollback_succeeded",
+		title: "Rollback הצליח",
+		message: `הערך הקודם הוחזר לאתר ע״י ${actor}.`,
+		metadata: { actionType: action.actionType, targetUrl: action.targetUrl, status: "rolled_back" },
 	});
 	if (action.sourceType === "opportunity") {
 		await db.opportunityActionLog.create({

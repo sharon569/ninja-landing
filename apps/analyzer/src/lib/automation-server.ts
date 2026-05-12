@@ -16,6 +16,8 @@ import { analyzeOpportunities } from "./opportunities-server";
 import { runTechnicalAudit } from "./tech-audit-server";
 import { computeImpactReview } from "./impact-server";
 import { syncGsc } from "@/app/actions-gsc";
+import { logExecutionEvent } from "./execution-events-server";
+import { EXECUTION_STUCK_MINUTES } from "./execution-events";
 import {
 	GSC_SYNC_STALE_DAYS,
 	TECH_AUDIT_STALE_DAYS,
@@ -365,6 +367,37 @@ async function processClient(
 	return { processed: !failed, failed, skipped: false, runsCreated };
 }
 
+// ─── Phase 13 — Stuck execution detector ──────────────────────
+//
+// Sweeps ExecutionActions that have been stuck in 'executing' for too long.
+// Only emits an event (severity=critical) — does NOT auto-flip the status
+// because we can't tell from the outside whether the live WP write actually
+// succeeded; flipping would risk double-execute on the next manual click.
+async function detectStuckExecutions(): Promise<number> {
+	const cutoff = new Date(Date.now() - EXECUTION_STUCK_MINUTES * 60_000);
+	const stuck = await db.executionAction.findMany({
+		where: { status: "executing", updatedAt: { lt: cutoff } },
+		select: { id: true, clientId: true, actionType: true, targetUrl: true, updatedAt: true },
+	});
+	for (const a of stuck) {
+		const minutes = Math.floor((Date.now() - a.updatedAt.getTime()) / 60_000);
+		await logExecutionEvent({
+			clientId: a.clientId,
+			executionActionId: a.id,
+			eventType: "execution_stuck",
+			title: `ExecutionAction תקועה (${minutes} דק׳)`,
+			message: `ה-Action ב-status=executing מעל ${EXECUTION_STUCK_MINUTES} דקות. לא משונה אוטומטית — בדוק ב-WP audit log אם השינוי בוצע, ואז סמן את ה-Action ידנית.`,
+			metadata: {
+				actionType: a.actionType,
+				targetUrl: a.targetUrl,
+				status: "executing",
+				stuckMinutes: minutes,
+			},
+		});
+	}
+	return stuck.length;
+}
+
 // ─── Public: Agency-wide sync ──────────────────────────────────
 
 export async function runAgencyAutoSync(
@@ -372,6 +405,14 @@ export async function runAgencyAutoSync(
 ): Promise<AgencySyncResult> {
 	const startedAt = Date.now();
 	const parentId = await startRun("agency_auto_sync", null, triggeredBy, null);
+
+	// Phase 13 — fire stuck-execution alerts before the per-client work.
+	// Failure here must not abort the rest of the run.
+	try {
+		await detectStuckExecutions();
+	} catch (err) {
+		console.error("detectStuckExecutions failed:", err);
+	}
 
 	const clients = await db.client.findMany({
 		orderBy: { createdAt: "asc" },

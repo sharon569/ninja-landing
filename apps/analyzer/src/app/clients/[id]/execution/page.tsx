@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AlertTriangle, Activity, Inbox, ShieldAlert, Bot, ListChecks } from "lucide-react";
 import { db } from "@/lib/db";
 import { loadExecutionActionsForClient, getExecutionReadiness } from "@/lib/execution-server";
+import { listClientEvents } from "@/lib/execution-events-server";
 import {
 	actionTypeLabel,
 	statusLabel,
@@ -12,6 +13,7 @@ import {
 } from "@/lib/execution";
 import { ActionButtons } from "./ActionButtons";
 import { ReadinessPanel } from "./ReadinessPanel";
+import { EventFeed } from "./EventFeed";
 
 export const dynamic = "force-dynamic";
 
@@ -54,9 +56,10 @@ export default async function ExecutionPage({
 	});
 	if (!client) notFound();
 
-	const [actions, readiness] = await Promise.all([
+	const [actions, readiness, events] = await Promise.all([
 		loadExecutionActionsForClient(id),
 		getExecutionReadiness(id),
+		listClientEvents(id, 20),
 	]);
 
 	// Bucket by status
@@ -116,6 +119,9 @@ export default async function ExecutionPage({
 			{buckets.closed.length > 0 && (
 				<Section title="סגורים (בוטלו / Rolled Back)" items={buckets.closed} clientId={id} icon={<Inbox className="w-4 h-4 text-ink-mute" />} />
 			)}
+
+			{/* Phase 13 — Execution events feed (read-only) */}
+			<EventFeed clientId={id} events={events} />
 		</div>
 	);
 }

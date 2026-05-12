@@ -245,7 +245,7 @@ export default async function AgencyDashboard({
 				</section>
 			)}
 
-			{/* Execution roll-up (Phase 12) — read-only */}
+			{/* Execution roll-up (Phase 12 + 13) — read-only */}
 			{data.execution.clientsExecutionEnabled > 0 && (
 				<section className="space-y-4">
 					<div className="flex items-baseline justify-between flex-wrap gap-3">
@@ -254,13 +254,18 @@ export default async function AgencyDashboard({
 						</h2>
 						<span className="text-[10px] text-ink-mute">מבט-על · ביצוע ידני בלבד דרך דף הלקוח</span>
 					</div>
-					<div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+					<div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
 						<Bottleneck label="לקוחות עם Execution דלוק" value={data.execution.clientsExecutionEnabled} icon={<AlertTriangle className="w-4 h-4" />} />
 						<Bottleneck label="ממתינים לאישור Execute" value={data.execution.awaitingExecute} icon={<AlertTriangle className="w-4 h-4" />} tone="warn" />
 						<Bottleneck label="Dry Run נכשל/לא טרי" value={data.execution.dryRunFailed} icon={<AlertTriangle className="w-4 h-4" />} tone={data.execution.dryRunFailed > 0 ? "warn" : "neutral"} />
 						<Bottleneck label="בוצעו השבוע" value={data.execution.executedLast7d} icon={<CheckCircle2 className="w-4 h-4" />} />
 						<Bottleneck label="Rollback זמין" value={data.execution.rollbackAvailable} icon={<Clock className="w-4 h-4" />} />
+						<Bottleneck label="אירועים קריטיים (7 ימים)" value={data.execution.criticalEventsLast7d} icon={<AlertTriangle className="w-4 h-4" />} tone={data.execution.criticalEventsLast7d > 0 ? "warn" : "neutral"} />
 					</div>
+					{/* Phase 13 — Recent Execution Events (cross-client, last 10) */}
+					{data.executionEvents.length > 0 && (
+						<RecentExecutionEvents events={data.executionEvents} />
+					)}
 				</section>
 			)}
 
@@ -362,6 +367,61 @@ export default async function AgencyDashboard({
 					</div>
 				</section>
 			)}
+		</div>
+	);
+}
+
+function RecentExecutionEvents({
+	events,
+}: {
+	events: import("@/lib/agency").AgencyExecutionEvent[];
+}) {
+	const tone = (s: string) => {
+		switch (s) {
+			case "critical":
+			case "error":
+				return "text-blade";
+			case "warning":
+				return "text-gold";
+			case "success":
+				return "text-go";
+			default:
+				return "text-ink-dim";
+		}
+	};
+	const minAgo = (iso: string) => {
+		const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000);
+		if (m < 60) return `${m}m`;
+		const h = Math.floor(m / 60);
+		if (h < 24) return `${h}h`;
+		return `${Math.floor(h / 24)}d`;
+	};
+	return (
+		<div className="rounded-xl border border-ninja-line bg-ninja-panel/40 overflow-hidden">
+			<div className="px-4 py-2.5 border-b border-ninja-line text-[10px] tracking-wider uppercase text-ink-dim flex items-center justify-between">
+				<span>Recent Execution Events</span>
+				<span className="text-ink-mute">{events.length} אחרונים</span>
+			</div>
+			<ul className="divide-y divide-ninja-line">
+				{events.map((e) => (
+					<li key={e.id} className="flex items-start gap-3 px-4 py-2 text-xs">
+						<span className={`shrink-0 font-mono ${tone(e.severity)}`}>●</span>
+						<Link
+							href={`/clients/${e.clientId}/execution`}
+							className="text-gold hover:text-blade font-semibold shrink-0"
+						>
+							{e.clientName}
+						</Link>
+						<span className="text-ink-mute shrink-0">·</span>
+						<span className="text-ink shrink-0">{e.eventType}</span>
+						<span className="text-ink-mute shrink-0">·</span>
+						<span className="text-ink-dim truncate flex-1">{e.title}</span>
+						<span className="shrink-0 text-ink-mute tabular-nums" dir="ltr">
+							{minAgo(e.createdAt)}
+						</span>
+					</li>
+				))}
+			</ul>
 		</div>
 	);
 }
