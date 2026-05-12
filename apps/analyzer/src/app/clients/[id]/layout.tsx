@@ -84,6 +84,7 @@ export default async function ClientLayout({
 			<SubNav
 				items={[
 					{ label: "סקירה", href: `/clients/${id}` },
+					{ label: "מרכז עבודה", href: `/clients/${id}/workflow`, count: approvalCount + briefsCount + internalLinksCount },
 					{ label: "הזדמנויות", href: `/clients/${id}/opportunities`, count: opportunitiesCount },
 					{ label: "אישורים", href: `/clients/${id}/approvals`, count: approvalCount },
 					{ label: "בריפים", href: `/clients/${id}/briefs`, count: briefsCount },

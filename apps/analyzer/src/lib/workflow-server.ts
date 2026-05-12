@@ -1,0 +1,238 @@
+// Workflow Center — server-only loaders.
+
+import "server-only";
+import { db } from "./db";
+import type {
+	WorkflowItem,
+	WorkflowAction,
+	WorkflowCounts,
+} from "./workflow";
+import { priorityBand } from "./opportunities";
+
+// Active statuses per source type — items considered "in the workflow".
+const ACTIVE_OPPORTUNITY = ["detected", "recommended", "needs_human_review", "approved"];
+const MONITORING_OPPORTUNITY = ["monitoring", "manually_applied", "impact_reviewed"];
+const ACTIVE_BRIEF = ["draft", "needs_human_review", "approved"];
+const ACTIVE_LINK = ["suggested", "needs_human_review", "approved"];
+
+function actionsForOpportunity(status: string): WorkflowAction[] {
+	if (MONITORING_OPPORTUNITY.includes(status))
+		return ["review_7d", "review_14d", "review_30d"];
+	if (status === "approved") return ["mark_manual_applied"];
+	if (status === "detected" || status === "recommended" || status === "needs_human_review")
+		return ["approve", "needs_human_review", "reject", "dismiss"];
+	return [];
+}
+
+function actionsForBrief(status: string): WorkflowAction[] {
+	if (status === "approved") return ["mark_used"];
+	if (status === "draft") return ["approve", "needs_human_review", "reject"];
+	if (status === "needs_human_review") return ["approve", "reject"];
+	return [];
+}
+
+function actionsForLink(status: string): WorkflowAction[] {
+	if (status === "approved") return ["mark_used"];
+	if (status === "suggested" || status === "needs_human_review")
+		return ["approve", "needs_human_review", "reject", "dismiss"];
+	return [];
+}
+
+function needsDecisionFlag(sourceType: string, status: string): boolean {
+	if (status === "needs_human_review" || status === "recommended") return true;
+	if (sourceType === "content_brief" && status === "draft") return true;
+	if (sourceType === "internal_link" && status === "suggested") return true;
+	return false;
+}
+
+export async function loadWorkflow(clientId: string): Promise<WorkflowItem[]> {
+	const [opps, briefs, links] = await Promise.all([
+		db.opportunity.findMany({
+			where: {
+				clientId,
+				status: { in: [...ACTIVE_OPPORTUNITY, ...MONITORING_OPPORTUNITY] },
+			},
+			orderBy: { priorityScore: "desc" },
+		}),
+		db.contentBrief.findMany({
+			where: { clientId, status: { in: ACTIVE_BRIEF } },
+			orderBy: { createdAt: "desc" },
+		}),
+		db.internalLinkSuggestion.findMany({
+			where: { clientId, status: { in: ACTIVE_LINK } },
+			orderBy: { priorityScore: "desc" },
+		}),
+	]);
+
+	const items: WorkflowItem[] = [];
+
+	for (const o of opps) {
+		const isMonitoring = MONITORING_OPPORTUNITY.includes(o.status);
+		items.push({
+			id: `opportunity:${o.id}`,
+			sourceType: "opportunity",
+			sourceId: o.id,
+			clientId,
+			title: o.title,
+			description: o.description,
+			recommendedAction: o.recommendedAction,
+			status: o.status,
+			priorityScore: o.priorityScore,
+			impact: o.impact,
+			effort: o.effort,
+			confidence: o.confidence,
+			relatedKeyword: o.relatedKeyword || undefined,
+			relatedPage: o.relatedPage || undefined,
+			relatedQuery: o.relatedQuery || undefined,
+			createdAt: o.createdAt.toISOString(),
+			updatedAt: o.updatedAt.toISOString(),
+			needsDecision: needsDecisionFlag("opportunity", o.status),
+			isMonitoring,
+			availableActions: actionsForOpportunity(o.status),
+			sourceMeta: {
+				type: o.type,
+				manualActionUrl: o.manualActionUrl,
+				manuallyAppliedAt: o.manuallyAppliedAt?.toISOString(),
+				approvedActionType: o.approvedActionType,
+				approvalNote: o.approvalNote,
+				isTechnical: o.type === "technical_seo_issue",
+			},
+		});
+	}
+
+	for (const b of briefs) {
+		items.push({
+			id: `content_brief:${b.id}`,
+			sourceType: "content_brief",
+			sourceId: b.id,
+			clientId,
+			title: b.targetKeyword,
+			subtitle: b.recommendedTitle ?? undefined,
+			description: b.contentAngle ?? undefined,
+			recommendedAction: b.recommendedH1 ?? undefined,
+			status: b.status,
+			priorityScore: 50, // briefs don't have priorityScore; treat as Medium
+			impact: "medium",
+			effort: "medium",
+			confidence: "medium",
+			relatedKeyword: b.targetKeyword,
+			relatedPage: b.relatedPage ?? undefined,
+			createdAt: b.createdAt.toISOString(),
+			updatedAt: b.updatedAt.toISOString(),
+			needsDecision: needsDecisionFlag("content_brief", b.status),
+			isMonitoring: false,
+			availableActions: actionsForBrief(b.status),
+			sourceMeta: {
+				briefType: b.briefType,
+				searchIntent: b.searchIntent,
+			},
+		});
+	}
+
+	for (const l of links) {
+		items.push({
+			id: `internal_link:${l.id}`,
+			sourceType: "internal_link",
+			sourceId: l.id,
+			clientId,
+			title: `${l.sourceTitle || l.sourcePage} → ${l.targetTitle || l.targetPage}`,
+			subtitle: `anchor: "${l.suggestedAnchor}"`,
+			description: l.reason,
+			status: l.status,
+			priorityScore: l.priorityScore,
+			impact: l.impact,
+			effort: l.effort,
+			confidence: l.confidence,
+			relatedPage: l.targetPage,
+			createdAt: l.createdAt.toISOString(),
+			updatedAt: l.updatedAt.toISOString(),
+			needsDecision: needsDecisionFlag("internal_link", l.status),
+			isMonitoring: false,
+			availableActions: actionsForLink(l.status),
+			sourceMeta: {
+				sourcePage: l.sourcePage,
+				sourceTitle: l.sourceTitle,
+				targetPage: l.targetPage,
+				targetTitle: l.targetTitle,
+				suggestedAnchor: l.suggestedAnchor,
+				detector: l.source,
+			},
+		});
+	}
+
+	// Priority Queue sort: needs_decision first, then by impact band,
+	// then priority score, then recency.
+	items.sort((a, b) => {
+		if (a.needsDecision !== b.needsDecision) return a.needsDecision ? -1 : 1;
+		const bandA = priorityBand(a.priorityScore).bucket;
+		const bandB = priorityBand(b.priorityScore).bucket;
+		const bandOrder: Record<string, number> = { high: 0, quick: 1, medium: 2, low: 3 };
+		if (bandA !== bandB) return (bandOrder[bandA] ?? 9) - (bandOrder[bandB] ?? 9);
+		if (b.priorityScore !== a.priorityScore) return b.priorityScore - a.priorityScore;
+		return b.updatedAt.localeCompare(a.updatedAt);
+	});
+
+	return items;
+}
+
+export function computeCounts(items: WorkflowItem[]): WorkflowCounts {
+	let needsDecision = 0;
+	let highImpact = 0;
+	let content = 0;
+	let internalLinks = 0;
+	let technical = 0;
+	let monitoring = 0;
+	let approved = 0;
+
+	for (const i of items) {
+		if (i.needsDecision) needsDecision++;
+		if (priorityBand(i.priorityScore).bucket === "high") highImpact++;
+		if (i.sourceType === "content_brief") content++;
+		if (i.sourceType === "internal_link") internalLinks++;
+		if (i.sourceMeta?.isTechnical) technical++;
+		if (i.isMonitoring) monitoring++;
+		if (i.status === "approved") approved++;
+	}
+
+	return {
+		total: items.length,
+		needsDecision,
+		highImpact,
+		content,
+		internalLinks,
+		technical,
+		monitoring,
+		approved,
+	};
+}
+
+/** Filter items per tab. */
+export function filterByTab(items: WorkflowItem[], tab: string): WorkflowItem[] {
+	switch (tab) {
+		case "needs_decision":
+			return items.filter((i) => i.needsDecision);
+		case "high_impact":
+			return items.filter((i) => priorityBand(i.priorityScore).bucket === "high");
+		case "content":
+			return items.filter((i) => i.sourceType === "content_brief");
+		case "internal_links":
+			return items.filter((i) => i.sourceType === "internal_link");
+		case "technical":
+			return items.filter((i) => i.sourceMeta?.isTechnical === true);
+		case "monitoring":
+			return items.filter((i) => i.isMonitoring);
+		case "approved":
+			return items.filter((i) => i.status === "approved");
+		default:
+			return items;
+	}
+}
+
+/** Load OpportunityActionLog for the drawer. */
+export async function loadActionLog(opportunityId: string) {
+	return db.opportunityActionLog.findMany({
+		where: { opportunityId },
+		orderBy: { createdAt: "desc" },
+		take: 30,
+	});
+}

@@ -1,6 +1,6 @@
 ﻿import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, RefreshCw, Clock, AlertTriangle, FileText, Target, Sparkles, Activity, Heart, BookOpen, Link2 } from "lucide-react";
+import { ArrowRight, RefreshCw, Clock, AlertTriangle, FileText, Target, Sparkles, Activity, Heart, BookOpen, Link2, Inbox } from "lucide-react";
 import { db } from "@/lib/db";
 import { runScan } from "@/app/actions";
 import { ClientProfileCard } from "@/components/ClientProfileCard";
@@ -292,6 +292,56 @@ export default async function ClientOverviewPage({
 					</div>
 				)}
 			</Link>
+
+			{/* Workflow Center — go-to entry point */}
+			{(oppCounts.total + linkCounts.total + briefCounts.total + impactCounts.monitoring > 0) && (
+				<Link
+					href={`/clients/${id}/workflow`}
+					className="group block rounded-xl border bg-ninja-panel/80 px-5 py-4 hover:bg-ninja-panel transition-colors"
+					style={{ borderColor: "rgba(255,42,60,0.4)" }}
+				>
+					<div className="flex items-center justify-between gap-6">
+						<div className="flex items-center gap-3">
+							<div
+								className="w-9 h-9 rounded-lg flex items-center justify-center"
+								style={{ background: "linear-gradient(135deg, #ff2a3c, #b3001b)" }}
+							>
+								<Inbox className="w-4 h-4 text-white" />
+							</div>
+							<div>
+								<div className="text-[10px] font-bold tracking-[0.25em] uppercase text-blade">
+									מרכז עבודה
+								</div>
+								<div className="text-sm text-ink mt-0.5">
+									<span className="font-semibold">
+										{oppCounts.total + linkCounts.total + briefCounts.total}
+									</span>{" "}
+									פריטים פתוחים
+									{oppCounts.high > 0 && (
+										<>
+											{" · "}
+											<span className="text-blade">{oppCounts.high}</span> High Impact
+										</>
+									)}
+									{briefCounts.needsReview > 0 && (
+										<>
+											{" · "}
+											<span className="text-gold">{briefCounts.needsReview}</span> בריפים לסקירה
+										</>
+									)}
+									{impactCounts.monitoring > 0 && (
+										<>
+											{" · "}
+											<span className="text-ink-dim">{impactCounts.monitoring}</span> במעקב
+										</>
+									)}
+								</div>
+							</div>
+						</div>
+						<ArrowRight className="w-4 h-4 text-ink-mute group-hover:text-blade transition-colors" />
+					</div>
+				</Link>
+			)}
 
 			{/* Internal Links card */}
 			{linkCounts.total > 0 && (
