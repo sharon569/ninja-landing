@@ -1,9 +1,25 @@
 # Session Handoff — 2026-05-13
 
-**Last commit**: `<TBD-15E.1>` — Phase 15E.1 (Keyword Goals + Master Page manual override — DB + UI only)
+**Last commit**: `cf2a831` — fix(analyzer): Phase 15E.1 review findings (actor email + remove dead override UI)
+**Previous commits in 15E**:
+- `6b661d4` — feat(analyzer): Phase 15E.1 — Keyword Goals + Master Page manual override (DB + UI only)
 **Previous milestone**: `cf5b970` — Phase 15D.-1 (Master Page Engine)
 **Production**: `seo.samp.ninja` (Frankfurt) — `dpl_*` ID will refresh on next push
 **Repo**: `apps/analyzer` is the active codebase
+**Branch**: `main` — 2 commits ahead of `origin/main` (not pushed yet — wait for Sharon's approval)
+
+---
+
+## ⚡ TL;DR — איפה להמשיך כשחוזרים
+
+Phase 15E.1 הושלם + ה-review fixes שלו נסגרו (2 commits). הוגדרו 4 keyword goals ידנית ל-Levizon.
+
+**Phase 15E.2 (Brain Wiring) בעיצומו אבל מושהה**:
+- ✅ `src/lib/keyword-goal.ts` (309 שורות) — **נכתב, נמצא ב-working tree untracked, מהדר נקי**. הוא הקובץ הראשי של 15E.2. ראה פירוט מלא בסוף ההנדאוף.
+- ⏸ עוד לא נכתב: עדכוני `strategy.ts` (להוסיף שדות אופציונליים ל-`KeywordStrategySummary`), עדכוני `strategy-server.ts` (wiring conservative), 3 test scripts
+- ⏸ עוד לא רץ: tsc/build/tests על integration המלאה
+
+**צעד ראשון כשחוזרים**: לקרוא את הסעיף "Phase 15E.2 — איפה הפסקנו" בסוף ההנדאוף, ולהמשיך משם.
 
 ---
 
@@ -26,15 +42,9 @@
 
 ## איפה אנחנו עכשיו
 
-Phase 15E.1 הושלם: ה-Keyword Bank תומך עכשיו ב-Goal פר keyword (DB + UI בלבד — ה-Brain עדיין לא משתמש בערך).
+Phase 15E.1 + review fixes הושלמו. 4 keyword goals הוגדרו ידנית ב-DB של Levizon. Phase 15E.2 התחיל אבל הושהה אחרי שכתבתי את הקובץ הראשי (`keyword-goal.ts`) — לא נכנס ל-commit כי הופסקתי באמצע ל-fix של ממצאי ultrareview.
 
-**הפסקנו לפני Phase 15E.2** — Brain wiring (`src/lib/keyword-goal.ts` + strategy classifier משתמש ב-goal). לא להתחיל בלי אישור.
-
-**חשוב לפני 15E.2**: Levizon כרגע עם `keywordGoal=null` לכל 4 המילים. צריך להגדיר ידנית goals ב-UI (לחיצה על ✏️ → סקשן Strategic Context) לפני שניתן לראות את ה-Brain מגיב על ההגדרות. ערכים מוצעים לפי handoff היסטורי:
-- "פח אשפה ברבנטיה" → `defend_top3` (Top 3 לפי 14A)
-- "אביזרים לאמבטיה" → `improve_rank` או `expand_content_coverage`
-- "מסננת לכיור" → `improve_rank`
-- "משקל דיגיטלי למטבח" → `improve_rank`
+**הצעד הבא כשחוזרים**: לעבור לסעיף "Phase 15E.2 — איפה הפסקנו" בסוף ההנדאוף, להמשיך לעדכן `strategy.ts` + `strategy-server.ts`, לכתוב 3 test scripts, ולעשות commit.
 
 ---
 
@@ -66,30 +76,36 @@ Pre-bundle 15D.-1 ה-pilot נחסם כי title category-style נופל על דף
 | Bundle B/C/D | `2d82ce0` | Refresh button + safe_meta opp fix + brief humanReviewedAt |
 | 15E.2 propagation fix | `53106e1` | Brief humanReview propagates to Opportunity |
 | 15D.-1 | `cf5b970` | Master Page Engine + page-type guards |
-| **15E.1 (latest)** | **`<TBD>`** | **Keyword Goals + Manual MP Override — DB + UI only, no Brain changes** |
+| 15E.1 | `6b661d4` | Keyword Goals + Manual MP Override — DB + UI only, no Brain changes |
+| **15E.1 review fixes (latest)** | **`cf2a831`** | **actorEmail() במקום "operator" hardcoded; הסרת Manual Override counter המטעה; שדות נשארו ב-DB (dormant)** |
+| 15E.2 (in progress) | — | Brain Wiring — `keyword-goal.ts` נכתב, working tree untracked, ראה סוף המסמך |
 
 ---
 
-## מצב Levizon כרגע (אחרי 15D.-1)
+## מצב Levizon כרגע (אחרי 15E.1 + הגדרת goals)
 
 ```
-Active TargetKeywords: 4
+Active TargetKeywords: 4 — כולם עם keywordGoal + businessValue מוגדרים ידנית
 GSC rows: 12,616 (כולן עם page dim ✓)
-Opportunities: 31
+Opportunities: 47
 Strategies: 4 (כל ה-rankingPage תקין)
-Briefs: ~11 (8 חדשים מ-Bundle B + 3 ישנים)
-ExecutionActions: 9 (היסטוריה מ-pilot 14A; כעת status=rollback_available הישן הוא הdetail)
-Work Plan: cmp2wny27 — סופרסדנו פעם, צריך rebuild
+Briefs: 11 (3 דופליקציות לא חוסמות — ראה issue #3 למטה)
+ExecutionActions: 10 (1 open, 2 failed/stale — היסטוריה מ-pilot 14A)
+Work Plan: 1 active
 ```
 
-**שים לב**: ה-master_page_resolve טרם רץ ב-DB דרך ה-refresh button — הרצתי אותו מ-tsx ב-QA. כש-תרענן יומחק/יתעדכן. הערכים אצלי בdb הם:
+**הערה אסטרטגית — 2 keywords הם Goal↔MasterPageType mismatch מובהק** שיתפסו ע"י ה-`detectGoalMismatch()` ב-15E.2 כשיורץ:
 
-| Keyword | masterPage | type | confidence | action |
-|---|---|---|---|---|
-| פח אשפה ברבנטיה | `/dustbins/brabantia` | category | high | improve_category_page |
-| אביזרים לאמבטיה | `/bath-accessories` | category | high (GSC) | improve_category_page |
-| מסננת לכיור | `/kitchen-gadgets/oxo/...oxo` | product | high (scan) | improve_product_page |
-| משקל דיגיטלי למטבח | `/kitchen-weights/...2kg/free` | product | high (GSC) | improve_product_page |
+| Keyword | masterPage | type | confidence | keywordGoal | businessValue | התראה צפויה ב-15E.2 |
+|---|---|---|---|---|---|---|
+| פח אשפה ברבנטיה | `/dustbins/brabantia` | category | high | `improve_rank` | high | aligned ✓ |
+| אביזרים לאמבטיה | `/bath-accessories` | category | high (GSC) | `expand_content_coverage` | high | aligned ✓ |
+| מסננת לכיור | `/kitchen-gadgets/oxo/...oxo` | product | high (scan) | `improve_rank` | medium | **`rank_goal_on_product_for_generic_keyword`** (medium) |
+| משקל דיגיטלי למטבח | `/kitchen-weights/...2kg/free` | product | high (GSC) | `expand_content_coverage` | medium | **`content_goal_on_product_page`** (medium) |
+
+ה-notes של 4 ה-keywords כתובים ב-`keywordGoalNote` (השאר ב-DB, נקראים מהטבלה ב-UI).
+
+**Audit defect ידוע**: 4 ה-keywords שהוגדרו ב-session הזה נשמרו עם `keywordGoalSetBy="operator"` (לפני ה-fix של `cf2a831`). מי שיגדיר goal מחדש דרך ה-UI עכשיו יקבל `sharon@samp.ninja` (או `system` fallback). לא ביצענו backfill — אם תרצה לתקן retro, יש לבצע re-save מה-UI על כל 4 המילים.
 
 ---
 
@@ -267,10 +283,158 @@ npx tsx scripts/qa-15d-master-page.ts     # resolve Levizon master pages
 | `audit-system.ts` | ✅ זהה לbaseline |
 | `smoke-15e1-ui.ts` | ✅ 4/4 steps (setup → write → update → restore) |
 
-### Phase 15E.2 הבא — Brain wiring (לא להתחיל בלי אישור)
-1. `src/lib/keyword-goal.ts` — pure functions: `expectedStrategyTypeForGoal()`, `expectedMasterPageTypeForGoal()`, `detectGoalMismatch()`
-2. `strategy-server.ts` — להוסיף שדה `goalAlignment` לoutput, ולתת priority לפי goal כשconfidence נמוך/בינוני. כשGSC חזק וסותר → `goalContradictsData=true` → forced human_review
-3. `scripts/test-keyword-goal.ts` — 15+ fixtures בסגנון test-page-scope
-4. `scripts/test-goal-mismatch.ts` — 12+ fixtures
+---
 
-**לפני 15E.2**: צריך להגדיר goals ב-UI ל-4 keywords של Levizon (כרגע כולם null) — אחרת אי אפשר לראות את ה-Brain מגיב על goal.
+## Phase 15E.1 Review Fixes — מה תוקן ב-`cf2a831`
+
+שני ממצאים זוהו ע"י שני ultrareviews independent על `6b661d4`:
+
+### Fix 1 — `keywordGoalSetBy` משתמש ב-actorEmail()
+- **לפני**: hardcoded `"operator"` — כל ה-keywords של כל הלקוחות עם אותו string anonymous
+- **אחרי**: `actorEmail()` (אותו pattern של briefs/opportunities/work-plan/keyword-strategy server actions) → `getCurrentUser()?.email` עם fallback ל-`"system"`
+- ב-`actions.ts`: עכשיו `const actor = goalChanged ? await actorEmail() : null` והשמירה היא `keywordGoalSetBy: parsed.data.keywordGoal ? actor : null`
+- שמירה רק כש-goal משתנה (לא כשrows אחרים בtemple updated)
+
+### Fix 2 — Manual Override counter הוסר מה-UI
+- ה-counter "Manual Override" ב-Master Page Status section הוסר (היה תקוע ב-0)
+- ה-section text של Master Page Status מציין עכשיו במפורש שה-Tier 1 protection בא דרך operator-set `targetUrl`, לא דרך flag
+- ה-schema comment ב-`schema.prisma` שוכתב להגיד שהשדות **reserved** ולא לצרוך אותם עד שphase מאוחר יחבר אותם
+- **השדות נשארו ב-DB** (`masterPageManualOverride`, `OverrideAt`, `OverrideBy`) — dormant, ממתינים לphase שיבנה Master Page Override UI אמיתי
+
+### ממצאים על landing page (לא בקוד analyzer) — לא טופלו בכוונה
+תועדו במקום אחר, לא חלק מ-Phase 15E:
+- `src/styles/global.css` — `:focus-visible { border-radius: 4px }` קופץ inputs מ-10px ל-4px במיקוד
+- `src/pages/index.astro` — `role="application"` על game arena מנטרל browse mode לקוראי מסך בלי מודל מקלדת חלופי
+- `src/pages/index.astro` — Google Partner CTA: visible text לא substring של aria-label (WCAG 2.5.3 Level A)
+- `src/components/Nav.astro` — services dropdown: role=menu/menuitem בלי keyboard model + חסר aria-expanded
+- `src/pages/index.astro` — strip section: aria-label על section + aria-hidden על תוכן → empty labeled landmark
+
+---
+
+## Phase 15E.2 — איפה הפסקנו (CRITICAL להמשך)
+
+### הקובץ שכבר נכתב: `src/lib/keyword-goal.ts`
+- **309 שורות**
+- **Working tree, untracked** — לא בcommit עדיין
+- **מהדר נקי** — אומת ב-`tsc --noEmit` במהלך הסשן
+- **תכולה**:
+  - Types: `GoalAlignment`, `GoalMismatchType`, `GoalMismatch`, `GoalAlignmentInput`, `GoalAlignmentResult`
+  - Labels: `GOAL_ALIGNMENT_LABEL`, `GOAL_ALIGNMENT_TONE`, `GOAL_MISMATCH_LABEL`
+  - Helpers: `getGoalLabel()`, `getGoalDescription()`, `isLikelyGenericKeyword()`
+  - Pure functions: `expectedStrategyTypeForGoal()`, `expectedMasterPageTypeForGoal(goal, intent)`
+  - Mismatch detection: `detectGoalMismatch(input)` — 7 types (A-G מהמפרט)
+  - Top-level entry: `classifyGoalAlignment(input)` → `GoalAlignmentResult`
+- **GUARANTEE שהוטמע**: לא משנה strategyType / riskLevel / שום input. רק calc.
+- **GoalAlignment values**: `aligned | goal_overrides | data_overrides | mismatch_needs_review | no_goal_set` (`goal_overrides` מוגדר אך לא מוחזר ב-15E.2 — שמור לפhase עתידי)
+
+### ה-Mismatch types המוטמעים (A-G מהמפרט)
+| Type | תנאי | Severity |
+|---|---|---|
+| `defend_top3_slipping` | goal=defend_top3 + position > 3 | high |
+| `new_page_goal_but_master_page_exists` | goal=new_landing_page + masterPage קיים ב-medium/high confidence | high |
+| `informational_goal_but_commercial_page` | goal=informational_authority + masterPageType ∈ {product,category} + intent ∈ {commercial,transactional} | high |
+| `content_goal_on_product_page` | goal=expand_content_coverage + masterPageType=product + `isLikelyGenericKeyword()` | medium |
+| `rank_goal_on_product_for_generic_keyword` | goal=improve_rank + masterPageType=product + `isLikelyGenericKeyword()` | medium |
+| `monitor_goal_but_actionable_data` | goal=monitor_only + strategyType ∈ {quick_win,content_boost,new_content_needed,internal_link_boost} | low |
+| `goal_unset` | goal=null + status ∈ {active,ranking} | low |
+
+`isLikelyGenericKeyword()` heuristic: מילים שלא מכילות ספרות, יחידות מידה (ק"ג / גרם / ml / kg), פחות מ-5 מילים → generic.
+
+### מה עוד צריך לעשות ב-15E.2 (לפי הסדר)
+
+#### 1. עדכוני `src/lib/strategy.ts`
+להוסיף לטיפוס `KeywordStrategySummary` (כל השדות אופציונליים — לא לשבור backward compat):
+```ts
+// Phase 15E.2 — goal alignment (all optional for backward compat)
+keywordGoal?: string | null;
+goalAlignment?: GoalAlignment;
+goalMismatch?: GoalMismatchType | null;
+goalMismatchReason?: string | null;
+goalMismatchSeverity?: "low" | "medium" | "high" | null;
+goalExpectedStrategyTypes?: StrategyType[];
+goalExpectedMasterPageTypes?: MasterPageType[];
+goalNeedsHumanReview?: boolean;
+```
+Import הטיפוסים מ-`./keyword-goal`. Re-export אם נדרש.
+
+#### 2. עדכוני `src/lib/strategy-server.ts`
+ב-`computeKeywordStrategy()` (line ~31):
+- אחרי `const { riskLevel, confidence } = computeRiskAndConfidence(...)` — לפני יצירת ה-summary
+- לקרוא ל-`classifyGoalAlignment({ goal: tk.keywordGoal, status: tk.status, keyword: tk.keyword, intent: snapshot.intent, masterPage: tk.masterPage, masterPageType: tk.masterPageType, masterPageConfidence: tk.masterPageConfidence, currentPosition: snapshot.currentPosition, strategyType, confidence })`
+- להעביר את התוצאה ל-buildSummary OR להוסיף ישירות ל-return object
+- **CRITICAL — לא לשנות**: `strategyType`, `riskLevel`, `confidence`, `opportunityScore`. השדות החדשים רק מתווספים, לא מחליפים.
+
+ב-`buildSnapshot()` — אם צריך, להוסיף `masterPage*` ל-snapshot. אבל ההמלצה: לא לשנות ה-snapshot, להעביר את ה-masterPage fields ישירות ל-`classifyGoalAlignment` מה-TK record.
+
+#### 3. test script — `scripts/test-keyword-goal.ts`
+בסגנון `test-page-scope.ts`: array של 15+ fixtures, כל אחד בודק:
+- `expectedStrategyTypeForGoal(goal)` → expected list
+- `expectedMasterPageTypeForGoal(goal, intent)` → expected list
+- `getGoalLabel(goal)` → expected Hebrew label
+- edge cases: null/unknown goal לא קורס
+
+#### 4. test script — `scripts/test-goal-mismatch.ts`
+12+ fixtures, כל אחד בודק `detectGoalMismatch(input)`:
+- defend_top3 + position=2 → null (aligned)
+- defend_top3 + position=8 → `defend_top3_slipping` severity=high
+- new_landing_page + masterPage="...", confidence=high → `new_page_goal_but_master_page_exists`
+- informational_authority + masterPageType=product + intent=commercial → `informational_goal_but_commercial_page`
+- expand_content_coverage + masterPageType=product + keyword=generic → `content_goal_on_product_page`
+- improve_rank + masterPageType=product + keyword=generic → `rank_goal_on_product_for_generic_keyword`
+- monitor_only + strategyType=quick_win → `monitor_goal_but_actionable_data`
+- goal=null + status=active → `goal_unset` severity=low
+- goal=null + status=paused → null
+
+#### 5. test script — `scripts/test-strategy-with-goal.ts`
+Integration-style — 6+ fixtures על 4 ה-keywords של Levizon (mock snapshot + goal):
+- "פח אשפה ברבנטיה": improve_rank + category → aligned (לא mismatch)
+- "אביזרים לאמבטיה": expand_content_coverage + category → aligned
+- "מסננת לכיור": improve_rank + product + generic → `mismatch_needs_review` + mismatch type נכון
+- "משקל דיגיטלי למטבח": expand_content_coverage + product + generic → `mismatch_needs_review`
+- defend_top3 + position=2 → aligned
+- defend_top3 + position=12 → `mismatch_needs_review` (defend_top3_slipping)
+
+#### 6. בדיקות שצריך להריץ אחרי כל השינויים
+```bash
+cd apps/analyzer
+npx tsc --noEmit                       # type check
+npx next build                          # 27 routes כמו עכשיו
+npx tsx scripts/test-page-scope.ts      # baseline 22/22
+npx tsx scripts/test-keyword-goal.ts    # חדש
+npx tsx scripts/test-goal-mismatch.ts   # חדש
+npx tsx scripts/test-strategy-with-goal.ts  # חדש
+npx tsx scripts/audit-system.ts         # ללא רגרסיות
+```
+
+#### 7. אסור לעשות ב-15E.2 (תזכורת)
+- ❌ שינוי `strategyType` או `riskLevel` בפועל
+- ❌ Work Plan classifier wiring (15E.3)
+- ❌ Gap detector / Opportunity חדש (15E.3)
+- ❌ Brief template changes (15E.4)
+- ❌ Decision Guard changes (15E.4)
+- ❌ Refresh pipeline changes
+- ❌ Execution / Dry Run / Plugin / post_content
+
+#### 8. commit message מוצע ל-15E.2
+`feat(analyzer): Phase 15E.2 — Keyword Goal Brain Wiring (read-only, no strategy changes)`
+
+לכלול:
+- `src/lib/keyword-goal.ts`
+- `src/lib/strategy.ts` (additive fields)
+- `src/lib/strategy-server.ts` (call goal alignment)
+- 3 test scripts
+- אם רוצים — עדכון SESSION_HANDOFF.md לסמן 15E.2 כהושלם
+
+---
+
+## Resume Checklist להתחלת הסשן הבא
+
+1. `git log --oneline -3` — וודא שהcommits האחרונים `cf2a831` ואז `6b661d4`
+2. `git status apps/analyzer` — וודא ש-`src/lib/keyword-goal.ts` עדיין untracked + 3 modified files עוד לא נגעת בהם
+3. קרא את הסעיף "Phase 15E.2 — איפה הפסקנו" למעלה
+4. פתח את `src/lib/keyword-goal.ts` ועברו מהיר על ה-types/functions
+5. התחל מ-עדכון `src/lib/strategy.ts` (הוספת השדות האופציונליים)
+6. המשך לפי הסדר 1-6 שלמעלה
+7. בסוף — commit + עדכון SESSION_HANDOFF + ממתין לאישור Sharon לפני pushות 15E.3
+
+**לפני שמתחילים לכתוב קוד**: לעבור על `keyword-goal.ts` שכבר נכתב ולהחליט אם נשאר כמו שהוא או צריך תיקונים. הקובץ נכתב לפני ה-fix של 15E.1 ולא ידע על שינוי schema (לא היה שינוי schema ב-fix — רק תיקון comment). אז הוא צריך להיות תקף עדיין.
