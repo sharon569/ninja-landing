@@ -589,9 +589,14 @@ model TargetKeyword {
   keywordGoalSetAt  DateTime?
   keywordGoalSetBy  String?
 
-  // Phase 15E.1 — manual override of the Master Page resolver. When operator
-  // explicitly picks a masterPage / targetUrl we record it so the resolver
-  // never overwrites it on the next refresh.
+  // Phase 15E.1 — reserved columns for a future Master Page Override UI
+  // (no writer, no reader yet — wired in a later phase). The resolver
+  // currently protects operator intent through Tier 1: TargetKeyword.targetUrl
+  // is the canonical operator-set page and is never overwritten on refresh.
+  // These columns exist so that, when a separate operator-picked masterPage
+  // selector lands, we already have the audit shape (flag + when + who).
+  // Do NOT consume these fields from UI / Brain / resolver until a phase
+  // explicitly wires them up.
   masterPageManualOverride Boolean   @default(false)
   masterPageOverrideAt     DateTime?
   masterPageOverrideBy     String?

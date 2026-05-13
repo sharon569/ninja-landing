@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/supabase";
 import {
 	INTENT_OPTIONS,
 	PRIORITY_OPTIONS,
@@ -11,6 +12,15 @@ import {
 	KEYWORD_GOAL_OPTIONS,
 	normalizeKeyword,
 } from "@/lib/keywords";
+
+async function actorEmail(): Promise<string> {
+	try {
+		const u = await getCurrentUser();
+		return u?.email ?? "system";
+	} catch {
+		return "system";
+	}
+}
 
 export interface AddKeywordState {
 	ok?: boolean;
@@ -157,6 +167,7 @@ export async function updateKeyword(
 	if (!row) return { error: "מילת מפתח לא נמצאה." };
 
 	const goalChanged = (parsed.data.keywordGoal ?? null) !== (row.keywordGoal ?? null);
+	const actor = goalChanged ? await actorEmail() : null;
 
 	try {
 		await db.targetKeyword.update({
@@ -174,7 +185,7 @@ export async function updateKeyword(
 				...(goalChanged
 					? {
 						keywordGoalSetAt: parsed.data.keywordGoal ? new Date() : null,
-						keywordGoalSetBy: parsed.data.keywordGoal ? "operator" : null,
+						keywordGoalSetBy: parsed.data.keywordGoal ? actor : null,
 					}
 					: {}),
 			},
