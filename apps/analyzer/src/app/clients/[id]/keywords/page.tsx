@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ExternalLink, Search, Target, AlertTriangle } from "lucide-react";
+import { ExternalLink, Search, Target, AlertTriangle, Compass } from "lucide-react";
 import { db } from "@/lib/db";
 import {
 	intentLabel,
@@ -7,6 +7,8 @@ import {
 	priorityColor,
 	statusLabel,
 	statusTone,
+	keywordGoalLabel,
+	businessValueLabel,
 	PRIORITY_ORDER,
 } from "@/lib/keywords";
 import { loadKeywordPerformance } from "@/lib/keywords-server";
@@ -69,6 +71,17 @@ export default async function KeywordsPage({
 		highConfidence: keywords.filter((k) => k.masterPageConfidence === "high").length,
 		needsReview: keywords.filter((k) => k.recommendedPageAction === "human_review" || k.recommendedPageAction === "choose_master_page").length,
 		typeMismatch: keywords.filter((k) => k.pageTypeMismatch).length,
+		manualOverride: keywords.filter((k) => k.masterPageManualOverride).length,
+	};
+
+	// Phase 15E.1 — Strategic goal coverage counters. The Brain does NOT yet
+	// use these — they're captured here so the operator can fill them in
+	// before 15E.2 wires them into Strategy/Brief logic.
+	const activeKeywords = keywords.filter((k) => k.status === "active" || k.status === "ranking");
+	const goalCounts = {
+		withGoal: keywords.filter((k) => k.keywordGoal).length,
+		withoutGoal: activeKeywords.filter((k) => !k.keywordGoal).length,
+		withBusinessValue: keywords.filter((k) => k.businessValue).length,
 	};
 
 	return (
@@ -102,7 +115,7 @@ export default async function KeywordsPage({
 						Master Page Status
 					</h2>
 				</div>
-				<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+				<div className="grid grid-cols-2 md:grid-cols-5 gap-3">
 					<SummaryChip
 						label="עם Master Page"
 						value={masterPageCounts.withMasterPage}
@@ -123,10 +136,46 @@ export default async function KeywordsPage({
 						value={masterPageCounts.typeMismatch}
 						tone={masterPageCounts.typeMismatch > 0 ? "bad" : "neutral"}
 					/>
+					<SummaryChip
+						label="Manual Override"
+						value={masterPageCounts.manualOverride}
+						tone={masterPageCounts.manualOverride > 0 ? "good" : "mute"}
+					/>
 				</div>
 				<p className="text-xs text-ink-dim leading-relaxed">
 					Master Page הוא העמוד המרכזי שאמור להוביל את הקידום של מילת המפתח. ה-resolver בוחר אותו לפי targetUrl,
 					scan match, וסוג העמוד שגוגל מדרג. ה-refresh button מעדכן את כל הערכים.
+				</p>
+			</section>
+
+			{/* Phase 15E.1 — Strategic Goals coverage */}
+			<section className="rounded-xl border border-blade/20 bg-blade/5 p-4 space-y-3">
+				<div className="flex items-center gap-2">
+					<Compass className="w-5 h-5 text-blade" />
+					<h2 className="text-sm font-bold tracking-wider uppercase text-blade">
+						Strategic Goals · Phase 15E.1
+					</h2>
+				</div>
+				<div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+					<SummaryChip
+						label="עם מטרת קידום"
+						value={goalCounts.withGoal}
+						tone={goalCounts.withGoal > 0 ? "good" : "mute"}
+					/>
+					<SummaryChip
+						label="פעילות ללא Goal"
+						value={goalCounts.withoutGoal}
+						tone={goalCounts.withoutGoal === 0 ? "good" : "warn"}
+					/>
+					<SummaryChip
+						label="עם ערך עסקי"
+						value={goalCounts.withBusinessValue}
+						tone={goalCounts.withBusinessValue > 0 ? "good" : "mute"}
+					/>
+				</div>
+				<p className="text-xs text-ink-dim leading-relaxed">
+					כל מילת מפתח יכולה לקבל מטרת קידום (improve_rank, defend_top3, וכו׳) דרך כפתור עריכה.
+					כרגע השדה נשמר בלבד — ה-Brain עדיין לא מתעדף actions לפיו (יחל ב-15E.2).
 				</p>
 			</section>
 
@@ -153,6 +202,7 @@ export default async function KeywordsPage({
 								<tr>
 									<th className="px-4 py-3 font-bold">מילת מפתח</th>
 									<th className="px-4 py-3 font-bold">כוונה</th>
+									<th className="px-4 py-3 font-bold">מטרה</th>
 									<th className="px-4 py-3 font-bold">עדיפות</th>
 									<th className="px-4 py-3 font-bold">סטטוס</th>
 									<th className="px-4 py-3 font-bold text-left">מיקום</th>
@@ -181,6 +231,18 @@ export default async function KeywordsPage({
 											</td>
 											<td className="px-4 py-3 align-top text-ink-dim">
 												{intentLabel(k.intent)}
+											</td>
+											<td className="px-4 py-3 align-top">
+												{k.keywordGoal ? (
+													<span
+														className="inline-flex items-center text-[10px] font-bold tracking-wider rounded-full border bg-blade/10 text-blade border-blade/30 px-2 py-0.5"
+														title={k.businessValue ? businessValueLabel(k.businessValue) : undefined}
+													>
+														{keywordGoalLabel(k.keywordGoal)}
+													</span>
+												) : (
+													<span className="text-[10px] text-ink-mute">— ללא —</span>
+												)}
 											</td>
 											<td className="px-4 py-3 align-top">
 												<span
@@ -251,6 +313,9 @@ export default async function KeywordsPage({
 														targetUrl: k.targetUrl,
 														status: k.status,
 														notes: k.notes,
+														businessValue: k.businessValue,
+														keywordGoal: k.keywordGoal,
+														keywordGoalNote: k.keywordGoalNote,
 													}}
 												/>
 											</td>

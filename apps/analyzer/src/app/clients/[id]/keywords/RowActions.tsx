@@ -6,6 +6,8 @@ import {
 	INTENT_OPTIONS,
 	PRIORITY_OPTIONS,
 	STATUS_OPTIONS,
+	BUSINESS_VALUE_OPTIONS,
+	KEYWORD_GOAL_OPTIONS,
 } from "@/lib/keywords";
 import { deleteKeyword, toggleKeywordStatus, updateKeyword } from "./actions";
 
@@ -17,6 +19,9 @@ interface Row {
 	targetUrl: string | null;
 	status: string;
 	notes: string | null;
+	businessValue: string | null;
+	keywordGoal: string | null;
+	keywordGoalNote: string | null;
 }
 
 export function RowActions({ row }: { row: Row }) {
@@ -136,6 +141,45 @@ function EditDialog({ row, onClose }: { row: Row; onClose: () => void }) {
 					<Field label="הערות">
 						<Textarea name="notes" rows={2} defaultValue={row.notes ?? ""} />
 					</Field>
+
+					<div className="border-t border-ninja-line pt-4 space-y-3">
+						<div className="text-[10px] font-bold tracking-[0.2em] uppercase text-gold">
+							Strategic Context · Phase 15E.1
+						</div>
+						<div className="grid grid-cols-2 gap-3">
+							<Field label="מטרת קידום">
+								<Select name="keywordGoal" defaultValue={row.keywordGoal ?? ""}>
+									<option value="">— ללא הגדרה —</option>
+									{KEYWORD_GOAL_OPTIONS.map((o) => (
+										<option key={o.value} value={o.value} title={o.description}>
+											{o.label}
+										</option>
+									))}
+								</Select>
+							</Field>
+							<Field label="ערך עסקי">
+								<Select name="businessValue" defaultValue={row.businessValue ?? ""}>
+									<option value="">—</option>
+									{BUSINESS_VALUE_OPTIONS.map((o) => (
+										<option key={o.value} value={o.value}>
+											{o.label}
+										</option>
+									))}
+								</Select>
+							</Field>
+						</div>
+						<Field label="הערת מטרה (אופציונלי)">
+							<Textarea
+								name="keywordGoalNote"
+								rows={2}
+								defaultValue={row.keywordGoalNote ?? ""}
+								placeholder="הקשר נוסף — למה זו המטרה, מה success נראה..."
+							/>
+						</Field>
+						<p className="text-[10px] text-ink-mute leading-relaxed">
+							ה-Brain עדיין לא מתעדף לפי מטרת הקידום. השדה נשמר עכשיו ויחל להשפיע בשלב 15E.2.
+						</p>
+					</div>
 
 					{err && (
 						<div className="text-xs text-blade">{err}</div>

@@ -7,6 +7,8 @@ import {
 	INTENT_OPTIONS,
 	PRIORITY_OPTIONS,
 	STATUS_OPTIONS,
+	BUSINESS_VALUE_OPTIONS,
+	KEYWORD_GOAL_OPTIONS,
 	normalizeKeyword,
 } from "@/lib/keywords";
 
@@ -20,6 +22,8 @@ export interface AddKeywordState {
 const intentValues = INTENT_OPTIONS.map((o) => o.value) as [string, ...string[]];
 const priorityValues = PRIORITY_OPTIONS.map((o) => o.value) as [string, ...string[]];
 const statusValues = STATUS_OPTIONS.map((o) => o.value) as [string, ...string[]];
+const businessValueValues = BUSINESS_VALUE_OPTIONS.map((o) => o.value) as [string, ...string[]];
+const keywordGoalValues = KEYWORD_GOAL_OPTIONS.map((o) => o.value) as [string, ...string[]];
 
 const singleSchema = z.object({
 	keyword: z.string().min(2).max(200),
@@ -37,6 +41,9 @@ const editSchema = z.object({
 	targetUrl: z.string().max(400).optional().nullable(),
 	status: z.enum(statusValues).default("active"),
 	notes: z.string().max(2000).optional().nullable(),
+	businessValue: z.enum(businessValueValues).optional().nullable(),
+	keywordGoal: z.enum(keywordGoalValues).optional().nullable(),
+	keywordGoalNote: z.string().max(1000).optional().nullable(),
 });
 
 function nonEmpty(v: FormDataEntryValue | null): string | null {
@@ -138,6 +145,9 @@ export async function updateKeyword(
 		targetUrl: nonEmpty(formData.get("targetUrl")),
 		status: nonEmpty(formData.get("status")) ?? "active",
 		notes: nonEmpty(formData.get("notes")),
+		businessValue: nonEmpty(formData.get("businessValue")),
+		keywordGoal: nonEmpty(formData.get("keywordGoal")),
+		keywordGoalNote: nonEmpty(formData.get("keywordGoalNote")),
 	});
 	if (!parsed.success) {
 		return { error: parsed.error.issues.map((i) => i.message).join("; ") };
@@ -145,6 +155,8 @@ export async function updateKeyword(
 	const normalized = normalizeKeyword(parsed.data.keyword);
 	const row = await db.targetKeyword.findUnique({ where: { id: parsed.data.id } });
 	if (!row) return { error: "מילת מפתח לא נמצאה." };
+
+	const goalChanged = (parsed.data.keywordGoal ?? null) !== (row.keywordGoal ?? null);
 
 	try {
 		await db.targetKeyword.update({
@@ -156,6 +168,15 @@ export async function updateKeyword(
 				targetUrl: parsed.data.targetUrl ?? null,
 				status: parsed.data.status,
 				notes: parsed.data.notes ?? null,
+				businessValue: parsed.data.businessValue ?? null,
+				keywordGoal: parsed.data.keywordGoal ?? null,
+				keywordGoalNote: parsed.data.keywordGoalNote ?? null,
+				...(goalChanged
+					? {
+						keywordGoalSetAt: parsed.data.keywordGoal ? new Date() : null,
+						keywordGoalSetBy: parsed.data.keywordGoal ? "operator" : null,
+					}
+					: {}),
 			},
 		});
 	} catch (err) {

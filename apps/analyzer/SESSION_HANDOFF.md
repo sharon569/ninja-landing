@@ -1,12 +1,44 @@
-# Session Handoff — 2026-05-12
+# Session Handoff — 2026-05-13
 
-**Last commit**: `cf5b970` — Phase 15D.-1 (Keyword Bank as North Star + Master Page Engine)
+**Last commit**: `<TBD-15E.1>` — Phase 15E.1 (Keyword Goals + Master Page manual override — DB + UI only)
+**Previous milestone**: `cf5b970` — Phase 15D.-1 (Master Page Engine)
 **Production**: `seo.samp.ninja` (Frankfurt) — `dpl_*` ID will refresh on next push
 **Repo**: `apps/analyzer` is the active codebase
 
 ---
 
+## ⚠️ שינוי תפעולי חשוב מ-15E.1
+
+ה-DB **עכשיו תחת Prisma migrate tracking מסודר** (analyzer schema, `_prisma_migrations` table פעיל, 17 migrations applied).
+
+עד 15E.1 כל שינוי schema הופעל ב-`prisma db push`. ב-15E.1 ביצענו:
+1. `prisma migrate resolve --applied` ל-16 ה-migrations ההיסטוריות (baseline — לא הריץ DDL, רק רשם כ-applied)
+2. `prisma migrate deploy` להפצת 15E.1
+
+**מכאן והלאה לא להשתמש ב-`prisma db push` לשינויי schema ב-production/staging.** כל שינוי schema עתידי חייב:
+- migration file חדש ב-`prisma/migrations/YYYYMMDDHHMMSS_name/migration.sql`
+- `npx prisma migrate deploy` (לא `db push`, לא `migrate dev` על prod)
+- SQL idempotent עם `ADD COLUMN IF NOT EXISTS` / fields nullable או עם DEFAULT, אין DROP destructive
+
+אם schema.prisma ושומר השינוי בלי migration file, הוא ייכשל ב-deploy או יגרום drift.
+
+---
+
 ## איפה אנחנו עכשיו
+
+Phase 15E.1 הושלם: ה-Keyword Bank תומך עכשיו ב-Goal פר keyword (DB + UI בלבד — ה-Brain עדיין לא משתמש בערך).
+
+**הפסקנו לפני Phase 15E.2** — Brain wiring (`src/lib/keyword-goal.ts` + strategy classifier משתמש ב-goal). לא להתחיל בלי אישור.
+
+**חשוב לפני 15E.2**: Levizon כרגע עם `keywordGoal=null` לכל 4 המילים. צריך להגדיר ידנית goals ב-UI (לחיצה על ✏️ → סקשן Strategic Context) לפני שניתן לראות את ה-Brain מגיב על ההגדרות. ערכים מוצעים לפי handoff היסטורי:
+- "פח אשפה ברבנטיה" → `defend_top3` (Top 3 לפי 14A)
+- "אביזרים לאמבטיה" → `improve_rank` או `expand_content_coverage`
+- "מסננת לכיור" → `improve_rank`
+- "משקל דיגיטלי למטבח" → `improve_rank`
+
+---
+
+## איפה אנחנו עכשיו (state ישן — לפני 15E.1)
 
 המערכת **מוכנה לpilot E2E רביעי**, אבל יש 3 דברים שמחכים לאישור שלך לפני שאני מתחיל לפעול:
 
@@ -33,7 +65,8 @@ Pre-bundle 15D.-1 ה-pilot נחסם כי title category-style נופל על דף
 | 15D.0 — Work Plan | `65ce463` | SeoWorkPlan + SeoWorkPlanItem + classifier |
 | Bundle B/C/D | `2d82ce0` | Refresh button + safe_meta opp fix + brief humanReviewedAt |
 | 15E.2 propagation fix | `53106e1` | Brief humanReview propagates to Opportunity |
-| **15D.-1 (latest)** | **`cf5b970`** | **Master Page Engine + page-type guards** |
+| 15D.-1 | `cf5b970` | Master Page Engine + page-type guards |
+| **15E.1 (latest)** | **`<TBD>`** | **Keyword Goals + Manual MP Override — DB + UI only, no Brain changes** |
 
 ---
 
@@ -186,3 +219,58 @@ npx tsx scripts/qa-15d-master-page.ts     # resolve Levizon master pages
 ---
 
 נשמר ב-`apps/analyzer/SESSION_HANDOFF.md`. עדכן אותו בסוף sessions עתידיים.
+
+---
+
+## Phase 15E.1 — מה נעשה (DB + UI בלבד)
+
+### Schema changes (`prisma/schema.prisma`)
+ל-`TargetKeyword` נוספו 7 שדות:
+- `keywordGoal` (String?) — מטרת קידום, ערכים מותרים: `improve_rank | defend_top3 | expand_content_coverage | new_landing_page | informational_authority | cannibalization_resolution | monitor_only`
+- `keywordGoalNote` (String?) — הערה חופשית
+- `keywordGoalSetAt` (DateTime?) — מתי הוגדר
+- `keywordGoalSetBy` (String?) — "operator" כרגע
+- `masterPageManualOverride` (Boolean, default false) — דגל אם operator override ידני
+- `masterPageOverrideAt` (DateTime?)
+- `masterPageOverrideBy` (String?)
+
+המיגרציה: `prisma/migrations/20260513030000_phase_15e1_keyword_goals/migration.sql` — `ADD COLUMN IF NOT EXISTS` בלבד, idempotent.
+
+### UI changes
+- `RowActions.tsx` — סקשן חדש "Strategic Context · Phase 15E.1" בעריכה: dropdown מטרה, dropdown businessValue, textarea note
+- `page.tsx` — עמודה חדשה "מטרה" בטבלה (pill כחול), section חדש "Strategic Goals" עם 3 counters (עם Goal / פעילות ללא Goal / עם ערך עסקי), Master Page section עכשיו עם 5 counters (הוספת "Manual Override")
+- `keywords.ts` — `KEYWORD_GOAL_OPTIONS`, `BUSINESS_VALUE_OPTIONS`, helpers
+- `actions.ts` — zod schema מקבל goal/businessValue/note, מעדכן `keywordGoalSetAt`/`keywordGoalSetBy` כש-goal משתנה
+
+### QA scripts שנשארו ב-repo
+- `scripts/check-15e1-db-state.ts` — read-only, מציג את כל עמודות TargetKeyword + מסמן את 7 שדות 15E.1. מועיל ל-future drift detection.
+- `scripts/smoke-15e1-ui.ts` — exercises ה-edit form code path (zod + db.update) end-to-end, mocks `nonEmpty` normalization, מאמת round-trip + counters. **Note**: לא קורא ל-`updateKeyword` server action ישירות כי `revalidatePath` קורס מחוץ ל-Next runtime — משכפל את הלוגיקה במקום זאת. אם בעתיד הelevated server actions מנוקות מ-`revalidatePath` ניתן יהיה לקרוא ישירות.
+
+### מה לא נגעתי
+- Strategy classifier (`strategy-server.ts`) — לא נגע
+- Opportunities detectors (`opportunities-server.ts`) — לא נגע
+- Work Plan (`work-plan-server.ts`) — לא נגע
+- Briefs (`briefs-server.ts`) — לא נגע
+- Decision Guard (`decision-server.ts`) — לא נגע
+- Refresh pipeline (`refresh-server.ts`) — לא נגע
+- Plugin / Execute / Dry Run — לא נגע
+
+ה-Brain עדיין לא יודע על goal — זה ב-15E.2.
+
+### בדיקות שעברו
+| בדיקה | תוצאה |
+|---|---|
+| `prisma migrate deploy` | ✅ 1 migration applied |
+| `tsc --noEmit` | ✅ no errors |
+| `next build` | ✅ 27 routes |
+| `test-page-scope.ts` | ✅ 22/22 |
+| `audit-system.ts` | ✅ זהה לbaseline |
+| `smoke-15e1-ui.ts` | ✅ 4/4 steps (setup → write → update → restore) |
+
+### Phase 15E.2 הבא — Brain wiring (לא להתחיל בלי אישור)
+1. `src/lib/keyword-goal.ts` — pure functions: `expectedStrategyTypeForGoal()`, `expectedMasterPageTypeForGoal()`, `detectGoalMismatch()`
+2. `strategy-server.ts` — להוסיף שדה `goalAlignment` לoutput, ולתת priority לפי goal כשconfidence נמוך/בינוני. כשGSC חזק וסותר → `goalContradictsData=true` → forced human_review
+3. `scripts/test-keyword-goal.ts` — 15+ fixtures בסגנון test-page-scope
+4. `scripts/test-goal-mismatch.ts` — 12+ fixtures
+
+**לפני 15E.2**: צריך להגדיר goals ב-UI ל-4 keywords של Levizon (כרגע כולם null) — אחרת אי אפשר לראות את ה-Brain מגיב על goal.

@@ -578,6 +578,24 @@ model TargetKeyword {
   pageTypeMismatch    Boolean   @default(false)
   masterPageResolvedAt DateTime?
 
+  // Phase 15E.1 — operator-set strategic goal for this keyword. Drives Brain
+  // priority + brief template choice in later phases. Stored as String for
+  // consistency with intent/priority/status (no Prisma enums in this schema).
+  // Allowed values (validated at write time in zod schema):
+  //   improve_rank | defend_top3 | expand_content_coverage | new_landing_page |
+  //   informational_authority | cannibalization_resolution | monitor_only
+  keywordGoal       String?
+  keywordGoalNote   String?
+  keywordGoalSetAt  DateTime?
+  keywordGoalSetBy  String?
+
+  // Phase 15E.1 — manual override of the Master Page resolver. When operator
+  // explicitly picks a masterPage / targetUrl we record it so the resolver
+  // never overwrites it on the next refresh.
+  masterPageManualOverride Boolean   @default(false)
+  masterPageOverrideAt     DateTime?
+  masterPageOverrideBy     String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
