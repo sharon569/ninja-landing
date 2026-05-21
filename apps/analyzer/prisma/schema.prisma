@@ -99,6 +99,8 @@ model Client {
   executionEvents         ExecutionEvent[]
   keywordStrategies       KeywordStrategy[]
   seoWorkPlans            SeoWorkPlan[]
+  pipelineRuns            PipelineRun[]
+  botNotifications        BotNotification[]
 
   @@index([baseUrl])
   @@schema("analyzer")
@@ -742,5 +744,49 @@ model Finding {
 
   @@index([scanId, severity])
   @@index([ruleId])
+  @@schema("analyzer")
+}
+
+// Phase 16 — Durable job queue for background pipeline work. Telegram webhook
+// (and UI actions) enqueue jobs here; a worker route drains them with proper
+// per-client locking and deduplication. Survives Vercel function timeouts.
+model PipelineRun {
+  id          String   @id @default(cuid())
+  clientId    String?
+  client      Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  type        String   // keyword_refresh | full_refresh | scan | gsc_sync | speed_audit | content_generate
+  status      String   @default("queued") // queued | running | success | failed
+  triggeredBy String   // telegram | ui | cron | keyword_add
+
+  payload     String?  // JSON — input params for the job
+  result      String?  // JSON — output summary
+  error       String?
+
+  createdAt   DateTime @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+
+  @@index([status, createdAt])
+  @@index([clientId, type, status])
+  @@schema("analyzer")
+}
+
+// Phase 16 — tracks messages sent to the operator via Telegram (or future
+// channels). Enables editing sent messages, deduplication, and audit trail.
+model BotNotification {
+  id          String   @id @default(cuid())
+  chatId      String
+  messageId   String?  // Telegram message ID (for editing messages later)
+
+  type        String   // scan_result | opps_found | plan_ready | keyword_discovery | execution_result | impact_review | daily_digest | calendar_reminder | refresh_complete | agency_sync_complete
+  clientId    String?
+  referenceId String?  // ID of the related entity (planId, oppId, briefId, etc.)
+
+  status      String   @default("sent") // sent | edited | expired
+  sentAt      DateTime @default(now())
+
+  @@index([chatId, type])
+  @@index([clientId, sentAt(sort: Desc)])
   @@schema("analyzer")
 }
