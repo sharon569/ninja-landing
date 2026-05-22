@@ -480,6 +480,7 @@ model ContentBrief {
   updatedAt                DateTime @updatedAt
 
   contentSchedule          ContentSchedule?
+  contentDrafts            ContentDraft[]
 
   @@unique([clientId, opportunityId, briefType])
   @@index([clientId, status])
@@ -881,5 +882,31 @@ model ContentSchedule {
 
   @@index([clientId, scheduledDate])
   @@index([clientId, status])
+  @@schema("analyzer")
+}
+
+// Phase 16.4 — AI-generated content drafts. Separate from ContentBrief
+// (the spec) so we can version, track model/tokens/cost, and regenerate.
+model ContentDraft {
+  id              String   @id @default(cuid())
+  briefId         String
+  brief           ContentBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+
+  version         Int      @default(1)
+  model           String   // claude-sonnet-4-6, etc.
+  content         String   // generated text (markdown)
+  wordCount       Int
+  inputTokens     Int?
+  outputTokens    Int?
+  promptHash      String?  // hash for cache/dedup
+
+  status          String   @default("draft") // draft | review | approved | rejected
+  feedback        String?  // operator feedback for regeneration
+  approvedAt      DateTime?
+  approvedBy      String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([briefId, version(sort: Desc)])
   @@schema("analyzer")
 }

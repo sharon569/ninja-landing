@@ -53,6 +53,8 @@ export async function handleCommand(text: string): Promise<CommandResult> {
 			return handleSpeed(arg);
 		case "/calendar":
 			return handleCalendar(arg);
+		case "/write":
+			return handleWrite(arg);
 		default:
 			return {
 				text: `❓ לא מכיר את הפקודה <code>${esc(cmd)}</code>.\nשלח /help לרשימת פקודות.`,
@@ -80,6 +82,7 @@ function handleHelp(): CommandResult {
 			"/refresh &lt;לקוח&gt; — רענון מלא",
 			"/speed &lt;לקוח&gt; — ציון מהירות",
 			"/calendar &lt;לקוח&gt; — לוח תוכן",
+			"/write &lt;brief ID&gt; — יצירת תוכן AI",
 			"",
 			"/help — הודעה זו",
 		].join("\n"),
@@ -423,6 +426,40 @@ async function handleRefresh(query: string): Promise<CommandResult> {
 		return { text: `⏳ רענון מלא ל-<b>${esc(client.name)}</b> כבר בתור.` };
 	}
 	return { text: `🔄 רענון מלא ל-<b>${esc(client.name)}</b> נכנס לתור.\nתקבל התראה כשיסתיים.` };
+}
+
+// ─── /write <briefId> ─────────────────────────────────────────
+
+async function handleWrite(arg: string): Promise<CommandResult> {
+	if (!arg) {
+		return { text: "שימוש: /write &lt;brief ID&gt;\n\nהשתמש ב-/opps כדי לראות הזדמנויות, או מצא brief ID בדשבורד." };
+	}
+
+	const brief = await db.contentBrief.findUnique({
+		where: { id: arg.trim() },
+		select: { id: true, targetKeyword: true, briefType: true, clientId: true },
+	});
+
+	if (!brief) {
+		return { text: `Brief לא נמצא: <code>${esc(arg)}</code>` };
+	}
+
+	if (brief.briefType === "title_meta_update" || brief.briefType === "internal_link_plan") {
+		return { text: "סוג הבריף הזה לא דורש יצירת תוכן (title/meta/links בלבד)." };
+	}
+
+	// Enqueue content generation job
+	const { enqueueJob, wakeWorker } = await import("@/lib/jobs-server");
+	const { alreadyQueued } = await enqueueJob("content_generate", brief.clientId, { briefId: brief.id }, "telegram");
+	wakeWorker();
+
+	if (alreadyQueued) {
+		return { text: `⏳ יצירת תוכן ל-<b>${esc(brief.targetKeyword)}</b> כבר בתור.` };
+	}
+
+	return {
+		text: `✍️ יצירת תוכן ל-<b>${esc(brief.targetKeyword)}</b> נכנסה לתור.\nתקבל את התוכן כשיהיה מוכן.`,
+	};
 }
 
 // ─── /calendar <client> ───────────────────────────────────────

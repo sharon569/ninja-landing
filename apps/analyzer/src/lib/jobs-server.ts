@@ -258,8 +258,18 @@ async function processJob(
 		}
 
 		case "content_generate": {
-			// Phase 4 will add generateContent() — stub for now.
-			return { summary: "Content generation not yet implemented" };
+			const briefId = payload?.briefId as string | undefined;
+			if (!briefId) throw new Error("content_generate requires briefId in payload");
+			const { generateContent } = await import("@/lib/ai-writer-server");
+			const result = await generateContent(briefId);
+			return {
+				summary: `תוכן נוצר: ${result.wordCount} מילים (${result.model})\n\n${result.preview}`,
+				wordCount: result.wordCount,
+				draftId: result.draftId,
+				model: result.model,
+				inputTokens: result.inputTokens,
+				outputTokens: result.outputTokens,
+			};
 		}
 
 		default: {
