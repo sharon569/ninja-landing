@@ -55,6 +55,8 @@ export async function handleCommand(text: string): Promise<CommandResult> {
 			return handleCalendar(arg);
 		case "/write":
 			return handleWrite(arg);
+		case "/schedule":
+			return handleSchedule(arg);
 		default:
 			return {
 				text: `❓ לא מכיר את הפקודה <code>${esc(cmd)}</code>.\nשלח /help לרשימת פקודות.`,
@@ -83,6 +85,7 @@ function handleHelp(): CommandResult {
 			"/speed &lt;לקוח&gt; — ציון מהירות",
 			"/calendar &lt;לקוח&gt; — לוח תוכן",
 			"/write &lt;brief ID&gt; — יצירת תוכן AI",
+			"/schedule &lt;לקוח&gt; — תזמון תוכן אוטומטי",
 			"",
 			"/help — הודעה זו",
 		].join("\n"),
@@ -459,6 +462,38 @@ async function handleWrite(arg: string): Promise<CommandResult> {
 
 	return {
 		text: `✍️ יצירת תוכן ל-<b>${esc(brief.targetKeyword)}</b> נכנסה לתור.\nתקבל את התוכן כשיהיה מוכן.`,
+	};
+}
+
+// ─── /schedule <client> ───────────────────────────────────────
+
+async function handleSchedule(query: string): Promise<CommandResult> {
+	if (!query) return { text: "שימוש: /schedule &lt;שם לקוח&gt;" };
+
+	const client = await findClient(query);
+	if (!client) return { text: `לא נמצא לקוח בשם "<b>${esc(query)}</b>".` };
+
+	const { autoSchedule } = await import("@/lib/calendar-server");
+	const result = await autoSchedule(client.id);
+
+	if (result.scheduled === 0 && result.slots === 0) {
+		return { text: `אין בריפים מאושרים או סלוטים פנויים ל-<b>${esc(client.name)}</b>.` };
+	}
+
+	if (result.scheduled === 0) {
+		return { text: `אין בריפים מאושרים לתזמן (${result.slots} סלוטים פנויים).` };
+	}
+
+	return {
+		text: [
+			`<b>📅 תזמון אוטומטי — ${esc(client.name)}</b>`,
+			"",
+			`✅ תוזמנו: ${result.scheduled} פוסטים`,
+			`⏭ דולגו: ${result.skipped}`,
+			`📊 סלוטים פנויים: ${result.slots}`,
+			"",
+			"שלח /calendar כדי לראות את הלוח.",
+		].join("\n"),
 	};
 }
 
