@@ -43,6 +43,7 @@ function JobQueuePanel() {
 
 	function drain() {
 		startTransition(async () => {
+			setLastAction("Draining... (may take up to 60s)");
 			const result = await drainJobsAction();
 			setLastAction(
 				`Drained: ${result.processed} processed, ${result.succeeded} ok, ${result.failed} failed, ${result.skipped} skipped`,
