@@ -122,7 +122,7 @@ async function handleClients(): Promise<CommandResult> {
 			]);
 
 			const health = calcHealthScore({
-				profileCompletionPct: calcProfileCompletion(c),
+				profileCompletionPct: calcProfileCompletion(c).percent,
 				openOpportunities: c._count.opportunities,
 				highImpactOpen: highImpact,
 				highSeverityFindings: highSeverity,
