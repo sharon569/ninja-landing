@@ -12,10 +12,13 @@ export async function proxy(req: NextRequest) {
 		PUBLIC_PATHS.has(pathname) ||
 		pathname.startsWith("/_next") ||
 		pathname.startsWith("/favicon") ||
-		pathname.startsWith("/api/cron/")
+		pathname.startsWith("/api/cron/") ||
+		pathname.startsWith("/api/jobs/") ||
+		pathname.startsWith("/api/telegram/") ||
+		pathname.startsWith("/api/mock/")
 	) {
-		// /api/cron/ paths protect themselves with a CRON_SECRET bearer header,
-		// so they bypass the Supabase admin gate.
+		// /api/cron/ and /api/jobs/ paths protect themselves with a CRON_SECRET
+		// bearer header, so they bypass the Supabase admin gate.
 		return res;
 	}
 

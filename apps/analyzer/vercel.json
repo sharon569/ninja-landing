@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/agency-sync",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/jobs/drain",
+      "schedule": "* * * * *"
     }
   ]
 }

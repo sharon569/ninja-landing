@@ -99,6 +99,15 @@ model Client {
   executionEvents         ExecutionEvent[]
   keywordStrategies       KeywordStrategy[]
   seoWorkPlans            SeoWorkPlan[]
+  pipelineRuns            PipelineRun[]
+  botNotifications        BotNotification[]
+  keywordSuggestions      KeywordSuggestion[]
+  pageSpeedScores         PageSpeedScore[]
+  contentSchedules        ContentSchedule[]
+
+  // Phase 16.5 — publishing cadence
+  publishingCadence       Int      @default(2)    // posts per week
+  publishingDays          String[] @default(["sunday", "wednesday"])
 
   @@index([baseUrl])
   @@schema("analyzer")
@@ -470,6 +479,9 @@ model ContentBrief {
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 
+  contentSchedule          ContentSchedule?
+  contentDrafts            ContentDraft[]
+
   @@unique([clientId, opportunityId, briefType])
   @@index([clientId, status])
   @@index([clientId, briefType])
@@ -742,5 +754,159 @@ model Finding {
 
   @@index([scanId, severity])
   @@index([ruleId])
+  @@schema("analyzer")
+}
+
+// Phase 16 — Durable job queue for background pipeline work. Telegram webhook
+// (and UI actions) enqueue jobs here; a worker route drains them with proper
+// per-client locking and deduplication. Survives Vercel function timeouts.
+model PipelineRun {
+  id          String   @id @default(cuid())
+  clientId    String?
+  client      Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  type        String   // keyword_refresh | full_refresh | scan | gsc_sync | speed_audit | content_generate
+  status      String   @default("queued") // queued | running | success | failed
+  triggeredBy String   // telegram | ui | cron | keyword_add
+
+  payload     String?  // JSON — input params for the job
+  result      String?  // JSON — output summary
+  error       String?
+
+  createdAt   DateTime @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+
+  @@index([status, createdAt])
+  @@index([clientId, type, status])
+  @@schema("analyzer")
+}
+
+// Phase 16 — tracks messages sent to the operator via Telegram (or future
+// channels). Enables editing sent messages, deduplication, and audit trail.
+model BotNotification {
+  id          String   @id @default(cuid())
+  chatId      String
+  messageId   String?  // Telegram message ID (for editing messages later)
+
+  type        String   // scan_result | opps_found | plan_ready | keyword_discovery | execution_result | impact_review | daily_digest | calendar_reminder | refresh_complete | agency_sync_complete
+  clientId    String?
+  client      Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  referenceId String?  // ID of the related entity (planId, oppId, briefId, etc.)
+
+  status      String   @default("sent") // sent | edited | expired
+  sentAt      DateTime @default(now())
+
+  @@index([chatId, type])
+  @@index([clientId, sentAt(sort: Desc)])
+  @@schema("analyzer")
+}
+
+// Phase 16.2 — Keyword Discovery. High-value GSC queries that aren't in the
+// keyword bank. The discovery engine compares all GSC queries against the
+// TargetKeyword table and surfaces queries worth tracking. Operator approves
+// via Telegram (Add / Ignore) or web UI → converted to TargetKeyword.
+model KeywordSuggestion {
+  id                 String   @id @default(cuid())
+  clientId           String
+  client             Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  query              String   // original GSC query
+  normalizedQuery    String   // lowercase + trimmed for dedup
+  page               String?  // best-ranking page from GSC
+
+  clicks28d          Int      @default(0)
+  impressions28d     Int      @default(0)
+  ctr                Float?
+  position           Float?
+  trend              String?  // up | down | flat | unknown
+
+  score              Int      @default(0)  // 0-100 priority score
+  intent             String?  // informational | commercial | transactional | local | unknown
+  reason             String   // Hebrew: why this keyword is worth tracking
+
+  status             String   @default("suggested") // suggested | approved | rejected | converted
+  convertedKeywordId String?  // ID of the TargetKeyword created on conversion
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([clientId, normalizedQuery])
+  @@index([clientId, status, score(sort: Desc)])
+  @@schema("analyzer")
+}
+
+// Phase 16.6 — PageSpeed history. Persists scores from the existing PSI
+// calls in tech-audit-server.ts so we can show trends over time and a
+// dedicated speed dashboard per client.
+model PageSpeedScore {
+  id                String   @id @default(cuid())
+  clientId          String
+  client            Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  pageUrl           String
+  strategy          String   // mobile | desktop
+  performanceScore  Float    // 0-100
+  lcp               Float?   // Largest Contentful Paint (seconds)
+  inp               Float?   // Interaction to Next Paint (ms)
+  cls               Float?   // Cumulative Layout Shift
+  fcp               Float?   // First Contentful Paint (seconds)
+  ttfb              Float?   // Time to First Byte (ms)
+  speedIndex        Float?
+
+  fetchedAt         DateTime @default(now())
+
+  @@index([clientId, fetchedAt(sort: Desc)])
+  @@index([clientId, pageUrl])
+  @@schema("analyzer")
+}
+
+// Phase 16.5 — Content Calendar. Schedules when content briefs are
+// published, with controlled cadence (e.g., 2/week on Sun+Wed).
+model ContentSchedule {
+  id            String   @id @default(cuid())
+  clientId      String
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  briefId       String   @unique
+  brief         ContentBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+
+  scheduledDate DateTime
+  status        String   @default("scheduled") // scheduled | published | skipped | cancelled
+  publishedAt   DateTime?
+  publishedBy   String?
+  notes         String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([clientId, scheduledDate])
+  @@index([clientId, status])
+  @@schema("analyzer")
+}
+
+// Phase 16.4 — AI-generated content drafts. Separate from ContentBrief
+// (the spec) so we can version, track model/tokens/cost, and regenerate.
+model ContentDraft {
+  id              String   @id @default(cuid())
+  briefId         String
+  brief           ContentBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+
+  version         Int      @default(1)
+  model           String   // claude-sonnet-4-6, etc.
+  content         String   // generated text (markdown)
+  wordCount       Int
+  inputTokens     Int?
+  outputTokens    Int?
+  promptHash      String?  // hash for cache/dedup
+
+  status          String   @default("draft") // draft | review | approved | rejected
+  feedback        String?  // operator feedback for regeneration
+  approvedAt      DateTime?
+  approvedBy      String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([briefId, version(sort: Desc)])
   @@schema("analyzer")
 }
