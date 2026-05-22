@@ -185,11 +185,19 @@ async function processJob(
 	switch (type) {
 		case "full_refresh": {
 			if (!clientId) throw new Error("full_refresh requires clientId");
-			// Dynamic import to avoid pulling all engines into every entry point.
 			const { refreshClient } = await import("@/lib/refresh-server");
+			const { discoverKeywords } = await import("@/lib/keyword-discovery-server");
 			const result = await refreshClient(clientId, triggeredBy);
+			let discoveryCount = 0;
+			try {
+				const discovery = await discoverKeywords(clientId);
+				discoveryCount = discovery.suggested;
+			} catch (err) {
+				console.warn("[jobs] Keyword discovery failed:", (err as Error).message);
+			}
 			return {
-				summary: `Refresh done: ${result.opportunities.detected} opps, ${result.strategies.ran} strategies`,
+				summary: `רענון: ${result.opportunities.detected ?? 0} הזדמנויות, ${result.strategies.ran} אסטרטגיות, ${discoveryCount} הצעות מילות מפתח חדשות`,
+				discoveryCount,
 				...result,
 			};
 		}
