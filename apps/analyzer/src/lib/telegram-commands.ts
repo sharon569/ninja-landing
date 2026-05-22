@@ -385,22 +385,7 @@ async function handleScan(query: string): Promise<CommandResult> {
 
 async function handleSync(query: string): Promise<CommandResult> {
 	if (!query) {
-		// Sync all clients
-		const { enqueueJob, wakeWorker } = await import("@/lib/jobs-server");
-		const clients = await db.client.findMany({
-			where: { status: "active", gscPropertyUrl: { not: null } },
-			select: { id: true, name: true },
-		});
-		if (clients.length === 0) {
-			return { text: "אין לקוחות עם חיבור GSC." };
-		}
-		let queued = 0;
-		for (const c of clients) {
-			const { alreadyQueued } = await enqueueJob("gsc_sync", c.id, null, "telegram");
-			if (!alreadyQueued) queued++;
-		}
-		wakeWorker();
-		return { text: `📡 סנכרון GSC נכנס לתור עבור ${queued} לקוחות.` };
+		return { text: "שימוש: /sync &lt;שם לקוח&gt;" };
 	}
 
 	const client = await findClient(query);
