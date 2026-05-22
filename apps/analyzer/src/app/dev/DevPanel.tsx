@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import {
 	enqueueTestJob,
 	drainJobsAction,
@@ -17,6 +17,8 @@ function JobQueuePanel() {
 	const [jobs, setJobs] = useState<Awaited<ReturnType<typeof getJobQueue>>>([]);
 	const [pending, startTransition] = useTransition();
 	const [lastAction, setLastAction] = useState("");
+
+	useEffect(() => { refresh(); }, []);
 
 	function refresh() {
 		startTransition(async () => {
@@ -129,6 +131,8 @@ function NotificationPanel() {
 	const [pending, startTransition] = useTransition();
 	const [lastAction, setLastAction] = useState("");
 
+	useEffect(() => { refresh(); }, []);
+
 	function refresh() {
 		startTransition(async () => {
 			const result = await getNotificationLog();
@@ -213,6 +217,8 @@ function NotificationPanel() {
 function ConfigPanel() {
 	const [config, setConfig] = useState<Awaited<ReturnType<typeof getDevConfig>> | null>(null);
 	const [pending, startTransition] = useTransition();
+
+	useEffect(() => { load(); }, []);
 
 	function load() {
 		startTransition(async () => {
