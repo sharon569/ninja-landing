@@ -198,7 +198,31 @@ async function processJob(
 			if (!clientId) throw new Error("scan requires clientId");
 			const { runScan } = await import("@/app/actions");
 			await runScan(clientId);
-			return { summary: "Scan completed" };
+			// Get scan results for the notification
+			const latestScan = await db.scan.findFirst({
+				where: { clientId },
+				orderBy: { ranAt: "desc" },
+				select: { id: true, summary: true, durationMs: true },
+			});
+			const findingCounts = latestScan
+				? await db.finding.groupBy({
+						by: ["severity"],
+						where: { scanId: latestScan.id },
+						_count: true,
+					})
+				: [];
+			const critical = findingCounts.find((f) => f.severity === "high")?._count ?? 0;
+			const important = findingCounts.find((f) => f.severity === "medium")?._count ?? 0;
+			const minor = findingCounts.find((f) => f.severity === "low")?._count ?? 0;
+			const totalFindings = critical + important + minor;
+			const seconds = latestScan?.durationMs ? (latestScan.durationMs / 1000).toFixed(1) : "?";
+			return {
+				summary: `${totalFindings} ממצאים (🔴 ${critical} קריטי, 🟡 ${important} חשוב, 🔵 ${minor} מינורי) · ${seconds}s`,
+				findings: totalFindings,
+				critical,
+				important,
+				minor,
+			};
 		}
 
 		case "gsc_sync": {

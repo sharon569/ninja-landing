@@ -18,7 +18,13 @@ function JobQueuePanel() {
 	const [pending, startTransition] = useTransition();
 	const [lastAction, setLastAction] = useState("");
 
-	useEffect(() => { refresh(); }, []);
+	useEffect(() => {
+		refresh();
+		const interval = setInterval(() => {
+			getJobQueue().then(setJobs);
+		}, 3000);
+		return () => clearInterval(interval);
+	}, []);
 
 	function refresh() {
 		startTransition(async () => {
