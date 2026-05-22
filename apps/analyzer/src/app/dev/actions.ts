@@ -8,7 +8,18 @@ import type { PipelineRunType } from "@/lib/jobs";
 // ─── Test client ──────────────────────────────────────────────
 
 const TEST_CLIENT_NAME = "🧪 Test Client (Dev)";
-const TEST_CLIENT_BASE_URL = "https://test.dev.ninja.local";
+// Points to the mock plugin endpoint within this app.
+// The PluginClient will append /wp-json/aseo/v1/{info,scan,sites} to this.
+const TEST_CLIENT_BASE_URL_FALLBACK = "https://test.dev.ninja.local";
+
+function getTestBaseUrl(): string {
+	const publicUrl = process.env.PUBLIC_ANALYZER_URL;
+	if (publicUrl) return `${publicUrl}/api/mock/plugin`;
+	// On Vercel preview, VERCEL_URL is set automatically
+	const vercelUrl = process.env.VERCEL_URL;
+	if (vercelUrl) return `https://${vercelUrl}/api/mock/plugin`;
+	return TEST_CLIENT_BASE_URL_FALLBACK;
+}
 
 /** Get or create a test client that's clearly separated from real clients. */
 export async function getOrCreateTestClient(): Promise<{
@@ -16,17 +27,29 @@ export async function getOrCreateTestClient(): Promise<{
 	name: string;
 	baseUrl: string;
 }> {
-	const existing = await db.client.findUnique({
-		where: { baseUrl: TEST_CLIENT_BASE_URL },
+	// Find existing test client by name (baseUrl may have been updated to mock)
+	const existing = await db.client.findFirst({
+		where: { name: TEST_CLIENT_NAME },
 		select: { id: true, name: true, baseUrl: true },
 	});
 
-	if (existing) return existing;
+	const mockUrl = getTestBaseUrl();
+
+	if (existing) {
+		// Update baseUrl to point to current mock endpoint if it changed
+		if (existing.baseUrl !== mockUrl) {
+			await db.client.update({
+				where: { id: existing.id },
+				data: { baseUrl: mockUrl },
+			});
+		}
+		return { ...existing, baseUrl: mockUrl };
+	}
 
 	const created = await db.client.create({
 		data: {
 			name: TEST_CLIENT_NAME,
-			baseUrl: TEST_CLIENT_BASE_URL,
+			baseUrl: mockUrl,
 			token: "test-token-dev-only",
 			status: "paused", // paused so cron never touches it
 			automationEnabled: false,
