@@ -781,6 +781,7 @@ model BotNotification {
 
   type        String   // scan_result | opps_found | plan_ready | keyword_discovery | execution_result | impact_review | daily_digest | calendar_reminder | refresh_complete | agency_sync_complete
   clientId    String?
+  client      Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
   referenceId String?  // ID of the related entity (planId, oppId, briefId, etc.)
 
   status      String   @default("sent") // sent | edited | expired
