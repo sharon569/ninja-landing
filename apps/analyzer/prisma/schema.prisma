@@ -101,6 +101,7 @@ model Client {
   seoWorkPlans            SeoWorkPlan[]
   pipelineRuns            PipelineRun[]
   botNotifications        BotNotification[]
+  keywordSuggestions      KeywordSuggestion[]
 
   @@index([baseUrl])
   @@schema("analyzer")
@@ -789,5 +790,39 @@ model BotNotification {
 
   @@index([chatId, type])
   @@index([clientId, sentAt(sort: Desc)])
+  @@schema("analyzer")
+}
+
+// Phase 16.2 — Keyword Discovery. High-value GSC queries that aren't in the
+// keyword bank. The discovery engine compares all GSC queries against the
+// TargetKeyword table and surfaces queries worth tracking. Operator approves
+// via Telegram (Add / Ignore) or web UI → converted to TargetKeyword.
+model KeywordSuggestion {
+  id                 String   @id @default(cuid())
+  clientId           String
+  client             Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  query              String   // original GSC query
+  normalizedQuery    String   // lowercase + trimmed for dedup
+  page               String?  // best-ranking page from GSC
+
+  clicks28d          Int      @default(0)
+  impressions28d     Int      @default(0)
+  ctr                Float?
+  position           Float?
+  trend              String?  // up | down | flat | unknown
+
+  score              Int      @default(0)  // 0-100 priority score
+  intent             String?  // informational | commercial | transactional | local | unknown
+  reason             String   // Hebrew: why this keyword is worth tracking
+
+  status             String   @default("suggested") // suggested | approved | rejected | converted
+  convertedKeywordId String?  // ID of the TargetKeyword created on conversion
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([clientId, normalizedQuery])
+  @@index([clientId, status, score(sort: Desc)])
   @@schema("analyzer")
 }

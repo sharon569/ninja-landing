@@ -41,6 +41,8 @@ export async function handleCommand(text: string): Promise<CommandResult> {
 			return handleOpps(arg);
 		case "/plan":
 			return handlePlan(arg);
+		case "/discover":
+			return handleDiscover(arg);
 		default:
 			return {
 				text: `❓ לא מכיר את הפקודה <code>${esc(cmd)}</code>.\nשלח /help לרשימת פקודות.`,
@@ -60,9 +62,8 @@ function handleHelp(): CommandResult {
 			"/status &lt;לקוח&gt; — סטטוס לקוח",
 			"/opps &lt;לקוח&gt; — הזדמנויות פתוחות",
 			"/plan &lt;לקוח&gt; — תוכנית עבודה",
+			"/discover &lt;לקוח&gt; — מילות מפתח מומלצות מ-GSC",
 			"/help — הודעה זו",
-			"",
-			"<i>Phase 1 — קריאה בלבד. אישורים בקרוב.</i>",
 		].join("\n"),
 	};
 }
@@ -294,6 +295,62 @@ async function handlePlan(query: string): Promise<CommandResult> {
 	return { text, keyboard };
 }
 
+// ─── /discover <client> ───────────────────────────────────────
+
+async function handleDiscover(query: string): Promise<CommandResult> {
+	if (!query) {
+		return { text: "שימוש: /discover &lt;שם לקוח&gt;" };
+	}
+
+	const client = await findClient(query);
+	if (!client) {
+		return { text: `לא נמצא לקוח בשם "<b>${esc(query)}</b>".` };
+	}
+
+	const suggestions = await db.keywordSuggestion.findMany({
+		where: { clientId: client.id, status: "suggested" },
+		orderBy: { score: "desc" },
+		take: 10,
+	});
+
+	if (suggestions.length === 0) {
+		return {
+			text: `אין הצעות מילות מפתח חדשות ל-<b>${esc(client.name)}</b>.\nהרץ רענון כדי לסרוק GSC.`,
+		};
+	}
+
+	const { btn, kbd } = await import("@/lib/telegram");
+
+	const lines = [`<b>💡 מילות מפתח מומלצות — ${esc(client.name)}</b>\n`];
+
+	for (let i = 0; i < suggestions.length; i++) {
+		const s = suggestions[i];
+		const posStr = s.position ? `מיקום ${Math.round(s.position)}` : "";
+		lines.push(
+			`${i + 1}. <b>${esc(s.query)}</b> — ציון ${s.score}`,
+			`   ${s.impressions28d.toLocaleString()} חיפושים${posStr ? ` · ${posStr}` : ""}`,
+			`   <i>${esc(s.reason)}</i>`,
+			"",
+		);
+	}
+
+	const totalSuggested = await db.keywordSuggestion.count({
+		where: { clientId: client.id, status: "suggested" },
+	});
+
+	if (totalSuggested > 10) {
+		lines.push(`<i>+ עוד ${totalSuggested - 10} הצעות</i>`);
+	}
+
+	// Build keyboard with Add/Ignore buttons for top 5
+	const keyboard = suggestions.slice(0, 5).map((s) => [
+		btn(`➕ ${s.query}`, `add_kw:${s.id}`),
+		btn(`⏭ דלג`, `ignore_kw:${s.id}`),
+	]);
+
+	return { text: lines.join("\n"), keyboard: kbd(keyboard) };
+}
+
 // ─── Callback Query Handler ───────────────────────────────────
 
 export async function handleCallback(data: string): Promise<CommandResult | null> {
@@ -310,6 +367,10 @@ export async function handleCallback(data: string): Promise<CommandResult | null
 		case "refresh":
 			// Phase 3 will handle this — for now, just acknowledge
 			return { text: "🔄 רענון יתווסף בגרסה הבאה. השתמש בדשבורד בינתיים." };
+		case "add_kw":
+			return handleAddKeyword(id);
+		case "ignore_kw":
+			return handleIgnoreKeyword(id);
 		default:
 			return null;
 	}
@@ -340,6 +401,59 @@ async function handlePlanById(clientId: string): Promise<CommandResult> {
 	});
 	if (!client) return { text: "לקוח לא נמצא." };
 	return handlePlan(client.name);
+}
+
+// ─── Keyword Add/Ignore Handlers ──────────────────────────────
+
+async function handleAddKeyword(suggestionId: string): Promise<CommandResult> {
+	const { convertSuggestion } = await import("@/lib/keyword-discovery-server");
+	const { enqueueJob, wakeWorker } = await import("@/lib/jobs-server");
+
+	try {
+		const suggestion = await db.keywordSuggestion.findUnique({
+			where: { id: suggestionId },
+			select: { query: true, clientId: true, status: true },
+		});
+
+		if (!suggestion) return { text: "ההצעה לא נמצאה." };
+		if (suggestion.status !== "suggested") {
+			return { text: `ההצעה כבר טופלה (${suggestion.status}).` };
+		}
+
+		const { keywordId } = await convertSuggestion(suggestionId, "telegram");
+
+		// Trigger pipeline for the new keyword
+		enqueueJob("keyword_refresh", suggestion.clientId, { keywordIds: [keywordId] }, "telegram")
+			.then(() => wakeWorker())
+			.catch(() => {});
+
+		return {
+			text: `✅ <b>${esc(suggestion.query)}</b> נוסף לבנק מילות המפתח!\nהמערכת מחשבת אסטרטגיה...`,
+		};
+	} catch (err) {
+		return { text: `❌ שגיאה: ${esc((err as Error).message)}` };
+	}
+}
+
+async function handleIgnoreKeyword(suggestionId: string): Promise<CommandResult> {
+	const { rejectSuggestion } = await import("@/lib/keyword-discovery-server");
+
+	try {
+		const suggestion = await db.keywordSuggestion.findUnique({
+			where: { id: suggestionId },
+			select: { query: true, status: true },
+		});
+
+		if (!suggestion) return { text: "ההצעה לא נמצאה." };
+		if (suggestion.status !== "suggested") {
+			return { text: `ההצעה כבר טופלה (${suggestion.status}).` };
+		}
+
+		await rejectSuggestion(suggestionId);
+		return { text: `⏭ <b>${esc(suggestion.query)}</b> — דילגת.` };
+	} catch (err) {
+		return { text: `❌ שגיאה: ${esc((err as Error).message)}` };
+	}
 }
 
 // ─── Client Lookup ────────────────────────────────────────────

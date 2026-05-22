@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/supabase";
+import { enqueueJob, wakeWorker } from "@/lib/jobs-server";
 import {
 	INTENT_OPTIONS,
 	PRIORITY_OPTIONS,
@@ -97,6 +98,12 @@ export async function addKeyword(
 	}
 	revalidatePath(`/clients/${clientId}/keywords`);
 	revalidatePath(`/clients/${clientId}`);
+
+	// Phase 16.2 — trigger auto-pipeline in background
+	enqueueJob("keyword_refresh", clientId, { keywordIds: [] }, "keyword_add")
+		.then(() => wakeWorker())
+		.catch((err) => console.warn("[keywords] Failed to enqueue pipeline:", (err as Error).message));
+
 	return { ok: true, added: 1 };
 }
 
@@ -140,6 +147,14 @@ export async function addKeywordsBulk(
 
 	revalidatePath(`/clients/${clientId}/keywords`);
 	revalidatePath(`/clients/${clientId}`);
+
+	// Phase 16.2 — trigger auto-pipeline in background (one job for the whole batch)
+	if (toCreate.length > 0) {
+		enqueueJob("keyword_refresh", clientId, { keywordIds: [] }, "keyword_add")
+			.then(() => wakeWorker())
+			.catch((err) => console.warn("[keywords] Failed to enqueue pipeline:", (err as Error).message));
+	}
+
 	return { ok: true, added: toCreate.length, skipped: existingSet.size };
 }
 
