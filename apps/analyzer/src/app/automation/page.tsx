@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowRight, Bot, CheckCircle2, XCircle, Clock, AlertTriangle, SkipForward } from "lucide-react";
+import { ArrowRight, Bot, CheckCircle2, XCircle, Clock, AlertTriangle, SkipForward, Send, Zap } from "lucide-react";
 import { db } from "@/lib/db";
 import { runTypeLabel, runStatusLabel, runStatusTone } from "@/lib/automation";
+import { PIPELINE_TYPE_LABELS, PIPELINE_STATUS_LABELS } from "@/lib/jobs";
 import { TriggerSyncButton } from "./TriggerSyncButton";
 
 export const dynamic = "force-dynamic";
@@ -65,7 +66,7 @@ export default async function AutomationPage({
 	if (sp.clientId) where.clientId = sp.clientId;
 	if (sp.parent) where.parentRunId = sp.parent;
 
-	const [runs, totalCount, statusCounts, clients, lastAgency] = await Promise.all([
+	const [runs, totalCount, statusCounts, clients, lastAgency, pipelineJobs, recentNotifications] = await Promise.all([
 		db.automationRun.findMany({
 			where,
 			orderBy: { startedAt: "desc" },
@@ -88,6 +89,15 @@ export default async function AutomationPage({
 		db.automationRun.findFirst({
 			where: { runType: "agency_auto_sync" },
 			orderBy: { startedAt: "desc" },
+		}),
+		db.pipelineRun.findMany({
+			orderBy: { createdAt: "desc" },
+			take: 20,
+			include: { client: { select: { name: true } } },
+		}),
+		db.botNotification.findMany({
+			orderBy: { sentAt: "desc" },
+			take: 20,
 		}),
 	]);
 
@@ -287,6 +297,89 @@ export default async function AutomationPage({
 										</tr>
 									);
 								})}
+							</tbody>
+						</table>
+					</div>
+				)}
+			</section>
+
+			{/* Pipeline Jobs (Telegram bot queue) */}
+			<section className="space-y-3">
+				<div className="flex items-center gap-2">
+					<Zap className="w-4 h-4 text-gold" />
+					<h2 className="font-display text-base text-ink">תור עבודות (Pipeline)</h2>
+				</div>
+				{pipelineJobs.length === 0 ? (
+					<div className="rounded-lg border border-ninja-line bg-ninja-panel/40 px-5 py-6 text-center text-sm text-ink-dim">
+						אין עבודות בתור.
+					</div>
+				) : (
+					<div className="overflow-hidden rounded-lg border border-ninja-line bg-ninja-panel/40">
+						<table className="w-full text-sm">
+							<thead className="bg-ninja-raised text-xs uppercase tracking-wider text-ink-dim">
+								<tr>
+									<th className="px-3 py-2.5 text-right font-bold">מתי</th>
+									<th className="px-3 py-2.5 text-right font-bold">סוג</th>
+									<th className="px-3 py-2.5 text-right font-bold">לקוח</th>
+									<th className="px-3 py-2.5 font-bold">סטטוס</th>
+									<th className="px-3 py-2.5 text-right font-bold">מקור</th>
+									<th className="px-3 py-2.5 text-right font-bold">שגיאה</th>
+								</tr>
+							</thead>
+							<tbody className="divide-y divide-ninja-line">
+								{pipelineJobs.map((j) => (
+									<tr key={j.id} className="hover:bg-ninja-raised/30">
+										<td className="px-3 py-2.5 text-ink-dim text-xs">{ago(j.createdAt)}</td>
+										<td className="px-3 py-2.5 text-ink text-xs">{PIPELINE_TYPE_LABELS[j.type as keyof typeof PIPELINE_TYPE_LABELS] ?? j.type}</td>
+										<td className="px-3 py-2.5 text-ink-dim text-xs">{j.client?.name ?? "—"}</td>
+										<td className="px-3 py-2.5">
+											<span className={`inline-flex items-center gap-1.5 text-xs ${j.status === "success" ? "text-go" : j.status === "failed" ? "text-blade" : j.status === "running" ? "text-gold" : "text-ink-mute"}`}>
+												{statusIcon(j.status, j.status === "success" ? "go" : j.status === "failed" ? "blade" : "gold")}
+												{PIPELINE_STATUS_LABELS[j.status as keyof typeof PIPELINE_STATUS_LABELS] ?? j.status}
+											</span>
+										</td>
+										<td className="px-3 py-2.5 text-ink-mute text-[11px]">{j.triggeredBy}</td>
+										<td className="px-3 py-2.5 text-blade text-[11px] max-w-[200px] truncate">{j.error ?? ""}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				)}
+			</section>
+
+			{/* Telegram Notifications */}
+			<section className="space-y-3">
+				<div className="flex items-center gap-2">
+					<Send className="w-4 h-4 text-gold" />
+					<h2 className="font-display text-base text-ink">הודעות Telegram</h2>
+				</div>
+				{recentNotifications.length === 0 ? (
+					<div className="rounded-lg border border-ninja-line bg-ninja-panel/40 px-5 py-6 text-center text-sm text-ink-dim">
+						אין הודעות.
+					</div>
+				) : (
+					<div className="overflow-hidden rounded-lg border border-ninja-line bg-ninja-panel/40">
+						<table className="w-full text-sm">
+							<thead className="bg-ninja-raised text-xs uppercase tracking-wider text-ink-dim">
+								<tr>
+									<th className="px-3 py-2.5 text-right font-bold">מתי</th>
+									<th className="px-3 py-2.5 text-right font-bold">סוג</th>
+									<th className="px-3 py-2.5 font-bold">סטטוס</th>
+									<th className="px-3 py-2.5 text-right font-bold">Message ID</th>
+								</tr>
+							</thead>
+							<tbody className="divide-y divide-ninja-line">
+								{recentNotifications.map((n) => (
+									<tr key={n.id} className="hover:bg-ninja-raised/30">
+										<td className="px-3 py-2.5 text-ink-dim text-xs">{ago(n.sentAt)}</td>
+										<td className="px-3 py-2.5 text-ink text-xs">{n.type}</td>
+										<td className="px-3 py-2.5">
+											<span className={`text-xs ${n.status === "sent" ? "text-go" : "text-ink-mute"}`}>{n.status}</span>
+										</td>
+										<td className="px-3 py-2.5 text-ink-mute text-xs font-mono">{n.messageId ?? "—"}</td>
+									</tr>
+								))}
 							</tbody>
 						</table>
 					</div>
