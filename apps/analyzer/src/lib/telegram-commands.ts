@@ -49,6 +49,10 @@ export async function handleCommand(text: string): Promise<CommandResult> {
 			return handleSync(arg);
 		case "/refresh":
 			return handleRefresh(arg);
+		case "/speed":
+			return handleSpeed(arg);
+		case "/calendar":
+			return handleCalendar(arg);
 		default:
 			return {
 				text: `❓ לא מכיר את הפקודה <code>${esc(cmd)}</code>.\nשלח /help לרשימת פקודות.`,
@@ -74,6 +78,8 @@ function handleHelp(): CommandResult {
 			"/scan &lt;לקוח&gt; — הרצת סריקה",
 			"/sync &lt;לקוח&gt; — סנכרון GSC",
 			"/refresh &lt;לקוח&gt; — רענון מלא",
+			"/speed &lt;לקוח&gt; — ציון מהירות",
+			"/calendar &lt;לקוח&gt; — לוח תוכן",
 			"",
 			"/help — הודעה זו",
 		].join("\n"),
@@ -417,6 +423,84 @@ async function handleRefresh(query: string): Promise<CommandResult> {
 		return { text: `⏳ רענון מלא ל-<b>${esc(client.name)}</b> כבר בתור.` };
 	}
 	return { text: `🔄 רענון מלא ל-<b>${esc(client.name)}</b> נכנס לתור.\nתקבל התראה כשיסתיים.` };
+}
+
+// ─── /calendar <client> ───────────────────────────────────────
+
+async function handleCalendar(query: string): Promise<CommandResult> {
+	if (!query) return { text: "שימוש: /calendar &lt;שם לקוח&gt;" };
+
+	const client = await findClient(query);
+	if (!client) return { text: `לא נמצא לקוח בשם "<b>${esc(query)}</b>".` };
+
+	const { getUpcomingWeek } = await import("@/lib/calendar-server");
+	const upcoming = await getUpcomingWeek(client.id);
+
+	if (upcoming.length === 0) {
+		return {
+			text: `📅 אין תוכן מתוזמן לשבוע הקרוב ל-<b>${esc(client.name)}</b>.`,
+		};
+	}
+
+	const lines = [`<b>📅 לוח תוכן — ${esc(client.name)}</b>\n`];
+
+	for (const item of upcoming) {
+		const date = new Date(item.scheduledDate);
+		const dayName = date.toLocaleDateString("he-IL", { weekday: "long" });
+		const dateStr = date.toLocaleDateString("he-IL", { day: "numeric", month: "numeric" });
+		lines.push(
+			`📌 <b>${dayName} ${dateStr}</b>`,
+			`   ${esc(item.brief.recommendedTitle || item.brief.targetKeyword)}`,
+			`   סוג: ${item.brief.briefType}`,
+			"",
+		);
+	}
+
+	return { text: lines.join("\n") };
+}
+
+// ─── /speed <client> ──────────────────────────────────────────
+
+async function handleSpeed(query: string): Promise<CommandResult> {
+	if (!query) return { text: "שימוש: /speed &lt;שם לקוח&gt;" };
+
+	const client = await findClient(query);
+	if (!client) return { text: `לא נמצא לקוח בשם "<b>${esc(query)}</b>".` };
+
+	const { getSpeedSummary } = await import("@/lib/pagespeed-server");
+	const { CWV_LABELS } = await import("@/lib/pagespeed");
+	const summary = await getSpeedSummary(client.id);
+
+	if (summary.pagesAudited === 0) {
+		return {
+			text: `אין נתוני מהירות ל-<b>${esc(client.name)}</b>.\nהפעל PSI_ENABLED=true והרץ סריקה טכנית.`,
+		};
+	}
+
+	const cwvLine = (label: string, status: string | null) =>
+		status ? `${label}: ${CWV_LABELS[status] ?? status}` : `${label}: —`;
+
+	const lines = [
+		`<b>⚡ מהירות — ${esc(client.name)}</b>`,
+		"",
+		`📱 מובייל: <b>${summary.avgMobileScore ?? "—"}/100</b>`,
+		`🖥 דסקטופ: <b>${summary.avgDesktopScore ?? "—"}/100</b>`,
+		`📄 דפים שנבדקו: ${summary.pagesAudited}`,
+		"",
+		"<b>Core Web Vitals:</b>",
+		cwvLine("LCP", summary.cwvStatus.lcp),
+		cwvLine("INP", summary.cwvStatus.inp),
+		cwvLine("CLS", summary.cwvStatus.cls),
+	];
+
+	if (summary.worstPages.length > 0) {
+		lines.push("", "<b>דפים איטיים:</b>");
+		for (const p of summary.worstPages) {
+			lines.push(`· ${p.mobileScore}/100 — ${esc(p.url)}`);
+		}
+	}
+
+	return { text: lines.join("\n") };
 }
 
 // ─── Callback Query Handler ───────────────────────────────────

@@ -102,6 +102,12 @@ model Client {
   pipelineRuns            PipelineRun[]
   botNotifications        BotNotification[]
   keywordSuggestions      KeywordSuggestion[]
+  pageSpeedScores         PageSpeedScore[]
+  contentSchedules        ContentSchedule[]
+
+  // Phase 16.5 — publishing cadence
+  publishingCadence       Int      @default(2)    // posts per week
+  publishingDays          String[] @default(["sunday", "wednesday"])
 
   @@index([baseUrl])
   @@schema("analyzer")
@@ -473,6 +479,8 @@ model ContentBrief {
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 
+  contentSchedule          ContentSchedule?
+
   @@unique([clientId, opportunityId, briefType])
   @@index([clientId, status])
   @@index([clientId, briefType])
@@ -824,5 +832,54 @@ model KeywordSuggestion {
 
   @@unique([clientId, normalizedQuery])
   @@index([clientId, status, score(sort: Desc)])
+  @@schema("analyzer")
+}
+
+// Phase 16.6 — PageSpeed history. Persists scores from the existing PSI
+// calls in tech-audit-server.ts so we can show trends over time and a
+// dedicated speed dashboard per client.
+model PageSpeedScore {
+  id                String   @id @default(cuid())
+  clientId          String
+  client            Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  pageUrl           String
+  strategy          String   // mobile | desktop
+  performanceScore  Float    // 0-100
+  lcp               Float?   // Largest Contentful Paint (seconds)
+  inp               Float?   // Interaction to Next Paint (ms)
+  cls               Float?   // Cumulative Layout Shift
+  fcp               Float?   // First Contentful Paint (seconds)
+  ttfb              Float?   // Time to First Byte (ms)
+  speedIndex        Float?
+
+  fetchedAt         DateTime @default(now())
+
+  @@index([clientId, fetchedAt(sort: Desc)])
+  @@index([clientId, pageUrl])
+  @@schema("analyzer")
+}
+
+// Phase 16.5 — Content Calendar. Schedules when content briefs are
+// published, with controlled cadence (e.g., 2/week on Sun+Wed).
+model ContentSchedule {
+  id            String   @id @default(cuid())
+  clientId      String
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  briefId       String   @unique
+  brief         ContentBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+
+  scheduledDate DateTime
+  status        String   @default("scheduled") // scheduled | published | skipped | cancelled
+  publishedAt   DateTime?
+  publishedBy   String?
+  notes         String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([clientId, scheduledDate])
+  @@index([clientId, status])
   @@schema("analyzer")
 }
