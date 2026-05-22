@@ -57,6 +57,8 @@ export async function handleCommand(text: string): Promise<CommandResult> {
 			return handleWrite(arg);
 		case "/schedule":
 			return handleSchedule(arg);
+		case "/approve-briefs":
+			return handleApproveBriefs(arg);
 		default:
 			return {
 				text: `❓ לא מכיר את הפקודה <code>${esc(cmd)}</code>.\nשלח /help לרשימת פקודות.`,
@@ -86,6 +88,7 @@ function handleHelp(): CommandResult {
 			"/calendar &lt;לקוח&gt; — לוח תוכן",
 			"/write &lt;brief ID&gt; — יצירת תוכן AI",
 			"/schedule &lt;לקוח&gt; — תזמון תוכן אוטומטי",
+			"/approve-briefs &lt;לקוח&gt; — אישור כל הבריפים הפתוחים",
 			"",
 			"/help — הודעה זו",
 		].join("\n"),
@@ -462,6 +465,31 @@ async function handleWrite(arg: string): Promise<CommandResult> {
 
 	return {
 		text: `✍️ יצירת תוכן ל-<b>${esc(brief.targetKeyword)}</b> נכנסה לתור.\nתקבל את התוכן כשיהיה מוכן.`,
+	};
+}
+
+// ─── /approve-briefs <client> ──────────────────────────────────
+
+async function handleApproveBriefs(query: string): Promise<CommandResult> {
+	if (!query) return { text: "שימוש: /approve-briefs &lt;שם לקוח&gt;" };
+
+	const client = await findClient(query);
+	if (!client) return { text: `לא נמצא לקוח בשם "<b>${esc(query)}</b>".` };
+
+	const updated = await db.contentBrief.updateMany({
+		where: {
+			clientId: client.id,
+			status: { in: ["draft", "needs_human_review"] },
+		},
+		data: { status: "approved" },
+	});
+
+	if (updated.count === 0) {
+		return { text: `אין בריפים ממתינים לאישור ל-<b>${esc(client.name)}</b>.` };
+	}
+
+	return {
+		text: `✅ <b>${updated.count} בריפים אושרו</b> ל-${esc(client.name)}.\n\nשלח /schedule ${esc(query)} כדי לתזמן אותם.`,
 	};
 }
 
