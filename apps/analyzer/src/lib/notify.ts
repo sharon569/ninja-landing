@@ -68,8 +68,7 @@ export async function notifyOperator(payload: NotifyPayload): Promise<NotifyResu
 
 	try {
 		if (enabled && chatId) {
-			// Phase 1 will replace this stub with actual Telegram sendMessage.
-			messageId = await sendTelegramStub(chatId, payload);
+			messageId = await sendTelegram(chatId, payload);
 		}
 	} catch (err) {
 		console.warn("[notify] Telegram send failed:", (err as Error).message);
@@ -98,47 +97,18 @@ export async function notifyOperator(payload: NotifyPayload): Promise<NotifyResu
 	};
 }
 
-// ─── Telegram Stub ────────────────────────────────────────────
-// Phase 1 will replace this with the real Telegram Bot API client
-// from src/lib/telegram.ts.
+// ─── Telegram Dispatch ────────────────────────────────────────
 
-async function sendTelegramStub(
+async function sendTelegram(
 	chatId: string,
 	payload: NotifyPayload,
 ): Promise<string | undefined> {
-	const token = process.env.TELEGRAM_BOT_TOKEN;
-	if (!token) return undefined;
+	const { sendMessage } = await import("@/lib/telegram");
 
-	try {
-		const body: Record<string, unknown> = {
-			chat_id: chatId,
-			text: payload.text,
-			parse_mode: "HTML",
-		};
+	const result = await sendMessage(payload.text, {
+		chatId,
+		keyboard: payload.keyboard,
+	});
 
-		if (payload.keyboard && payload.keyboard.length > 0) {
-			body.reply_markup = {
-				inline_keyboard: payload.keyboard,
-			};
-		}
-
-		const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(body),
-			cache: "no-store",
-		});
-
-		if (!res.ok) {
-			const text = await res.text().catch(() => "");
-			console.warn(`[notify] Telegram API ${res.status}: ${text.slice(0, 200)}`);
-			return undefined;
-		}
-
-		const data = (await res.json()) as { result?: { message_id?: number } };
-		return data.result?.message_id?.toString();
-	} catch (err) {
-		console.warn("[notify] Telegram fetch error:", (err as Error).message);
-		return undefined;
-	}
+	return result.ok ? result.messageId : undefined;
 }
