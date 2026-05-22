@@ -1,8 +1,5 @@
 "use server";
 
-// Long timeout for drain operations that run scans/refreshes
-export const maxDuration = 120;
-
 import { db } from "@/lib/db";
 import { enqueueJob, drainJobs, wakeWorker } from "@/lib/jobs-server";
 import { notifyOperator } from "@/lib/notify";
