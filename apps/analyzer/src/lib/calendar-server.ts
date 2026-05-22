@@ -83,15 +83,23 @@ export async function autoSchedule(clientId: string): Promise<AutoScheduleResult
 	);
 
 	// Get eligible briefs (approved, no schedule yet)
-	const briefs = await db.contentBrief.findMany({
+	const allBriefs = await db.contentBrief.findMany({
 		where: {
 			clientId,
 			status: { in: ["approved", "used"] },
-			contentSchedule: null,
 		},
 		orderBy: { createdAt: "asc" },
 		select: { id: true },
 	});
+
+	// Filter out briefs that already have a schedule
+	const scheduledBriefIds = new Set(
+		(await db.contentSchedule.findMany({
+			where: { clientId },
+			select: { briefId: true },
+		})).map((s) => s.briefId),
+	);
+	const briefs = allBriefs.filter((b) => !scheduledBriefIds.has(b.id));
 
 	// Assign briefs to slots
 	let scheduled = 0;
