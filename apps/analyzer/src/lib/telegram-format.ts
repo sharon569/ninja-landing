@@ -2,7 +2,7 @@
 // All formatters respect the 4096 char limit and truncate gracefully.
 // Uses Telegram's HTML subset: <b>, <i>, <code>, <a href>, <pre>.
 
-import type { InlineKeyboard } from "@/lib/telegram";
+import type { InlineKeyboard, InlineKeyboardButton } from "@/lib/telegram";
 import { btn, urlBtn, kbd } from "@/lib/telegram";
 
 // ─── Client List ──────────────────────────────────────────────
