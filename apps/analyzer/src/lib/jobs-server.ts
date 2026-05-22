@@ -124,6 +124,21 @@ export async function drainJobs(): Promise<DrainResult> {
 				},
 			});
 
+			// Push result to Telegram
+			try {
+				const { notifyOperator } = await import("@/lib/notify");
+				const clientName = job.client?.name || "Unknown";
+				await notifyOperator({
+					type: job.type === "scan" ? "scan_result" : "refresh_complete",
+					clientId: job.clientId,
+					text:
+						`<b>✅ ${jobTypeLabel(job.type)} הושלם — ${clientName}</b>\n\n` +
+						(jobResult.summary || "הושלם בהצלחה."),
+				});
+			} catch (notifyErr) {
+				console.warn("[jobs] Failed to notify:", (notifyErr as Error).message);
+			}
+
 			result.succeeded++;
 		} catch (err) {
 			const errorMsg = err instanceof Error ? err.message : String(err);
@@ -137,6 +152,19 @@ export async function drainJobs(): Promise<DrainResult> {
 					error: errorMsg.slice(0, 2000),
 				},
 			});
+
+			// Notify failure too
+			try {
+				const { notifyOperator } = await import("@/lib/notify");
+				const clientName = job.client?.name || "Unknown";
+				await notifyOperator({
+					type: "job_failed",
+					clientId: job.clientId,
+					text: `<b>❌ ${jobTypeLabel(job.type)} נכשל — ${clientName}</b>\n\n${errorMsg.slice(0, 500)}`,
+				});
+			} catch {
+				// Don't fail the drain if notification fails
+			}
 
 			result.failed++;
 		}
@@ -218,9 +246,23 @@ async function processJob(
 
 // ─── Utilities ────────────────────────────────────────────────
 
+function jobTypeLabel(type: string): string {
+	switch (type) {
+		case "scan": return "📷 סריקה";
+		case "full_refresh": return "🔄 רענון מלא";
+		case "gsc_sync": return "📡 סנכרון GSC";
+		case "keyword_refresh": return "🔑 רענון מילות מפתח";
+		case "speed_audit": return "⚡ בדיקת מהירות";
+		case "content_generate": return "✍️ יצירת תוכן";
+		default: return type;
+	}
+}
+
 /** Wake the worker route by self-invoking it. Fire-and-forget. */
 export function wakeWorker(): void {
-	const baseUrl = process.env.PUBLIC_ANALYZER_URL || "https://seo.samp.ninja";
+	const baseUrl = process.env.PUBLIC_ANALYZER_URL
+		|| (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+		|| "https://seo.samp.ninja";
 	const secret = process.env.CRON_SECRET;
 	if (!secret) {
 		console.warn("[jobs] CRON_SECRET not set — cannot wake worker");
