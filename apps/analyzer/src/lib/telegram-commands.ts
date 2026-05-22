@@ -57,8 +57,6 @@ export async function handleCommand(text: string): Promise<CommandResult> {
 			return handleWrite(arg);
 		case "/schedule":
 			return handleSchedule(arg);
-		case "/approve-briefs":
-			return handleApproveBriefs(arg);
 		default:
 			return {
 				text: `❓ לא מכיר את הפקודה <code>${esc(cmd)}</code>.\nשלח /help לרשימת פקודות.`,
@@ -88,7 +86,6 @@ function handleHelp(): CommandResult {
 			"/calendar &lt;לקוח&gt; — לוח תוכן",
 			"/write &lt;brief ID&gt; — יצירת תוכן AI",
 			"/schedule &lt;לקוח&gt; — תזמון תוכן אוטומטי",
-			"/approve-briefs &lt;לקוח&gt; — אישור כל הבריפים הפתוחים",
 			"",
 			"/help — הודעה זו",
 		].join("\n"),
@@ -468,31 +465,6 @@ async function handleWrite(arg: string): Promise<CommandResult> {
 	};
 }
 
-// ─── /approve-briefs <client> ──────────────────────────────────
-
-async function handleApproveBriefs(query: string): Promise<CommandResult> {
-	if (!query) return { text: "שימוש: /approve-briefs &lt;שם לקוח&gt;" };
-
-	const client = await findClient(query);
-	if (!client) return { text: `לא נמצא לקוח בשם "<b>${esc(query)}</b>".` };
-
-	const updated = await db.contentBrief.updateMany({
-		where: {
-			clientId: client.id,
-			status: { in: ["draft", "needs_human_review"] },
-		},
-		data: { status: "approved" },
-	});
-
-	if (updated.count === 0) {
-		return { text: `אין בריפים ממתינים לאישור ל-<b>${esc(client.name)}</b>.` };
-	}
-
-	return {
-		text: `✅ <b>${updated.count} בריפים אושרו</b> ל-${esc(client.name)}.\n\nשלח /schedule ${esc(query)} כדי לתזמן אותם.`,
-	};
-}
-
 // ─── /schedule <client> ───────────────────────────────────────
 
 async function handleSchedule(query: string): Promise<CommandResult> {
@@ -779,16 +751,39 @@ async function handleApproveGroup(encodedData: string): Promise<CommandResult> {
 		const { approveWorkPlanGroup } = await import("@/lib/work-plan-server");
 		const result = await approveWorkPlanGroup(planId, group as never, "telegram");
 
-		return {
-			text: [
-				`✅ <b>קבוצה "${esc(group)}" אושרה</b> — ${esc(plan.client.name)}`,
-				"",
-				`הוכנו: ${result.prepared}`,
-				`דולגו: ${result.skipped}`,
-				`נכשלו: ${result.failed}`,
-				...(result.notes.length > 0 ? ["", ...result.notes.map((n) => `· ${esc(n)}`)] : []),
-			].join("\n"),
-		};
+		// Auto-approve created briefs so they're ready for scheduling
+		const approved = await db.contentBrief.updateMany({
+			where: {
+				clientId: plan.clientId,
+				status: { in: ["draft", "needs_human_review"] },
+			},
+			data: { status: "approved" },
+		});
+
+		// Auto-schedule the approved briefs
+		const { autoSchedule } = await import("@/lib/calendar-server");
+		const scheduleResult = await autoSchedule(plan.clientId);
+
+		const lines = [
+			`✅ <b>קבוצה "${esc(group)}" אושרה</b> — ${esc(plan.client.name)}`,
+			"",
+			`📋 הוכנו: ${result.prepared} | דולגו: ${result.skipped} | נכשלו: ${result.failed}`,
+		];
+
+		if (approved.count > 0) {
+			lines.push(`📝 ${approved.count} בריפים אושרו`);
+		}
+		if (scheduleResult.scheduled > 0) {
+			lines.push(`📅 ${scheduleResult.scheduled} פוסטים תוזמנו`);
+		}
+
+		if (result.notes.length > 0) {
+			lines.push("", ...result.notes.map((n) => `· ${esc(n)}`));
+		}
+
+		lines.push("", "שלח /calendar כדי לראות את הלוח.");
+
+		return { text: lines.join("\n") };
 	} catch (err) {
 		return { text: `❌ שגיאה באישור: ${esc((err as Error).message)}` };
 	}
