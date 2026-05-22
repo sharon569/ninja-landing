@@ -580,7 +580,7 @@ interface PsiResult {
 	error?: string;
 }
 
-async function auditPSI(urls: string[]): Promise<Finding[]> {
+async function auditPSI(urls: string[], clientId?: string): Promise<Finding[]> {
 	if (process.env.PSI_ENABLED !== "true") return [];
 	if (urls.length === 0) return [];
 
@@ -625,6 +625,26 @@ async function auditPSI(urls: string[]): Promise<Finding[]> {
 		},
 		2,
 	);
+
+	// Persist PSI scores for the speed dashboard (Phase 16.6)
+	if (clientId) {
+		try {
+			const { persistSpeedScores } = await import("@/lib/pagespeed-server");
+			await persistSpeedScores(
+				clientId,
+				results.map((r) => ({
+					url: r.url,
+					mobilePerf: r.mobilePerf,
+					desktopPerf: r.desktopPerf,
+					lcp: r.lcp,
+					inp: r.inp,
+					cls: r.cls,
+				})),
+			);
+		} catch (err) {
+			console.warn("[tech-audit] PSI persistence failed:", (err as Error).message);
+		}
+	}
 
 	const findings: Finding[] = [];
 	const poorMobile = results.filter((r) => (r.mobilePerf ?? 100) < 50);
@@ -833,7 +853,7 @@ export async function runTechnicalAudit(clientId: string): Promise<TechAuditResu
 	const psiUrls = Array.from(
 		new Set([root + "/", ...client.targetPages]),
 	).slice(0, 5);
-	const psiFindings = await auditPSI(psiUrls);
+	const psiFindings = await auditPSI(psiUrls, clientId);
 
 	const allFindings = [
 		...sitemap.findings,
