@@ -57,3 +57,4 @@ export const PIPELINE_STATUS_LABELS: Record<PipelineRunStatus, string> = {
 	success: "הושלם",
 	failed: "נכשל",
 };
+// deployed Fri May 22 12:53:12 EEST 2026
