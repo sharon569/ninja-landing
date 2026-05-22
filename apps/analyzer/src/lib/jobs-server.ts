@@ -74,6 +74,7 @@ export async function drainJobs(): Promise<DrainResult> {
 		where: { status: "queued" },
 		orderBy: { createdAt: "asc" },
 		take: MAX_JOBS_PER_DRAIN,
+		include: { client: { select: { name: true } } },
 	});
 
 	for (const job of queued) {
