@@ -184,7 +184,7 @@ async function handleStatus(query: string): Promise<CommandResult> {
 	]);
 
 	const health = calcHealthScore({
-		profileCompletionPct: calcProfileCompletion(client),
+		profileCompletionPct: calcProfileCompletion(client).percent,
 		openOpportunities: oppCount,
 		highImpactOpen: highImpact,
 		highSeverityFindings: criticalCount,
