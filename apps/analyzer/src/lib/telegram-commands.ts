@@ -43,6 +43,12 @@ export async function handleCommand(text: string): Promise<CommandResult> {
 			return handlePlan(arg);
 		case "/discover":
 			return handleDiscover(arg);
+		case "/scan":
+			return handleScan(arg);
+		case "/sync":
+			return handleSync(arg);
+		case "/refresh":
+			return handleRefresh(arg);
 		default:
 			return {
 				text: `❓ לא מכיר את הפקודה <code>${esc(cmd)}</code>.\nשלח /help לרשימת פקודות.`,
@@ -63,6 +69,12 @@ function handleHelp(): CommandResult {
 			"/opps &lt;לקוח&gt; — הזדמנויות פתוחות",
 			"/plan &lt;לקוח&gt; — תוכנית עבודה",
 			"/discover &lt;לקוח&gt; — מילות מפתח מומלצות מ-GSC",
+			"",
+			"<b>פעולות:</b>",
+			"/scan &lt;לקוח&gt; — הרצת סריקה",
+			"/sync &lt;לקוח&gt; — סנכרון GSC",
+			"/refresh &lt;לקוח&gt; — רענון מלא",
+			"",
 			"/help — הודעה זו",
 		].join("\n"),
 	};
@@ -351,6 +363,77 @@ async function handleDiscover(query: string): Promise<CommandResult> {
 	return { text: lines.join("\n"), keyboard: kbd(keyboard) };
 }
 
+// ─── /scan <client> ───────────────────────────────────────────
+
+async function handleScan(query: string): Promise<CommandResult> {
+	if (!query) return { text: "שימוש: /scan &lt;שם לקוח&gt;" };
+
+	const client = await findClient(query);
+	if (!client) return { text: `לא נמצא לקוח בשם "<b>${esc(query)}</b>".` };
+
+	const { enqueueJob, wakeWorker } = await import("@/lib/jobs-server");
+	const { id, alreadyQueued } = await enqueueJob("scan", client.id, null, "telegram");
+	wakeWorker();
+
+	if (alreadyQueued) {
+		return { text: `⏳ סריקה ל-<b>${esc(client.name)}</b> כבר בתור.` };
+	}
+	return { text: `📷 סריקה ל-<b>${esc(client.name)}</b> נכנסה לתור.\nתקבל התראה כשתסתיים.` };
+}
+
+// ─── /sync <client> ───────────────────────────────────────────
+
+async function handleSync(query: string): Promise<CommandResult> {
+	if (!query) {
+		// Sync all clients
+		const { enqueueJob, wakeWorker } = await import("@/lib/jobs-server");
+		const clients = await db.client.findMany({
+			where: { status: "active", gscPropertyUrl: { not: null } },
+			select: { id: true, name: true },
+		});
+		if (clients.length === 0) {
+			return { text: "אין לקוחות עם חיבור GSC." };
+		}
+		let queued = 0;
+		for (const c of clients) {
+			const { alreadyQueued } = await enqueueJob("gsc_sync", c.id, null, "telegram");
+			if (!alreadyQueued) queued++;
+		}
+		wakeWorker();
+		return { text: `📡 סנכרון GSC נכנס לתור עבור ${queued} לקוחות.` };
+	}
+
+	const client = await findClient(query);
+	if (!client) return { text: `לא נמצא לקוח בשם "<b>${esc(query)}</b>".` };
+
+	const { enqueueJob, wakeWorker } = await import("@/lib/jobs-server");
+	const { alreadyQueued } = await enqueueJob("gsc_sync", client.id, null, "telegram");
+	wakeWorker();
+
+	if (alreadyQueued) {
+		return { text: `⏳ סנכרון GSC ל-<b>${esc(client.name)}</b> כבר בתור.` };
+	}
+	return { text: `📡 סנכרון GSC ל-<b>${esc(client.name)}</b> נכנס לתור.` };
+}
+
+// ─── /refresh <client> ────────────────────────────────────────
+
+async function handleRefresh(query: string): Promise<CommandResult> {
+	if (!query) return { text: "שימוש: /refresh &lt;שם לקוח&gt;" };
+
+	const client = await findClient(query);
+	if (!client) return { text: `לא נמצא לקוח בשם "<b>${esc(query)}</b>".` };
+
+	const { enqueueJob, wakeWorker } = await import("@/lib/jobs-server");
+	const { alreadyQueued } = await enqueueJob("full_refresh", client.id, null, "telegram");
+	wakeWorker();
+
+	if (alreadyQueued) {
+		return { text: `⏳ רענון מלא ל-<b>${esc(client.name)}</b> כבר בתור.` };
+	}
+	return { text: `🔄 רענון מלא ל-<b>${esc(client.name)}</b> נכנס לתור.\nתקבל התראה כשיסתיים.` };
+}
+
 // ─── Callback Query Handler ───────────────────────────────────
 
 export async function handleCallback(data: string): Promise<CommandResult | null> {
@@ -365,8 +448,13 @@ export async function handleCallback(data: string): Promise<CommandResult | null
 		case "plan":
 			return handlePlanById(id);
 		case "refresh":
-			// Phase 3 will handle this — for now, just acknowledge
-			return { text: "🔄 רענון יתווסף בגרסה הבאה. השתמש בדשבורד בינתיים." };
+			return handleRefreshCallback(id);
+		case "approve_opp":
+			return handleApproveOpp(id);
+		case "reject_opp":
+			return handleRejectOpp(id);
+		case "approve_group":
+			return handleApproveGroup(id);
 		case "add_kw":
 			return handleAddKeyword(id);
 		case "ignore_kw":
@@ -401,6 +489,140 @@ async function handlePlanById(clientId: string): Promise<CommandResult> {
 	});
 	if (!client) return { text: "לקוח לא נמצא." };
 	return handlePlan(client.name);
+}
+
+// ─── Refresh Callback ─────────────────────────────────────────
+
+async function handleRefreshCallback(clientId: string): Promise<CommandResult> {
+	const client = await db.client.findUnique({
+		where: { id: clientId },
+		select: { name: true },
+	});
+	if (!client) return { text: "לקוח לא נמצא." };
+
+	const { enqueueJob, wakeWorker } = await import("@/lib/jobs-server");
+	const { alreadyQueued } = await enqueueJob("full_refresh", clientId, null, "telegram");
+	wakeWorker();
+
+	if (alreadyQueued) {
+		return { text: `⏳ רענון ל-<b>${esc(client.name)}</b> כבר בתור.` };
+	}
+	return { text: `🔄 רענון ל-<b>${esc(client.name)}</b> נכנס לתור.` };
+}
+
+// ─── Opportunity Approve/Reject ───────────────────────────────
+
+async function handleApproveOpp(oppId: string): Promise<CommandResult> {
+	const opp = await db.opportunity.findUnique({
+		where: { id: oppId },
+		select: { id: true, title: true, status: true, clientId: true },
+	});
+
+	if (!opp) return { text: "הזדמנות לא נמצאה." };
+
+	const approvableStatuses = ["detected", "recommended", "needs_human_review"];
+	if (!approvableStatuses.includes(opp.status)) {
+		return { text: `ההזדמנות כבר טופלה (${opp.status}).` };
+	}
+
+	await db.opportunity.update({
+		where: { id: oppId },
+		data: {
+			status: "approved",
+			approvedAt: new Date(),
+			approvedBy: "telegram",
+		},
+	});
+
+	await db.opportunityActionLog.create({
+		data: {
+			clientId: opp.clientId,
+			opportunityId: oppId,
+			actionType: "approved",
+			fromStatus: opp.status,
+			toStatus: "approved",
+			note: "אושר מ-Telegram",
+			createdBy: "telegram",
+		},
+	});
+
+	return { text: `✅ <b>${esc(opp.title)}</b> — אושר!` };
+}
+
+async function handleRejectOpp(oppId: string): Promise<CommandResult> {
+	const opp = await db.opportunity.findUnique({
+		where: { id: oppId },
+		select: { id: true, title: true, status: true, clientId: true },
+	});
+
+	if (!opp) return { text: "הזדמנות לא נמצאה." };
+
+	const rejectableStatuses = ["detected", "recommended", "needs_human_review", "approved"];
+	if (!rejectableStatuses.includes(opp.status)) {
+		return { text: `ההזדמנות כבר טופלה (${opp.status}).` };
+	}
+
+	await db.opportunity.update({
+		where: { id: oppId },
+		data: {
+			status: "rejected",
+			rejectedAt: new Date(),
+			rejectedBy: "telegram",
+		},
+	});
+
+	await db.opportunityActionLog.create({
+		data: {
+			clientId: opp.clientId,
+			opportunityId: oppId,
+			actionType: "rejected",
+			fromStatus: opp.status,
+			toStatus: "rejected",
+			note: "נדחה מ-Telegram",
+			createdBy: "telegram",
+		},
+	});
+
+	return { text: `❌ <b>${esc(opp.title)}</b> — נדחה.` };
+}
+
+// ─── Work Plan Group Approval ─────────────────────────────────
+
+async function handleApproveGroup(encodedData: string): Promise<CommandResult> {
+	// Data format: planId_group (underscore separated since : is used for action:id split)
+	const underscoreIdx = encodedData.indexOf("_");
+	if (underscoreIdx === -1) return { text: "פורמט לא תקין." };
+
+	const planId = encodedData.slice(0, underscoreIdx);
+	const group = encodedData.slice(underscoreIdx + 1);
+
+	const plan = await db.seoWorkPlan.findUnique({
+		where: { id: planId },
+		select: { id: true, status: true, clientId: true, client: { select: { name: true } } },
+	});
+
+	if (!plan) return { text: "תוכנית לא נמצאה." };
+	if (plan.status === "superseded") {
+		return { text: "⚠️ התוכנית הוחלפה בתוכנית חדשה. בדוק /plan." };
+	}
+
+	try {
+		const { approveWorkPlanGroup } = await import("@/lib/work-plan-server");
+		const result = await approveWorkPlanGroup(planId, group as never, "telegram");
+
+		return {
+			text: [
+				`✅ <b>קבוצה "${esc(group)}" אושרה</b> — ${esc(plan.client.name)}`,
+				"",
+				`הוכנו: ${result.prepared}`,
+				`דולגו: ${result.skipped}`,
+				`נכשלו: ${result.failed}`,
+				...(result.notes.length > 0 ? ["", ...result.notes.map((n) => `· ${esc(n)}`)] : []),
+			].join("\n"),
+		};
+	} catch (err) {
+		return { text: `❌ שגיאה באישור: ${esc((err as Error).message)}` };
+	}
 }
 
 // ─── Keyword Add/Ignore Handlers ──────────────────────────────

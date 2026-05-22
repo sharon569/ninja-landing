@@ -136,9 +136,19 @@ export function formatOpportunities(
 		lines.push(`<i>+ עוד ${opps.length - 10} הזדמנויות</i>`);
 	}
 
+	// Approve/Reject buttons for top 5 approvable opportunities
+	const approvable = top
+		.filter((o) => ["detected", "recommended", "needs_human_review"].includes(o.status))
+		.slice(0, 5);
+
+	const keyboard = approvable.map((o) => [
+		btn(`✅ ${o.title.slice(0, 20)}`, `approve_opp:${o.id}`),
+		btn(`❌ דחה`, `reject_opp:${o.id}`),
+	]);
+
 	return {
 		text: lines.join("\n"),
-		keyboard: [],
+		keyboard: kbd(keyboard),
 	};
 }
 
@@ -171,9 +181,21 @@ export function formatWorkPlan(plan: WorkPlanSummary, baseUrl: string): {
 		`סה"כ: <b>${plan.totalItems}</b> פריטים`,
 	];
 
+	// Approve group buttons (only for approvable groups with items)
+	// Note: approve_group callback uses planId_group format
+	const buttons: InlineKeyboardButton[][] = [];
+	if (plan.safeItemsCount > 0) {
+		buttons.push([btn(`✅ אשר Safe Meta (${plan.safeItemsCount})`, `approve_group:${plan.id}_safe_meta`)]);
+	}
+	// Quick wins would need a separate count — for now use safeItemsCount > 0 as proxy
+	if (plan.totalItems > plan.safeItemsCount + plan.blockedItemsCount + plan.monitorItemsCount) {
+		buttons.push([btn(`✅ אשר Quick Wins`, `approve_group:${plan.id}_quick_wins`)]);
+	}
+	buttons.push([urlBtn("🌐 צפה בדשבורד", `${baseUrl}/clients/${plan.id}/work-plan`)]);
+
 	return {
 		text: lines.join("\n"),
-		keyboard: [],
+		keyboard: kbd(buttons),
 	};
 }
 
