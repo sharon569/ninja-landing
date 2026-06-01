@@ -14,7 +14,7 @@ export default defineConfig({
   site: 'https://www.samp.ninja',
   integrations: [
     sitemap({
-      filter: (page) => !page.includes('/portal/') && !page.includes('/proposal/'),
+      filter: (page) => !page.includes('/portal/') && !page.includes('/proposal/') && !page.includes('/brief/'),
       i18n: { defaultLocale: 'he', locales: { he: 'he-IL' } },
       serialize(item) {
         const url = item.url;
