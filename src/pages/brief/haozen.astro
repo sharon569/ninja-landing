@@ -12,6 +12,8 @@ import Layout from '../../layouts/Layout.astro';
   <div class="brief-card">
     <header class="brief-head">
       <div class="brief-eyebrow">NINJA DIGITAL · אפיון</div>
+      <h1 class="brief-title">אפיון פרויקט — האוזן</h1>
+      <p class="brief-intro">8 שלבים קצרים שיעזרו לנו להבין בדיוק מה צריך. אפשר לדלג על שאלות, והטופס נשמר אוטומטית — אפשר לעצור ולחזור.</p>
       <div class="brief-progress"><span id="bar"></span></div>
       <div class="brief-step" id="stepLabel">שלב 1 מתוך 8</div>
     </header>
@@ -254,23 +256,26 @@ import Layout from '../../layouts/Layout.astro';
   render();
 </script>
 <style>
-  .brief { min-height: 100vh; background: #08090c; color: #f5f5f7; padding: 48px 16px; display: flex; justify-content: center; }
-  .brief-card { width: 100%; max-width: 640px; }
+  .brief { min-height: 100vh; background: #08090c; color: #f5f5f7; padding: 56px 16px; display: flex; justify-content: center; }
+  .brief-card { width: 100%; max-width: 660px; background: #0e1117; border: 1px solid #20242e; border-radius: 22px; padding: 36px 32px; }
   .brief-eyebrow { font-family: 'Rubik', sans-serif; font-weight: 900; letter-spacing: 0.22em; font-size: 12px; color: #ffd166; }
-  .brief-progress { height: 6px; background: #1c1d22; border-radius: 999px; margin: 14px 0 6px; overflow: hidden; }
+  .brief-title { font-family: 'Rubik', sans-serif; font-weight: 900; font-size: 30px; margin: 10px 0 8px; color: #f5f5f7; }
+  .brief-intro { font-size: 15px; line-height: 1.6; color: #a8acb6; margin-bottom: 4px; }
+  .brief-progress { height: 6px; background: #1c1d22; border-radius: 999px; margin: 20px 0 6px; overflow: hidden; }
   .brief-progress span { display: block; height: 100%; width: 12.5%; background: linear-gradient(90deg, #b3001b, #ff2a3c); transition: width .3s ease; }
   .brief-step { font-size: 13px; color: #a8acb6; }
-  .brief-section h2 { font-family: 'Rubik', sans-serif; font-weight: 800; font-size: 24px; margin: 28px 0 18px; }
+  .brief-section h2 { font-family: 'Rubik', sans-serif; font-weight: 800; font-size: 22px; margin: 24px 0 18px; color: #f5f5f7; }
   .brief-section .q { font-weight: 700; margin: 18px 0 8px; color: #f5f5f7; }
   .brief-section label { display: block; margin-bottom: 12px; font-size: 15px; color: #f5f5f7; }
-  .brief-section label.opt { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #141518; border: 1px solid #26272d; border-radius: 10px; cursor: pointer; }
+  .brief-section label.opt { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #161b24; border: 1px solid #2e3340; border-radius: 10px; cursor: pointer; transition: border-color .15s ease; }
   .brief-section label.opt:hover { border-color: #ff2a3c; }
   .brief-section input[type="text"], .brief-section input[type="tel"], .brief-section input[type="email"], .brief-section input:not([type]), .brief-section textarea {
-    display: block; width: 100%; margin-top: 6px; padding: 12px 14px; background: #141518; border: 1px solid #26272d; border-radius: 10px; color: #f5f5f7; font: inherit;
+    display: block; width: 100%; margin-top: 6px; padding: 12px 14px; background: #161b24; border: 1px solid #2e3340; border-radius: 10px; color: #f5f5f7; font: inherit;
   }
+  .brief-section input::placeholder, .brief-section textarea::placeholder { color: #6b7180; }
   .brief-section input:focus, .brief-section textarea:focus { outline: 2px solid #ff2a3c; outline-offset: 1px; border-color: #ff2a3c; }
   .brief-nav { display: flex; gap: 12px; justify-content: space-between; margin-top: 28px; }
-  .brief .btn { padding: 12px 22px; border-radius: 999px; font-weight: 700; border: 1px solid #26272d; background: transparent; color: #f5f5f7; cursor: pointer; }
+  .brief .btn { padding: 12px 22px; border-radius: 999px; font-weight: 700; border: 1px solid #2e3340; background: transparent; color: #f5f5f7; cursor: pointer; }
   .brief .btn-primary { background: #ff2a3c; border-color: #ff2a3c; color: #fff; }
   .brief .btn-primary:disabled { opacity: .5; cursor: default; }
   .form-status { margin-top: 14px; min-height: 20px; color: #ffd166; font-size: 14px; }
