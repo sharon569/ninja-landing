@@ -1,6 +1,7 @@
 // Supabase clients for Astro server + browser.
 // Server client uses parseCookieHeader to read the request Cookie header.
 
+import { createClient } from '@supabase/supabase-js';
 import {
   createBrowserClient,
   createServerClient,
@@ -58,4 +59,14 @@ export function createSupabaseServerClient(ctx: ServerCtx) {
  */
 export function createSupabaseBrowserClient() {
   return createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+/**
+ * Service-role client — bypasses RLS. Server-only (API routes).
+ * NEVER import into client-side code.
+ */
+export function createSupabaseServiceClient() {
+  const key = import.meta.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY');
+  return createClient(SUPABASE_URL, key, { auth: { persistSession: false } });
 }

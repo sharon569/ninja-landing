@@ -1,0 +1,339 @@
+---
+// Standalone page — intentionally NOT using the marketing Layout.
+// This internal intake form must not inherit site.js (custom cursor, loader,
+// hero animations) or the global .btn rule, which broke a form-only page.
+// Self-contained <head> + reset keeps it isolated and predictable.
+// Structure: questions are split per-site (האוזן / in-ear) so the client
+// doesn't conflate the two, with shared general + ops sections around them.
+---
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>אפיון אתרים — האוזן | NINJA Digital</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Rubik:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <main class="brief" dir="rtl">
+      <div class="brief-card">
+        <header class="brief-head">
+          <div class="brief-eyebrow">NINJA DIGITAL · אפיון</div>
+          <h1 class="brief-title">אפיון אתרים — האוזן</h1>
+          <p class="brief-intro">9 שלבים קצרים, מחולקים בין שני האתרים — האוזן (מכשירי שמיעה) ואתר ה-in-ear למוזיקאים. אפשר לדלג על שאלות, והטופס נשמר אוטומטית — אפשר לעצור ולחזור.</p>
+          <div class="brief-progress"><span id="bar"></span></div>
+          <div class="brief-step" id="stepLabel">שלב 1 מתוך 9</div>
+        </header>
+
+        <form id="briefForm" action="/api/brief" method="POST" novalidate>
+          <input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px" />
+
+          <!-- ━━ שלב 1: כללי — פרטי קשר + הפרדת האתרים (חובה) -->
+          <fieldset class="brief-section" data-step="1">
+            <span class="brief-tag brief-tag-general">כללי</span>
+            <h2>פרטי קשר והפרדת האתרים</h2>
+            <label>שם העסק<input name="business_name" required /></label>
+            <label>איש קשר<input name="contact_name" required /></label>
+            <label>טלפון<input name="phone" type="tel" required placeholder="050-0000000" /></label>
+            <label>דוא״ל<input name="email" type="email" placeholder="name@business.co.il" /></label>
+            <p class="q">מבנה הדומיינים לשני האתרים</p>
+            <label class="opt"><input type="radio" name="domain_structure" value="שני דומיינים נפרדים" /> שני דומיינים נפרדים</label>
+            <label class="opt"><input type="radio" name="domain_structure" value="תת-דומיין" /> תת-דומיין (למשל music.haozen.co.il)</label>
+            <label class="opt"><input type="radio" name="domain_structure" value="תיקייה תחת אותו אתר" /> תיקייה תחת אותו אתר</label>
+            <label>המותג של אתר ה-in-ear — שם נפרד? ימשיך כ"האוזן"?<input name="inear_brand_name" placeholder="שם המותג / האוזן" /></label>
+            <p class="q">הקישור בין האתרים</p>
+            <label class="opt"><input type="checkbox" name="link_style" value="כפתור בתפריט" /> כפתור מעבר בתפריט</label>
+            <label class="opt"><input type="checkbox" name="link_style" value="באנר עליון" /> באנר עליון</label>
+            <label class="opt"><input type="checkbox" name="link_style" value="דו-כיווני" /> קישור דו-כיווני (מכל אתר לשני)</label>
+            <label>הסיבה העיקרית להפרדה בין האתרים<textarea name="separation_reason" rows="2" placeholder="קהל שונה? מיתוג? SEO?"></textarea></label>
+          </fieldset>
+
+          <!-- ━━ שלב 2: האוזן — מוצרים ושירותים -->
+          <fieldset class="brief-section" data-step="2" hidden>
+            <span class="brief-tag brief-tag-haozen">אתר האוזן · מכשירי שמיעה</span>
+            <h2>מה נמכר ונמצא באתר האוזן</h2>
+            <p class="q">אופי האתר</p>
+            <label class="opt"><input type="radio" name="haozen_type" value="תדמיתי — לידים בלבד" /> תדמיתי — לידים ופניות בלבד</label>
+            <label class="opt"><input type="radio" name="haozen_type" value="גם חנות אביזרים" /> תדמיתי + חנות אביזרים אונליין</label>
+            <label class="opt"><input type="radio" name="haozen_type" value="טרם הוחלט" /> עדיין לא הוחלט</label>
+            <label>מכשירי שמיעה — נשארים פנייה/ליד בלבד (התאמה במרפאה)? הערות<textarea name="hearing_aids_mode" rows="2"></textarea></label>
+            <p class="q">מותגי מכשירי שמיעה שתימכר התאמה שלהם</p>
+            <label class="opt"><input type="checkbox" name="aid_brands" value="Phonak" /> Phonak</label>
+            <label class="opt"><input type="checkbox" name="aid_brands" value="ReSound" /> ReSound</label>
+            <label class="opt"><input type="checkbox" name="aid_brands" value="Starkey" /> Starkey</label>
+            <label class="opt"><input type="checkbox" name="aid_brands" value="Bernafon" /> Bernafon</label>
+            <label>יבואן רשמי של מי? (אם בכלל)<input name="aid_importer" /></label>
+            <label>אילו אביזרים יימכרו אונליין?<textarea name="haozen_accessories" rows="2" placeholder="סוללות, פילטרים, מייבשים, מחברי טלוויזיה..."></textarea></label>
+            <label>קופות חולים שיש איתן הסדר<textarea name="health_funds" rows="2"></textarea></label>
+          </fieldset>
+
+          <!-- ━━ שלב 3: האוזן — תהליך הלקוח -->
+          <fieldset class="brief-section" data-step="3" hidden>
+            <span class="brief-tag brief-tag-haozen">אתר האוזן · תהליך הלקוח</span>
+            <h2>תהליך קבלת לקוח</h2>
+            <label>איך מגיע לקוח חדש, ומה קורה מרגע הפנייה הראשונה?<textarea name="haozen_intake_flow" rows="3"></textarea></label>
+            <p class="q">איך קובעים פגישת ייעוץ?</p>
+            <label class="opt"><input type="checkbox" name="consult_booking" value="טלפון" /> טלפון</label>
+            <label class="opt"><input type="checkbox" name="consult_booking" value="וואטסאפ" /> וואטסאפ</label>
+            <label class="opt"><input type="checkbox" name="consult_booking" value="טופס באתר" /> טופס באתר</label>
+            <label class="opt"><input type="checkbox" name="consult_booking" value="יומן תורים אונליין" /> יומן/קביעת תור אונליין</label>
+            <label>איך קובעים בדיקת שמיעה במכון? יש יומן/זמינות לפי סניף?<textarea name="hearing_test_booking" rows="2"></textarea></label>
+            <label>שלבי התהליך מהבדיקה ועד ההתאמה (איך תרצה שיוצג באתר)<textarea name="haozen_process_steps" rows="3" placeholder="בדיקה → ייעוץ → התאמה → כיוון REM → מעקב"></textarea></label>
+            <label class="opt"><input type="radio" name="booking_per_branch" value="כן — לפי סניף" /> תורים נפרדים לפי סניף (ירושלים / מבשרת)</label>
+            <label class="opt"><input type="radio" name="booking_per_branch" value="לא" /> ללא הפרדת סניפים</label>
+            <label>מעקב ותמיכה אחרי ההתאמה<textarea name="haozen_followup" rows="2"></textarea></label>
+            <label>לאן מגיעות הפניות/הלידים (מייל / וואטסאפ / CRM)?<input name="lead_destination" /></label>
+          </fieldset>
+
+          <!-- ━━ שלב 4: האוזן — עיצוב ורפרנס -->
+          <fieldset class="brief-section" data-step="4" hidden>
+            <span class="brief-tag brief-tag-haozen">אתר האוזן · עיצוב</span>
+            <h2>עיצוב, נראות ורפרנסים — האוזן</h2>
+            <label>אתרים שאתה אוהב (רפרנס לנראות/חוויה) עבור אתר האוזן<textarea name="haozen_refs" rows="3" placeholder="הדבק קישורים + מה אהבת בכל אחד"></textarea></label>
+            <label>תחושה/נראות רצויה<input name="haozen_look" placeholder="רגוע, אמין, נגיש, מודרני..." /></label>
+            <label>מתחרים בארץ (מכוני שמיעה אחרים) להשוואה<textarea name="haozen_competitors" rows="2"></textarea></label>
+            <p class="q">נכסים קיימים להאוזן</p>
+            <label class="opt"><input type="checkbox" name="haozen_assets" value="לוגו" /> לוגו</label>
+            <label class="opt"><input type="checkbox" name="haozen_assets" value="תמונות" /> תמונות מקצועיות / של הסניפים</label>
+            <label class="opt"><input type="checkbox" name="haozen_assets" value="טקסטים" /> טקסטים קיימים</label>
+            <label>פירוט נכסים / קישור לתיקייה<textarea name="haozen_assets_notes" rows="2"></textarea></label>
+          </fieldset>
+
+          <!-- ━━ שלב 5: in-ear — מוצרים ויבואנות -->
+          <fieldset class="brief-section" data-step="5" hidden>
+            <span class="brief-tag brief-tag-inear">אתר in-ear · מוצרים</span>
+            <h2>מוצרים ויבואנות — אתר ה-in-ear</h2>
+            <p class="q">מעמד יבואנות</p>
+            <label class="opt"><input type="radio" name="inear_importer" value="יבואן רשמי בלעדי" /> יבואן רשמי / בלעדי</label>
+            <label class="opt"><input type="radio" name="inear_importer" value="נקודת מכירה" /> נקודת מכירה (לא יבואן)</label>
+            <label class="opt"><input type="radio" name="inear_importer" value="עדיין נבחן" /> עדיין נבחן</label>
+            <p class="q">מותגים שיימכרו</p>
+            <label class="opt"><input type="checkbox" name="inear_brands" value="Ultimate Ears" /> Ultimate Ears (UE)</label>
+            <label class="opt"><input type="checkbox" name="inear_brands" value="64 Audio" /> 64 Audio</label>
+            <label class="opt"><input type="checkbox" name="inear_brands" value="Westone" /> Westone</label>
+            <label class="opt"><input type="checkbox" name="inear_brands" value="Shure" /> Shure</label>
+            <label class="opt"><input type="checkbox" name="inear_brands" value="qdc" /> qdc</label>
+            <label>מותגים נוספים<input name="inear_brands_other" /></label>
+            <p class="q">מודל מכירה</p>
+            <label class="opt"><input type="radio" name="inear_commerce" value="חנות מלאה עם checkout" /> חנות מלאה עם תשלום אונליין</label>
+            <label class="opt"><input type="radio" name="inear_commerce" value="קטלוג + פנייה" /> קטלוג + פנייה/הזמנה</label>
+            <label>מה נמכר ישירות בעגלה (אטמים, כבלים, אביזרים)?<textarea name="inear_direct_sale" rows="2"></textarea></label>
+            <label>תהליך הזמנת מוניטור אישי (סריקת אוזן, צבעים, דרייברים, זמן אספקה)<textarea name="inear_order_flow" rows="3"></textarea></label>
+            <p class="q">קהל יעד</p>
+            <label class="opt"><input type="checkbox" name="inear_audience" value="מקצוענים" /> מוזיקאים מקצוענים</label>
+            <label class="opt"><input type="checkbox" name="inear_audience" value="חובבים" /> חובבים</label>
+            <label class="opt"><input type="checkbox" name="inear_audience" value="אולפן/סאונד" /> אנשי אולפן / סאונד</label>
+            <label class="opt"><input type="checkbox" name="inear_audience" value="ספורט" /> ספורט / אחר</label>
+          </fieldset>
+
+          <!-- ━━ שלב 6: in-ear — מסחר ולוגיסטיקה -->
+          <fieldset class="brief-section" data-step="6" hidden>
+            <span class="brief-tag brief-tag-inear">אתר in-ear · מסחר</span>
+            <h2>תשלומים ולוגיסטיקה — in-ear</h2>
+            <label>ספק סליקה<input name="payment_provider" placeholder="Tranzila / iCredit / Cardcom / PayPlus / משולם / עדיין אין" /></label>
+            <label class="opt"><input type="checkbox" name="payment_wallets" value="Bit" /> Bit</label>
+            <label class="opt"><input type="checkbox" name="payment_wallets" value="Apple Pay" /> Apple Pay / Google Pay</label>
+            <p class="q">משלוחים</p>
+            <label class="opt"><input type="checkbox" name="shipping" value="חברת שילוח" /> חברת שילוח</label>
+            <label class="opt"><input type="checkbox" name="shipping" value="דואר" /> דואר</label>
+            <label class="opt"><input type="checkbox" name="shipping" value="איסוף בסניף" /> איסוף עצמי בסניף</label>
+            <label>משלוח חינם מעל סכום<input name="free_shipping_threshold" /></label>
+            <label>מערכת חשבוניות לחיבור<input name="invoicing" placeholder="חשבונית ירוקה / iCount / Morning..." /></label>
+            <label>מי מעדכן מלאי ומחירים? צריך ממשק ניהול (CMS)?<textarea name="inventory_management" rows="2"></textarea></label>
+          </fieldset>
+
+          <!-- ━━ שלב 7: in-ear — עיצוב ורפרנס -->
+          <fieldset class="brief-section" data-step="7" hidden>
+            <span class="brief-tag brief-tag-inear">אתר in-ear · עיצוב</span>
+            <h2>עיצוב, נראות ורפרנסים — in-ear</h2>
+            <p class="q">להתבסס על נראות של אתר בינלאומי?</p>
+            <label class="opt"><input type="radio" name="inear_intl_ref" value="כן — להתבסס על אתר בינלאומי" /> כן — לקחת נראות של אתר עולמי (כמו UE) ולהתאים לשוק הישראלי</label>
+            <label class="opt"><input type="radio" name="inear_intl_ref" value="בהשראה בלבד" /> בהשראה בלבד, אבל זהות עצמאית</label>
+            <label class="opt"><input type="radio" name="inear_intl_ref" value="עיצוב מקורי" /> עיצוב מקורי לגמרי</label>
+            <label>איזה אתר/ים בינלאומיים לקחת כרפרנס?<textarea name="inear_intl_sites" rows="2" placeholder="ultimateears.com וכו׳ — הדבק קישורים"></textarea></label>
+            <label>אתרים נוספים שאתה אוהב ל-in-ear<textarea name="inear_refs" rows="2"></textarea></label>
+            <p class="q">שפת האתר</p>
+            <label class="opt"><input type="radio" name="inear_language" value="עברית בלבד" /> עברית בלבד</label>
+            <label class="opt"><input type="radio" name="inear_language" value="עברית + אנגלית" /> עברית + אנגלית (קהל מקצועי/בינלאומי)</label>
+            <label>נכסים קיימים ל-in-ear (לוגו, תמונות מוצר, חומרים מהיבואן)<textarea name="inear_assets" rows="2"></textarea></label>
+          </fieldset>
+
+          <!-- ━━ שלב 8: משותף — טכני ומדידה -->
+          <fieldset class="brief-section" data-step="8" hidden>
+            <span class="brief-tag brief-tag-general">משותף · טכני</span>
+            <h2>טכני, מיגרציה ומדידה</h2>
+            <label>מצב קיים — האתר היום ב-Wix? מה הדומיין? מי מחזיק בו?<textarea name="current_state" rows="2"></textarea></label>
+            <label class="opt"><input type="radio" name="seo_migration" value="כן — יש מה לשמר" /> יש כתובות/דירוגים בגוגל לשמר (צריך רידיירקטים)</label>
+            <label class="opt"><input type="radio" name="seo_migration" value="לא / לא ידוע" /> אין / לא ידוע</label>
+            <label>פירוט מיגרציה / SEO<textarea name="seo_notes" rows="2"></textarea></label>
+            <p class="q">מדידה — מה קיים / מה לחבר</p>
+            <label class="opt"><input type="checkbox" name="analytics" value="Google Analytics" /> Google Analytics</label>
+            <label class="opt"><input type="checkbox" name="analytics" value="פיקסל פייסבוק" /> פיקסל פייסבוק</label>
+            <label class="opt"><input type="checkbox" name="analytics" value="Google Ads" /> Google Ads</label>
+            <label class="opt"><input type="checkbox" name="analytics" value="Search Console" /> Search Console</label>
+            <label class="opt"><input type="radio" name="legal_docs" value="קיימים" /> מסמכים משפטיים (תקנון/פרטיות) קיימים</label>
+            <label class="opt"><input type="radio" name="legal_docs" value="צריך לנסח" /> צריך לנסח מסמכים משפטיים</label>
+          </fieldset>
+
+          <!-- ━━ שלב 9: משותף — תפעול וסיכום -->
+          <fieldset class="brief-section" data-step="9" hidden>
+            <span class="brief-tag brief-tag-general">משותף · תפעול</span>
+            <h2>לוחות זמנים, תקציב וסיכום</h2>
+            <label>דדליין / לוח זמנים יעד<input name="timeline" /></label>
+            <label>תקציב מסגרת<input name="budget" /></label>
+            <label>סדר עדיפות — איזה אתר עולה ראשון ולמה?<textarea name="priority" rows="2"></textarea></label>
+            <label>מי מתחזק ומעדכן אחרי ההשקה? צריך הדרכה?<textarea name="maintenance" rows="2"></textarea></label>
+            <label>עוד משהו שחשוב שנדע<textarea name="notes" rows="3"></textarea></label>
+          </fieldset>
+
+          <nav class="brief-nav">
+            <button type="button" id="prevBtn" class="btn" hidden>הקודם</button>
+            <button type="button" id="nextBtn" class="btn btn-primary">הבא »</button>
+            <button type="submit" id="submitBtn" class="btn btn-primary" hidden>שליחת האפיון</button>
+          </nav>
+          <div class="form-status" id="status" role="status" aria-live="polite"></div>
+        </form>
+
+        <div class="brief-done" id="done" hidden>
+          <h2>קיבלנו את האפיון 🥷</h2>
+          <p>תודה. נעבור על הפרטים ונחזור אליכם עם הצעדים הבאים.</p>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      const TOTAL = 9;
+      const form = document.getElementById('briefForm') as HTMLFormElement;
+      const sections = Array.from(document.querySelectorAll<HTMLElement>('.brief-section'));
+      const bar = document.getElementById('bar')!;
+      const stepLabel = document.getElementById('stepLabel')!;
+      const prevBtn = document.getElementById('prevBtn') as HTMLButtonElement;
+      const nextBtn = document.getElementById('nextBtn') as HTMLButtonElement;
+      const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
+      const statusEl = document.getElementById('status')!;
+      const doneEl = document.getElementById('done')!;
+      const KEY = 'haozen_brief_draft';
+      let step = 1;
+
+      function render() {
+        sections.forEach((s) => (s.hidden = Number(s.dataset.step) !== step));
+        bar.style.width = `${(step / TOTAL) * 100}%`;
+        stepLabel.textContent = `שלב ${step} מתוך ${TOTAL}`;
+        prevBtn.hidden = step === 1;
+        nextBtn.hidden = step === TOTAL;
+        submitBtn.hidden = step !== TOTAL;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      // ולידציה לשלב 1 בלבד (פרטי קשר חובה)
+      function validateStep1(): boolean {
+        if (step !== 1) return true;
+        const reqs = sections[0].querySelectorAll<HTMLInputElement>('[required]');
+        for (const el of reqs) {
+          if (!el.value.trim()) { el.focus(); statusEl.textContent = 'נא למלא שם עסק, איש קשר וטלפון.'; return false; }
+        }
+        statusEl.textContent = '';
+        return true;
+      }
+
+      nextBtn.addEventListener('click', () => { if (validateStep1() && step < TOTAL) { step++; render(); saveDraft(); } });
+      prevBtn.addEventListener('click', () => { if (step > 1) { step--; render(); } });
+
+      // טיוטה ב-localStorage
+      function saveDraft() {
+        const data: Record<string, string[]> = {};
+        new FormData(form).forEach((v, k) => {
+          if (k === '_honey') return;
+          (data[k] ??= []).push(v.toString());
+        });
+        localStorage.setItem(KEY, JSON.stringify(data));
+      }
+      function restoreDraft() {
+        const raw = localStorage.getItem(KEY);
+        if (!raw) return;
+        try {
+          const data = JSON.parse(raw) as Record<string, string[]>;
+          for (const [k, vals] of Object.entries(data)) {
+            const fields = form.querySelectorAll<HTMLInputElement>(`[name="${CSS.escape(k)}"]`);
+            fields.forEach((f) => {
+              if (f.type === 'checkbox' || f.type === 'radio') f.checked = vals.includes(f.value);
+              else f.value = vals[0] ?? '';
+            });
+          }
+        } catch { /* ignore corrupt draft */ }
+      }
+      form.addEventListener('input', saveDraft);
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!validateStep1()) { step = 1; render(); return; }
+        submitBtn.disabled = true;
+        statusEl.textContent = 'שולח…';
+        try {
+          const res = await fetch('/api/brief', { method: 'POST', body: new FormData(form) });
+          const out = await res.json();
+          if (out.success) {
+            localStorage.removeItem(KEY);
+            form.hidden = true;
+            document.querySelector('.brief-head')!.setAttribute('hidden', '');
+            doneEl.hidden = false;
+          } else {
+            statusEl.textContent = 'שגיאה בשליחה. בדקו את פרטי הקשר ונסו שוב.';
+            submitBtn.disabled = false;
+          }
+        } catch {
+          statusEl.textContent = 'תקלת רשת. נסו שוב.';
+          submitBtn.disabled = false;
+        }
+      });
+
+      restoreDraft();
+      render();
+    </script>
+
+    <style is:global>
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      [hidden] { display: none !important; }
+      body { font-family: 'Heebo', system-ui, -apple-system, sans-serif; background: #08090c; color: #f5f5f7; }
+      .brief { min-height: 100vh; background: #08090c; color: #f5f5f7; padding: 56px 16px; display: flex; justify-content: center; }
+      .brief-card { width: 100%; max-width: 680px; background: #0e1117; border: 1px solid #20242e; border-radius: 22px; padding: 36px 32px; }
+      .brief-eyebrow { font-family: 'Rubik', sans-serif; font-weight: 900; letter-spacing: 0.22em; font-size: 12px; color: #ffd166; }
+      .brief-title { font-family: 'Rubik', sans-serif; font-weight: 900; font-size: 30px; margin: 10px 0 8px; color: #f5f5f7; }
+      .brief-intro { font-size: 15px; line-height: 1.6; color: #a8acb6; margin-bottom: 4px; }
+      .brief-progress { height: 6px; background: #1c1d22; border-radius: 999px; margin: 20px 0 6px; overflow: hidden; }
+      .brief-progress span { display: block; height: 100%; width: 11%; background: linear-gradient(90deg, #b3001b, #ff2a3c); transition: width .3s ease; }
+      .brief-step { font-size: 13px; color: #a8acb6; }
+      .brief-tag { display: inline-block; font-family: 'Rubik', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.12em; padding: 4px 11px; border-radius: 999px; margin-bottom: 10px; }
+      .brief-tag-haozen { background: rgba(255,42,60,0.15); color: #ff7a85; }
+      .brief-tag-inear { background: rgba(255,209,102,0.15); color: #ffd166; }
+      .brief-tag-general { background: rgba(168,172,182,0.13); color: #a8acb6; }
+      .brief-section { border: 0; margin: 0; padding: 0; min-width: 0; }
+      .brief-section h2 { font-family: 'Rubik', sans-serif; font-weight: 800; font-size: 22px; margin: 4px 0 18px; color: #f5f5f7; }
+      .brief-section .q { font-weight: 700; margin: 18px 0 8px; color: #f5f5f7; }
+      .brief-section label { display: block; margin-bottom: 12px; font-size: 15px; color: #f5f5f7; }
+      .brief-section label.opt { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #161b24; border: 1px solid #2e3340; border-radius: 10px; cursor: pointer; transition: border-color .15s ease; }
+      .brief-section label.opt:hover { border-color: #ff2a3c; }
+      .brief-section input[type="text"], .brief-section input[type="tel"], .brief-section input[type="email"], .brief-section input:not([type]), .brief-section textarea {
+        display: block; width: 100%; margin-top: 6px; padding: 12px 14px; background: #161b24; border: 1px solid #2e3340; border-radius: 10px; color: #f5f5f7; font: inherit;
+      }
+      .brief-section input[type="radio"], .brief-section input[type="checkbox"] { width: auto; margin: 0; accent-color: #ff2a3c; flex-shrink: 0; }
+      .brief-section input::placeholder, .brief-section textarea::placeholder { color: #6b7180; }
+      .brief-section input:focus, .brief-section textarea:focus { outline: 2px solid #ff2a3c; outline-offset: 1px; border-color: #ff2a3c; }
+      .brief-nav { display: flex; gap: 12px; justify-content: space-between; margin-top: 28px; }
+      .btn { padding: 12px 22px; border-radius: 999px; font-weight: 700; border: 1px solid #2e3340; background: transparent; color: #f5f5f7; cursor: pointer; font-family: inherit; font-size: 15px; }
+      .btn-primary { background: #ff2a3c; border-color: #ff2a3c; color: #fff; }
+      .btn-primary:disabled { opacity: .5; cursor: default; }
+      .form-status { margin-top: 14px; min-height: 20px; color: #ffd166; font-size: 14px; }
+      .brief-done { text-align: center; padding: 60px 0; }
+      .brief-done h2 { font-family: 'Rubik', sans-serif; font-weight: 900; font-size: 28px; }
+      @media (prefers-reduced-motion: reduce) { .brief-progress span { transition: none; } }
+    </style>
+  </body>
+</html>
