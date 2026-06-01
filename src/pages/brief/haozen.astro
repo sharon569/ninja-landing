@@ -1,0 +1,167 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+<Layout
+  title="אפיון אתר — האוזן | NINJA Digital"
+  description="טופס אפיון פנימי"
+  noindex={true}
+  hideNav={true}
+  hideFloatWA={true}
+>
+<main class="brief" dir="rtl">
+  <div class="brief-card">
+    <header class="brief-head">
+      <div class="brief-eyebrow">NINJA DIGITAL · אפיון</div>
+      <div class="brief-progress"><span id="bar"></span></div>
+      <div class="brief-step" id="stepLabel">שלב 1 מתוך 8</div>
+    </header>
+
+    <form id="briefForm" action="/api/brief" method="POST" novalidate>
+      <input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px" />
+
+      <!-- ס׳1: פרטי קשר (חובה) -->
+      <fieldset class="brief-section" data-step="1">
+        <h2>פרטי קשר</h2>
+        <label>שם העסק<input name="business_name" required /></label>
+        <label>איש קשר<input name="contact_name" required /></label>
+        <label>טלפון<input name="phone" type="tel" required placeholder="050-0000000" /></label>
+        <label>דוא״ל<input name="email" type="email" placeholder="name@business.co.il" /></label>
+      </fieldset>
+
+      <!-- ס׳2: תמונה כללית והפרדה -->
+      <fieldset class="brief-section" data-step="2" hidden>
+        <h2>תמונה כללית והפרדה</h2>
+        <p class="q">מבנה הדומיינים</p>
+        <label class="opt"><input type="radio" name="domain_structure" value="שני דומיינים נפרדים" /> שני דומיינים נפרדים</label>
+        <label class="opt"><input type="radio" name="domain_structure" value="תת-דומיין" /> תת-דומיין</label>
+        <label class="opt"><input type="radio" name="domain_structure" value="תיקייה תחת אותו אתר" /> תיקייה תחת אותו אתר</label>
+        <label>פרטים נוספים<textarea name="domain_notes" rows="2"></textarea></label>
+        <p class="q">המותג של אתר ה-in-ear</p>
+        <label class="opt"><input type="radio" name="inear_brand_mode" value="ממשיך כהאוזן" /> ממשיך כ"האוזן"</label>
+        <label class="opt"><input type="radio" name="inear_brand_mode" value="מותג נפרד" /> מותג נפרד</label>
+        <label>שם המותג אם יש<input name="inear_brand_name" /></label>
+        <p class="q">הקישור בין האתרים</p>
+        <label class="opt"><input type="checkbox" name="link_style" value="תפריט" /> כפתור בתפריט</label>
+        <label class="opt"><input type="checkbox" name="link_style" value="באנר" /> באנר עליון</label>
+        <label class="opt"><input type="checkbox" name="link_style" value="דו-כיווני" /> קישור דו-כיווני</label>
+        <label>הסיבה העיקרית להפרדה<textarea name="separation_reason" rows="2"></textarea></label>
+      </fieldset>
+
+      <!-- ס׳3: אתר האוזן -->
+      <fieldset class="brief-section" data-step="3" hidden>
+        <h2>אתר האוזן (מכשירי שמיעה)</h2>
+        <label class="opt"><input type="radio" name="haozen_type" value="תדמיתי" /> תדמיתי — לידים בלבד</label>
+        <label class="opt"><input type="radio" name="haozen_type" value="גם חנות אביזרים" /> גם חנות אביזרים</label>
+        <label>מכשירי שמיעה — ליד בלבד? הערות<textarea name="hearing_aids_mode" rows="2"></textarea></label>
+        <p class="q">מותגי מכשירים</p>
+        <label class="opt"><input type="checkbox" name="aid_brands" value="Phonak" /> Phonak</label>
+        <label class="opt"><input type="checkbox" name="aid_brands" value="ReSound" /> ReSound</label>
+        <label class="opt"><input type="checkbox" name="aid_brands" value="Starkey" /> Starkey</label>
+        <label class="opt"><input type="checkbox" name="aid_brands" value="Bernafon" /> Bernafon</label>
+        <label>יבואן רשמי של מי?<input name="aid_importer" /></label>
+        <label>קופות חולים בהסדר<textarea name="health_funds" rows="2"></textarea></label>
+      </fieldset>
+
+      <!-- ס׳4: אתר ה-in-ear -->
+      <fieldset class="brief-section" data-step="4" hidden>
+        <h2>אתר ה-in-ear / מוזיקאים</h2>
+        <p class="q">יבואן רשמי של in-ear?</p>
+        <label class="opt"><input type="radio" name="inear_importer" value="יבואן בלעדי" /> כן, יבואן בלעדי</label>
+        <label class="opt"><input type="radio" name="inear_importer" value="נקודת מכירה" /> נקודת מכירה</label>
+        <p class="q">מותגים</p>
+        <label class="opt"><input type="checkbox" name="inear_brands" value="UE" /> Ultimate Ears</label>
+        <label class="opt"><input type="checkbox" name="inear_brands" value="64 Audio" /> 64 Audio</label>
+        <label class="opt"><input type="checkbox" name="inear_brands" value="Westone" /> Westone</label>
+        <label class="opt"><input type="checkbox" name="inear_brands" value="Shure" /> Shure</label>
+        <label class="opt"><input type="checkbox" name="inear_brands" value="qdc" /> qdc</label>
+        <label>מותגים נוספים<input name="inear_brands_other" /></label>
+        <p class="q">מודל מכירה</p>
+        <label class="opt"><input type="radio" name="inear_commerce" value="חנות מלאה" /> חנות מלאה (checkout)</label>
+        <label class="opt"><input type="radio" name="inear_commerce" value="קטלוג + פנייה" /> קטלוג + פנייה</label>
+        <label>מה נמכר ישירות בעגלה<textarea name="inear_direct_sale" rows="2"></textarea></label>
+        <label>תהליך הזמנת מוניטור אישי<textarea name="inear_order_flow" rows="3"></textarea></label>
+        <p class="q">קהל יעד</p>
+        <label class="opt"><input type="checkbox" name="inear_audience" value="מקצוענים" /> מקצוענים על במה</label>
+        <label class="opt"><input type="checkbox" name="inear_audience" value="חובבים" /> חובבים</label>
+        <label class="opt"><input type="checkbox" name="inear_audience" value="אולפן" /> אנשי אולפן/סאונד</label>
+        <label class="opt"><input type="checkbox" name="inear_audience" value="ספורט" /> ספורט</label>
+      </fieldset>
+
+      <!-- ס׳5: מסחר -->
+      <fieldset class="brief-section" data-step="5" hidden>
+        <h2>מסחר, תשלומים, לוגיסטיקה</h2>
+        <label>ספק סליקה<input name="payment_provider" placeholder="Tranzila / iCredit / Cardcom / PayPlus / משולם / עדיין אין" /></label>
+        <label class="opt"><input type="checkbox" name="payment_wallets" value="Bit" /> Bit</label>
+        <label class="opt"><input type="checkbox" name="payment_wallets" value="Apple Pay" /> Apple Pay</label>
+        <p class="q">משלוחים</p>
+        <label class="opt"><input type="checkbox" name="shipping" value="חברת שילוח" /> חברת שילוח</label>
+        <label class="opt"><input type="checkbox" name="shipping" value="דואר" /> דואר</label>
+        <label class="opt"><input type="checkbox" name="shipping" value="איסוף בסניף" /> איסוף עצמי בסניף</label>
+        <label>משלוח חינם מעל סכום<input name="free_shipping_threshold" /></label>
+        <label>מערכת חשבוניות<input name="invoicing" /></label>
+        <label>מי מעדכן מלאי/מחירים + צורך ב-CMS<textarea name="inventory_management" rows="2"></textarea></label>
+      </fieldset>
+
+      <!-- ס׳6: לידים -->
+      <fieldset class="brief-section" data-step="6" hidden>
+        <h2>לידים, תורים, CRM</h2>
+        <p class="q">קביעת בדיקה</p>
+        <label class="opt"><input type="checkbox" name="booking_channels" value="טופס" /> טופס פנייה</label>
+        <label class="opt"><input type="checkbox" name="booking_channels" value="וואטסאפ" /> וואטסאפ</label>
+        <label class="opt"><input type="checkbox" name="booking_channels" value="טלפון" /> טלפון</label>
+        <label class="opt"><input type="checkbox" name="booking_channels" value="תור אונליין" /> קביעת תור אונליין</label>
+        <label class="opt"><input type="radio" name="booking_per_branch" value="כן" /> תור לפי סניף (ירושלים/מבשרת)</label>
+        <label class="opt"><input type="radio" name="booking_per_branch" value="לא" /> ללא הפרדת סניפים</label>
+        <label>לאן הליד מגיע (מייל/וואטסאפ/CRM)<textarea name="lead_destination" rows="2"></textarea></label>
+        <label>וואטסאפ — כפתור צף, מספר לכל אתר<textarea name="whatsapp_notes" rows="2"></textarea></label>
+      </fieldset>
+
+      <!-- ס׳7: תוכן ועיצוב -->
+      <fieldset class="brief-section" data-step="7" hidden>
+        <h2>תוכן, מותג, עיצוב</h2>
+        <p class="q">נכסים קיימים</p>
+        <label class="opt"><input type="checkbox" name="assets" value="לוגו" /> לוגו</label>
+        <label class="opt"><input type="checkbox" name="assets" value="תמונות" /> תמונות מקצועיות</label>
+        <label class="opt"><input type="checkbox" name="assets" value="קטלוג" /> קטלוג מוצרים</label>
+        <label class="opt"><input type="checkbox" name="assets" value="טקסטים" /> טקסטים</label>
+        <label>פירוט נכסים<textarea name="assets_notes" rows="2"></textarea></label>
+        <label class="opt"><input type="radio" name="languages" value="עברית בלבד" /> עברית בלבד</label>
+        <label class="opt"><input type="radio" name="languages" value="עברית + אנגלית למוזיקאים" /> עברית + אנגלית לאזור המוזיקאים</label>
+        <label>רפרנסים / אתרים אהובים<textarea name="references" rows="2"></textarea></label>
+        <label class="opt"><input type="radio" name="blog" value="כן" /> רוצים בלוג/תוכן SEO</label>
+        <label class="opt"><input type="radio" name="blog" value="לא" /> לא בשלב זה</label>
+      </fieldset>
+
+      <!-- ס׳8: טכני ותפעול -->
+      <fieldset class="brief-section" data-step="8" hidden>
+        <h2>טכני, נגישות, תפעול</h2>
+        <label>מצב קיים (Wix? דומיין? מי מחזיק)<textarea name="current_state" rows="2"></textarea></label>
+        <label class="opt"><input type="radio" name="seo_migration" value="כן" /> יש כתובות מדורגות לשמר</label>
+        <label class="opt"><input type="radio" name="seo_migration" value="לא" /> אין / לא ידוע</label>
+        <label>פירוט מיגרציה/SEO<textarea name="seo_notes" rows="2"></textarea></label>
+        <p class="q">מדידה</p>
+        <label class="opt"><input type="checkbox" name="analytics" value="GA" /> Google Analytics</label>
+        <label class="opt"><input type="checkbox" name="analytics" value="פיקסל" /> פיקסל פייסבוק</label>
+        <label class="opt"><input type="checkbox" name="analytics" value="Ads" /> Google Ads</label>
+        <label class="opt"><input type="checkbox" name="analytics" value="Search Console" /> Search Console</label>
+        <label class="opt"><input type="radio" name="legal_docs" value="קיים" /> מסמכים משפטיים קיימים</label>
+        <label class="opt"><input type="radio" name="legal_docs" value="צריך" /> צריך לנסח</label>
+        <label>לוחות זמנים, תקציב, סדר עדיפות<textarea name="timeline_budget" rows="3"></textarea></label>
+        <label>מי מתחזק אחרי השקה + הדרכה<textarea name="maintenance" rows="2"></textarea></label>
+      </fieldset>
+
+      <nav class="brief-nav">
+        <button type="button" id="prevBtn" class="btn" hidden>הקודם</button>
+        <button type="button" id="nextBtn" class="btn btn-primary">הבא »</button>
+        <button type="submit" id="submitBtn" class="btn btn-primary" hidden>שליחת האפיון</button>
+      </nav>
+      <div class="form-status" id="status" role="status" aria-live="polite"></div>
+    </form>
+
+    <div class="brief-done" id="done" hidden>
+      <h2>קיבלנו את האפיון 🥷</h2>
+      <p>תודה. נעבור על הפרטים ונחזור אליכם עם הצעדים הבאים.</p>
+    </div>
+  </div>
+</main>
+</Layout>
