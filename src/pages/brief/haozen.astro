@@ -164,4 +164,93 @@ import Layout from '../../layouts/Layout.astro';
     </div>
   </div>
 </main>
+<script>
+  const TOTAL = 8;
+  const form = document.getElementById('briefForm') as HTMLFormElement;
+  const sections = Array.from(document.querySelectorAll<HTMLElement>('.brief-section'));
+  const bar = document.getElementById('bar')!;
+  const stepLabel = document.getElementById('stepLabel')!;
+  const prevBtn = document.getElementById('prevBtn') as HTMLButtonElement;
+  const nextBtn = document.getElementById('nextBtn') as HTMLButtonElement;
+  const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
+  const statusEl = document.getElementById('status')!;
+  const doneEl = document.getElementById('done')!;
+  const KEY = 'haozen_brief_draft';
+  let step = 1;
+
+  function render() {
+    sections.forEach((s) => (s.hidden = Number(s.dataset.step) !== step));
+    bar.style.width = `${(step / TOTAL) * 100}%`;
+    stepLabel.textContent = `שלב ${step} מתוך ${TOTAL}`;
+    prevBtn.hidden = step === 1;
+    nextBtn.hidden = step === TOTAL;
+    submitBtn.hidden = step !== TOTAL;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ולידציה לשלב 1 בלבד (פרטי קשר חובה)
+  function validateStep1(): boolean {
+    if (step !== 1) return true;
+    const reqs = sections[0].querySelectorAll<HTMLInputElement>('[required]');
+    for (const el of reqs) {
+      if (!el.value.trim()) { el.focus(); statusEl.textContent = 'נא למלא שם עסק, איש קשר וטלפון.'; return false; }
+    }
+    statusEl.textContent = '';
+    return true;
+  }
+
+  nextBtn.addEventListener('click', () => { if (validateStep1() && step < TOTAL) { step++; render(); saveDraft(); } });
+  prevBtn.addEventListener('click', () => { if (step > 1) { step--; render(); } });
+
+  // טיוטה ב-localStorage
+  function saveDraft() {
+    const data: Record<string, string[]> = {};
+    new FormData(form).forEach((v, k) => {
+      if (k === '_honey') return;
+      (data[k] ??= []).push(v.toString());
+    });
+    localStorage.setItem(KEY, JSON.stringify(data));
+  }
+  function restoreDraft() {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return;
+    try {
+      const data = JSON.parse(raw) as Record<string, string[]>;
+      for (const [k, vals] of Object.entries(data)) {
+        const fields = form.querySelectorAll<HTMLInputElement>(`[name="${CSS.escape(k)}"]`);
+        fields.forEach((f) => {
+          if (f.type === 'checkbox' || f.type === 'radio') f.checked = vals.includes(f.value);
+          else f.value = vals[0] ?? '';
+        });
+      }
+    } catch { /* ignore corrupt draft */ }
+  }
+  form.addEventListener('input', saveDraft);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!validateStep1()) { step = 1; render(); return; }
+    submitBtn.disabled = true;
+    statusEl.textContent = 'שולח…';
+    try {
+      const res = await fetch('/api/brief', { method: 'POST', body: new FormData(form) });
+      const out = await res.json();
+      if (out.success) {
+        localStorage.removeItem(KEY);
+        form.hidden = true;
+        document.querySelector('.brief-head')!.setAttribute('hidden', '');
+        doneEl.hidden = false;
+      } else {
+        statusEl.textContent = 'שגיאה בשליחה. בדקו את פרטי הקשר ונסו שוב.';
+        submitBtn.disabled = false;
+      }
+    } catch {
+      statusEl.textContent = 'תקלת רשת. נסו שוב.';
+      submitBtn.disabled = false;
+    }
+  });
+
+  restoreDraft();
+  render();
+</script>
 </Layout>
