@@ -1,286 +1,306 @@
 ---
-import Layout from '../../layouts/Layout.astro';
+// Standalone page — intentionally NOT using the marketing Layout.
+// This internal intake form must not inherit site.js (custom cursor, loader,
+// hero animations) or the global .btn rule, which broke a form-only page.
+// Self-contained <head> + reset keeps it isolated and predictable.
 ---
-<Layout
-  title="אפיון אתר — האוזן | NINJA Digital"
-  description="טופס אפיון פנימי"
-  noindex={true}
-  hideNav={true}
-  hideFloatWA={true}
->
-<main class="brief" dir="rtl">
-  <div class="brief-card">
-    <header class="brief-head">
-      <div class="brief-eyebrow">NINJA DIGITAL · אפיון</div>
-      <h1 class="brief-title">אפיון פרויקט — האוזן</h1>
-      <p class="brief-intro">8 שלבים קצרים שיעזרו לנו להבין בדיוק מה צריך. אפשר לדלג על שאלות, והטופס נשמר אוטומטית — אפשר לעצור ולחזור.</p>
-      <div class="brief-progress"><span id="bar"></span></div>
-      <div class="brief-step" id="stepLabel">שלב 1 מתוך 8</div>
-    </header>
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>אפיון אתר — האוזן | NINJA Digital</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Rubik:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <main class="brief" dir="rtl">
+      <div class="brief-card">
+        <header class="brief-head">
+          <div class="brief-eyebrow">NINJA DIGITAL · אפיון</div>
+          <h1 class="brief-title">אפיון פרויקט — האוזן</h1>
+          <p class="brief-intro">8 שלבים קצרים שיעזרו לנו להבין בדיוק מה צריך. אפשר לדלג על שאלות, והטופס נשמר אוטומטית — אפשר לעצור ולחזור.</p>
+          <div class="brief-progress"><span id="bar"></span></div>
+          <div class="brief-step" id="stepLabel">שלב 1 מתוך 8</div>
+        </header>
 
-    <form id="briefForm" action="/api/brief" method="POST" novalidate>
-      <input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px" />
+        <form id="briefForm" action="/api/brief" method="POST" novalidate>
+          <input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px" />
 
-      <!-- ס׳1: פרטי קשר (חובה) -->
-      <fieldset class="brief-section" data-step="1">
-        <h2>פרטי קשר</h2>
-        <label>שם העסק<input name="business_name" required /></label>
-        <label>איש קשר<input name="contact_name" required /></label>
-        <label>טלפון<input name="phone" type="tel" required placeholder="050-0000000" /></label>
-        <label>דוא״ל<input name="email" type="email" placeholder="name@business.co.il" /></label>
-      </fieldset>
+          <!-- ס׳1: פרטי קשר (חובה) -->
+          <fieldset class="brief-section" data-step="1">
+            <h2>פרטי קשר</h2>
+            <label>שם העסק<input name="business_name" required /></label>
+            <label>איש קשר<input name="contact_name" required /></label>
+            <label>טלפון<input name="phone" type="tel" required placeholder="050-0000000" /></label>
+            <label>דוא״ל<input name="email" type="email" placeholder="name@business.co.il" /></label>
+          </fieldset>
 
-      <!-- ס׳2: תמונה כללית והפרדה -->
-      <fieldset class="brief-section" data-step="2" hidden>
-        <h2>תמונה כללית והפרדה</h2>
-        <p class="q">מבנה הדומיינים</p>
-        <label class="opt"><input type="radio" name="domain_structure" value="שני דומיינים נפרדים" /> שני דומיינים נפרדים</label>
-        <label class="opt"><input type="radio" name="domain_structure" value="תת-דומיין" /> תת-דומיין</label>
-        <label class="opt"><input type="radio" name="domain_structure" value="תיקייה תחת אותו אתר" /> תיקייה תחת אותו אתר</label>
-        <label>פרטים נוספים<textarea name="domain_notes" rows="2"></textarea></label>
-        <p class="q">המותג של אתר ה-in-ear</p>
-        <label class="opt"><input type="radio" name="inear_brand_mode" value="ממשיך כהאוזן" /> ממשיך כ"האוזן"</label>
-        <label class="opt"><input type="radio" name="inear_brand_mode" value="מותג נפרד" /> מותג נפרד</label>
-        <label>שם המותג אם יש<input name="inear_brand_name" /></label>
-        <p class="q">הקישור בין האתרים</p>
-        <label class="opt"><input type="checkbox" name="link_style" value="תפריט" /> כפתור בתפריט</label>
-        <label class="opt"><input type="checkbox" name="link_style" value="באנר" /> באנר עליון</label>
-        <label class="opt"><input type="checkbox" name="link_style" value="דו-כיווני" /> קישור דו-כיווני</label>
-        <label>הסיבה העיקרית להפרדה<textarea name="separation_reason" rows="2"></textarea></label>
-      </fieldset>
+          <!-- ס׳2: תמונה כללית והפרדה -->
+          <fieldset class="brief-section" data-step="2" hidden>
+            <h2>תמונה כללית והפרדה</h2>
+            <p class="q">מבנה הדומיינים</p>
+            <label class="opt"><input type="radio" name="domain_structure" value="שני דומיינים נפרדים" /> שני דומיינים נפרדים</label>
+            <label class="opt"><input type="radio" name="domain_structure" value="תת-דומיין" /> תת-דומיין</label>
+            <label class="opt"><input type="radio" name="domain_structure" value="תיקייה תחת אותו אתר" /> תיקייה תחת אותו אתר</label>
+            <label>פרטים נוספים<textarea name="domain_notes" rows="2"></textarea></label>
+            <p class="q">המותג של אתר ה-in-ear</p>
+            <label class="opt"><input type="radio" name="inear_brand_mode" value="ממשיך כהאוזן" /> ממשיך כ"האוזן"</label>
+            <label class="opt"><input type="radio" name="inear_brand_mode" value="מותג נפרד" /> מותג נפרד</label>
+            <label>שם המותג אם יש<input name="inear_brand_name" /></label>
+            <p class="q">הקישור בין האתרים</p>
+            <label class="opt"><input type="checkbox" name="link_style" value="תפריט" /> כפתור בתפריט</label>
+            <label class="opt"><input type="checkbox" name="link_style" value="באנר" /> באנר עליון</label>
+            <label class="opt"><input type="checkbox" name="link_style" value="דו-כיווני" /> קישור דו-כיווני</label>
+            <label>הסיבה העיקרית להפרדה<textarea name="separation_reason" rows="2"></textarea></label>
+          </fieldset>
 
-      <!-- ס׳3: אתר האוזן -->
-      <fieldset class="brief-section" data-step="3" hidden>
-        <h2>אתר האוזן (מכשירי שמיעה)</h2>
-        <label class="opt"><input type="radio" name="haozen_type" value="תדמיתי" /> תדמיתי — לידים בלבד</label>
-        <label class="opt"><input type="radio" name="haozen_type" value="גם חנות אביזרים" /> גם חנות אביזרים</label>
-        <label>מכשירי שמיעה — ליד בלבד? הערות<textarea name="hearing_aids_mode" rows="2"></textarea></label>
-        <p class="q">מותגי מכשירים</p>
-        <label class="opt"><input type="checkbox" name="aid_brands" value="Phonak" /> Phonak</label>
-        <label class="opt"><input type="checkbox" name="aid_brands" value="ReSound" /> ReSound</label>
-        <label class="opt"><input type="checkbox" name="aid_brands" value="Starkey" /> Starkey</label>
-        <label class="opt"><input type="checkbox" name="aid_brands" value="Bernafon" /> Bernafon</label>
-        <label>יבואן רשמי של מי?<input name="aid_importer" /></label>
-        <label>קופות חולים בהסדר<textarea name="health_funds" rows="2"></textarea></label>
-      </fieldset>
+          <!-- ס׳3: אתר האוזן -->
+          <fieldset class="brief-section" data-step="3" hidden>
+            <h2>אתר האוזן (מכשירי שמיעה)</h2>
+            <label class="opt"><input type="radio" name="haozen_type" value="תדמיתי" /> תדמיתי — לידים בלבד</label>
+            <label class="opt"><input type="radio" name="haozen_type" value="גם חנות אביזרים" /> גם חנות אביזרים</label>
+            <label>מכשירי שמיעה — ליד בלבד? הערות<textarea name="hearing_aids_mode" rows="2"></textarea></label>
+            <p class="q">מותגי מכשירים</p>
+            <label class="opt"><input type="checkbox" name="aid_brands" value="Phonak" /> Phonak</label>
+            <label class="opt"><input type="checkbox" name="aid_brands" value="ReSound" /> ReSound</label>
+            <label class="opt"><input type="checkbox" name="aid_brands" value="Starkey" /> Starkey</label>
+            <label class="opt"><input type="checkbox" name="aid_brands" value="Bernafon" /> Bernafon</label>
+            <label>יבואן רשמי של מי?<input name="aid_importer" /></label>
+            <label>קופות חולים בהסדר<textarea name="health_funds" rows="2"></textarea></label>
+          </fieldset>
 
-      <!-- ס׳4: אתר ה-in-ear -->
-      <fieldset class="brief-section" data-step="4" hidden>
-        <h2>אתר ה-in-ear / מוזיקאים</h2>
-        <p class="q">יבואן רשמי של in-ear?</p>
-        <label class="opt"><input type="radio" name="inear_importer" value="יבואן בלעדי" /> כן, יבואן בלעדי</label>
-        <label class="opt"><input type="radio" name="inear_importer" value="נקודת מכירה" /> נקודת מכירה</label>
-        <p class="q">מותגים</p>
-        <label class="opt"><input type="checkbox" name="inear_brands" value="UE" /> Ultimate Ears</label>
-        <label class="opt"><input type="checkbox" name="inear_brands" value="64 Audio" /> 64 Audio</label>
-        <label class="opt"><input type="checkbox" name="inear_brands" value="Westone" /> Westone</label>
-        <label class="opt"><input type="checkbox" name="inear_brands" value="Shure" /> Shure</label>
-        <label class="opt"><input type="checkbox" name="inear_brands" value="qdc" /> qdc</label>
-        <label>מותגים נוספים<input name="inear_brands_other" /></label>
-        <p class="q">מודל מכירה</p>
-        <label class="opt"><input type="radio" name="inear_commerce" value="חנות מלאה" /> חנות מלאה (checkout)</label>
-        <label class="opt"><input type="radio" name="inear_commerce" value="קטלוג + פנייה" /> קטלוג + פנייה</label>
-        <label>מה נמכר ישירות בעגלה<textarea name="inear_direct_sale" rows="2"></textarea></label>
-        <label>תהליך הזמנת מוניטור אישי<textarea name="inear_order_flow" rows="3"></textarea></label>
-        <p class="q">קהל יעד</p>
-        <label class="opt"><input type="checkbox" name="inear_audience" value="מקצוענים" /> מקצוענים על במה</label>
-        <label class="opt"><input type="checkbox" name="inear_audience" value="חובבים" /> חובבים</label>
-        <label class="opt"><input type="checkbox" name="inear_audience" value="אולפן" /> אנשי אולפן/סאונד</label>
-        <label class="opt"><input type="checkbox" name="inear_audience" value="ספורט" /> ספורט</label>
-      </fieldset>
+          <!-- ס׳4: אתר ה-in-ear -->
+          <fieldset class="brief-section" data-step="4" hidden>
+            <h2>אתר ה-in-ear / מוזיקאים</h2>
+            <p class="q">יבואן רשמי של in-ear?</p>
+            <label class="opt"><input type="radio" name="inear_importer" value="יבואן בלעדי" /> כן, יבואן בלעדי</label>
+            <label class="opt"><input type="radio" name="inear_importer" value="נקודת מכירה" /> נקודת מכירה</label>
+            <p class="q">מותגים</p>
+            <label class="opt"><input type="checkbox" name="inear_brands" value="UE" /> Ultimate Ears</label>
+            <label class="opt"><input type="checkbox" name="inear_brands" value="64 Audio" /> 64 Audio</label>
+            <label class="opt"><input type="checkbox" name="inear_brands" value="Westone" /> Westone</label>
+            <label class="opt"><input type="checkbox" name="inear_brands" value="Shure" /> Shure</label>
+            <label class="opt"><input type="checkbox" name="inear_brands" value="qdc" /> qdc</label>
+            <label>מותגים נוספים<input name="inear_brands_other" /></label>
+            <p class="q">מודל מכירה</p>
+            <label class="opt"><input type="radio" name="inear_commerce" value="חנות מלאה" /> חנות מלאה (checkout)</label>
+            <label class="opt"><input type="radio" name="inear_commerce" value="קטלוג + פנייה" /> קטלוג + פנייה</label>
+            <label>מה נמכר ישירות בעגלה<textarea name="inear_direct_sale" rows="2"></textarea></label>
+            <label>תהליך הזמנת מוניטור אישי<textarea name="inear_order_flow" rows="3"></textarea></label>
+            <p class="q">קהל יעד</p>
+            <label class="opt"><input type="checkbox" name="inear_audience" value="מקצוענים" /> מקצוענים על במה</label>
+            <label class="opt"><input type="checkbox" name="inear_audience" value="חובבים" /> חובבים</label>
+            <label class="opt"><input type="checkbox" name="inear_audience" value="אולפן" /> אנשי אולפן/סאונד</label>
+            <label class="opt"><input type="checkbox" name="inear_audience" value="ספורט" /> ספורט</label>
+          </fieldset>
 
-      <!-- ס׳5: מסחר -->
-      <fieldset class="brief-section" data-step="5" hidden>
-        <h2>מסחר, תשלומים, לוגיסטיקה</h2>
-        <label>ספק סליקה<input name="payment_provider" placeholder="Tranzila / iCredit / Cardcom / PayPlus / משולם / עדיין אין" /></label>
-        <label class="opt"><input type="checkbox" name="payment_wallets" value="Bit" /> Bit</label>
-        <label class="opt"><input type="checkbox" name="payment_wallets" value="Apple Pay" /> Apple Pay</label>
-        <p class="q">משלוחים</p>
-        <label class="opt"><input type="checkbox" name="shipping" value="חברת שילוח" /> חברת שילוח</label>
-        <label class="opt"><input type="checkbox" name="shipping" value="דואר" /> דואר</label>
-        <label class="opt"><input type="checkbox" name="shipping" value="איסוף בסניף" /> איסוף עצמי בסניף</label>
-        <label>משלוח חינם מעל סכום<input name="free_shipping_threshold" /></label>
-        <label>מערכת חשבוניות<input name="invoicing" /></label>
-        <label>מי מעדכן מלאי/מחירים + צורך ב-CMS<textarea name="inventory_management" rows="2"></textarea></label>
-      </fieldset>
+          <!-- ס׳5: מסחר -->
+          <fieldset class="brief-section" data-step="5" hidden>
+            <h2>מסחר, תשלומים, לוגיסטיקה</h2>
+            <label>ספק סליקה<input name="payment_provider" placeholder="Tranzila / iCredit / Cardcom / PayPlus / משולם / עדיין אין" /></label>
+            <label class="opt"><input type="checkbox" name="payment_wallets" value="Bit" /> Bit</label>
+            <label class="opt"><input type="checkbox" name="payment_wallets" value="Apple Pay" /> Apple Pay</label>
+            <p class="q">משלוחים</p>
+            <label class="opt"><input type="checkbox" name="shipping" value="חברת שילוח" /> חברת שילוח</label>
+            <label class="opt"><input type="checkbox" name="shipping" value="דואר" /> דואר</label>
+            <label class="opt"><input type="checkbox" name="shipping" value="איסוף בסניף" /> איסוף עצמי בסניף</label>
+            <label>משלוח חינם מעל סכום<input name="free_shipping_threshold" /></label>
+            <label>מערכת חשבוניות<input name="invoicing" /></label>
+            <label>מי מעדכן מלאי/מחירים + צורך ב-CMS<textarea name="inventory_management" rows="2"></textarea></label>
+          </fieldset>
 
-      <!-- ס׳6: לידים -->
-      <fieldset class="brief-section" data-step="6" hidden>
-        <h2>לידים, תורים, CRM</h2>
-        <p class="q">קביעת בדיקה</p>
-        <label class="opt"><input type="checkbox" name="booking_channels" value="טופס" /> טופס פנייה</label>
-        <label class="opt"><input type="checkbox" name="booking_channels" value="וואטסאפ" /> וואטסאפ</label>
-        <label class="opt"><input type="checkbox" name="booking_channels" value="טלפון" /> טלפון</label>
-        <label class="opt"><input type="checkbox" name="booking_channels" value="תור אונליין" /> קביעת תור אונליין</label>
-        <label class="opt"><input type="radio" name="booking_per_branch" value="כן" /> תור לפי סניף (ירושלים/מבשרת)</label>
-        <label class="opt"><input type="radio" name="booking_per_branch" value="לא" /> ללא הפרדת סניפים</label>
-        <label>לאן הליד מגיע (מייל/וואטסאפ/CRM)<textarea name="lead_destination" rows="2"></textarea></label>
-        <label>וואטסאפ — כפתור צף, מספר לכל אתר<textarea name="whatsapp_notes" rows="2"></textarea></label>
-      </fieldset>
+          <!-- ס׳6: לידים -->
+          <fieldset class="brief-section" data-step="6" hidden>
+            <h2>לידים, תורים, CRM</h2>
+            <p class="q">קביעת בדיקה</p>
+            <label class="opt"><input type="checkbox" name="booking_channels" value="טופס" /> טופס פנייה</label>
+            <label class="opt"><input type="checkbox" name="booking_channels" value="וואטסאפ" /> וואטסאפ</label>
+            <label class="opt"><input type="checkbox" name="booking_channels" value="טלפון" /> טלפון</label>
+            <label class="opt"><input type="checkbox" name="booking_channels" value="תור אונליין" /> קביעת תור אונליין</label>
+            <label class="opt"><input type="radio" name="booking_per_branch" value="כן" /> תור לפי סניף (ירושלים/מבשרת)</label>
+            <label class="opt"><input type="radio" name="booking_per_branch" value="לא" /> ללא הפרדת סניפים</label>
+            <label>לאן הליד מגיע (מייל/וואטסאפ/CRM)<textarea name="lead_destination" rows="2"></textarea></label>
+            <label>וואטסאפ — כפתור צף, מספר לכל אתר<textarea name="whatsapp_notes" rows="2"></textarea></label>
+          </fieldset>
 
-      <!-- ס׳7: תוכן ועיצוב -->
-      <fieldset class="brief-section" data-step="7" hidden>
-        <h2>תוכן, מותג, עיצוב</h2>
-        <p class="q">נכסים קיימים</p>
-        <label class="opt"><input type="checkbox" name="assets" value="לוגו" /> לוגו</label>
-        <label class="opt"><input type="checkbox" name="assets" value="תמונות" /> תמונות מקצועיות</label>
-        <label class="opt"><input type="checkbox" name="assets" value="קטלוג" /> קטלוג מוצרים</label>
-        <label class="opt"><input type="checkbox" name="assets" value="טקסטים" /> טקסטים</label>
-        <label>פירוט נכסים<textarea name="assets_notes" rows="2"></textarea></label>
-        <label class="opt"><input type="radio" name="languages" value="עברית בלבד" /> עברית בלבד</label>
-        <label class="opt"><input type="radio" name="languages" value="עברית + אנגלית למוזיקאים" /> עברית + אנגלית לאזור המוזיקאים</label>
-        <label>רפרנסים / אתרים אהובים<textarea name="references" rows="2"></textarea></label>
-        <label class="opt"><input type="radio" name="blog" value="כן" /> רוצים בלוג/תוכן SEO</label>
-        <label class="opt"><input type="radio" name="blog" value="לא" /> לא בשלב זה</label>
-      </fieldset>
+          <!-- ס׳7: תוכן ועיצוב -->
+          <fieldset class="brief-section" data-step="7" hidden>
+            <h2>תוכן, מותג, עיצוב</h2>
+            <p class="q">נכסים קיימים</p>
+            <label class="opt"><input type="checkbox" name="assets" value="לוגו" /> לוגו</label>
+            <label class="opt"><input type="checkbox" name="assets" value="תמונות" /> תמונות מקצועיות</label>
+            <label class="opt"><input type="checkbox" name="assets" value="קטלוג" /> קטלוג מוצרים</label>
+            <label class="opt"><input type="checkbox" name="assets" value="טקסטים" /> טקסטים</label>
+            <label>פירוט נכסים<textarea name="assets_notes" rows="2"></textarea></label>
+            <label class="opt"><input type="radio" name="languages" value="עברית בלבד" /> עברית בלבד</label>
+            <label class="opt"><input type="radio" name="languages" value="עברית + אנגלית למוזיקאים" /> עברית + אנגלית לאזור המוזיקאים</label>
+            <label>רפרנסים / אתרים אהובים<textarea name="references" rows="2"></textarea></label>
+            <label class="opt"><input type="radio" name="blog" value="כן" /> רוצים בלוג/תוכן SEO</label>
+            <label class="opt"><input type="radio" name="blog" value="לא" /> לא בשלב זה</label>
+          </fieldset>
 
-      <!-- ס׳8: טכני ותפעול -->
-      <fieldset class="brief-section" data-step="8" hidden>
-        <h2>טכני, נגישות, תפעול</h2>
-        <label>מצב קיים (Wix? דומיין? מי מחזיק)<textarea name="current_state" rows="2"></textarea></label>
-        <label class="opt"><input type="radio" name="seo_migration" value="כן" /> יש כתובות מדורגות לשמר</label>
-        <label class="opt"><input type="radio" name="seo_migration" value="לא" /> אין / לא ידוע</label>
-        <label>פירוט מיגרציה/SEO<textarea name="seo_notes" rows="2"></textarea></label>
-        <p class="q">מדידה</p>
-        <label class="opt"><input type="checkbox" name="analytics" value="GA" /> Google Analytics</label>
-        <label class="opt"><input type="checkbox" name="analytics" value="פיקסל" /> פיקסל פייסבוק</label>
-        <label class="opt"><input type="checkbox" name="analytics" value="Ads" /> Google Ads</label>
-        <label class="opt"><input type="checkbox" name="analytics" value="Search Console" /> Search Console</label>
-        <label class="opt"><input type="radio" name="legal_docs" value="קיים" /> מסמכים משפטיים קיימים</label>
-        <label class="opt"><input type="radio" name="legal_docs" value="צריך" /> צריך לנסח</label>
-        <label>לוחות זמנים, תקציב, סדר עדיפות<textarea name="timeline_budget" rows="3"></textarea></label>
-        <label>מי מתחזק אחרי השקה + הדרכה<textarea name="maintenance" rows="2"></textarea></label>
-      </fieldset>
+          <!-- ס׳8: טכני ותפעול -->
+          <fieldset class="brief-section" data-step="8" hidden>
+            <h2>טכני, נגישות, תפעול</h2>
+            <label>מצב קיים (Wix? דומיין? מי מחזיק)<textarea name="current_state" rows="2"></textarea></label>
+            <label class="opt"><input type="radio" name="seo_migration" value="כן" /> יש כתובות מדורגות לשמר</label>
+            <label class="opt"><input type="radio" name="seo_migration" value="לא" /> אין / לא ידוע</label>
+            <label>פירוט מיגרציה/SEO<textarea name="seo_notes" rows="2"></textarea></label>
+            <p class="q">מדידה</p>
+            <label class="opt"><input type="checkbox" name="analytics" value="GA" /> Google Analytics</label>
+            <label class="opt"><input type="checkbox" name="analytics" value="פיקסל" /> פיקסל פייסבוק</label>
+            <label class="opt"><input type="checkbox" name="analytics" value="Ads" /> Google Ads</label>
+            <label class="opt"><input type="checkbox" name="analytics" value="Search Console" /> Search Console</label>
+            <label class="opt"><input type="radio" name="legal_docs" value="קיים" /> מסמכים משפטיים קיימים</label>
+            <label class="opt"><input type="radio" name="legal_docs" value="צריך" /> צריך לנסח</label>
+            <label>לוחות זמנים, תקציב, סדר עדיפות<textarea name="timeline_budget" rows="3"></textarea></label>
+            <label>מי מתחזק אחרי השקה + הדרכה<textarea name="maintenance" rows="2"></textarea></label>
+          </fieldset>
 
-      <nav class="brief-nav">
-        <button type="button" id="prevBtn" class="btn" hidden>הקודם</button>
-        <button type="button" id="nextBtn" class="btn btn-primary">הבא »</button>
-        <button type="submit" id="submitBtn" class="btn btn-primary" hidden>שליחת האפיון</button>
-      </nav>
-      <div class="form-status" id="status" role="status" aria-live="polite"></div>
-    </form>
+          <nav class="brief-nav">
+            <button type="button" id="prevBtn" class="btn" hidden>הקודם</button>
+            <button type="button" id="nextBtn" class="btn btn-primary">הבא »</button>
+            <button type="submit" id="submitBtn" class="btn btn-primary" hidden>שליחת האפיון</button>
+          </nav>
+          <div class="form-status" id="status" role="status" aria-live="polite"></div>
+        </form>
 
-    <div class="brief-done" id="done" hidden>
-      <h2>קיבלנו את האפיון 🥷</h2>
-      <p>תודה. נעבור על הפרטים ונחזור אליכם עם הצעדים הבאים.</p>
-    </div>
-  </div>
-</main>
-<script>
-  const TOTAL = 8;
-  const form = document.getElementById('briefForm') as HTMLFormElement;
-  const sections = Array.from(document.querySelectorAll<HTMLElement>('.brief-section'));
-  const bar = document.getElementById('bar')!;
-  const stepLabel = document.getElementById('stepLabel')!;
-  const prevBtn = document.getElementById('prevBtn') as HTMLButtonElement;
-  const nextBtn = document.getElementById('nextBtn') as HTMLButtonElement;
-  const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
-  const statusEl = document.getElementById('status')!;
-  const doneEl = document.getElementById('done')!;
-  const KEY = 'haozen_brief_draft';
-  let step = 1;
+        <div class="brief-done" id="done" hidden>
+          <h2>קיבלנו את האפיון 🥷</h2>
+          <p>תודה. נעבור על הפרטים ונחזור אליכם עם הצעדים הבאים.</p>
+        </div>
+      </div>
+    </main>
 
-  function render() {
-    sections.forEach((s) => (s.hidden = Number(s.dataset.step) !== step));
-    bar.style.width = `${(step / TOTAL) * 100}%`;
-    stepLabel.textContent = `שלב ${step} מתוך ${TOTAL}`;
-    prevBtn.hidden = step === 1;
-    nextBtn.hidden = step === TOTAL;
-    submitBtn.hidden = step !== TOTAL;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
+    <script>
+      const TOTAL = 8;
+      const form = document.getElementById('briefForm') as HTMLFormElement;
+      const sections = Array.from(document.querySelectorAll<HTMLElement>('.brief-section'));
+      const bar = document.getElementById('bar')!;
+      const stepLabel = document.getElementById('stepLabel')!;
+      const prevBtn = document.getElementById('prevBtn') as HTMLButtonElement;
+      const nextBtn = document.getElementById('nextBtn') as HTMLButtonElement;
+      const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
+      const statusEl = document.getElementById('status')!;
+      const doneEl = document.getElementById('done')!;
+      const KEY = 'haozen_brief_draft';
+      let step = 1;
 
-  // ולידציה לשלב 1 בלבד (פרטי קשר חובה)
-  function validateStep1(): boolean {
-    if (step !== 1) return true;
-    const reqs = sections[0].querySelectorAll<HTMLInputElement>('[required]');
-    for (const el of reqs) {
-      if (!el.value.trim()) { el.focus(); statusEl.textContent = 'נא למלא שם עסק, איש קשר וטלפון.'; return false; }
-    }
-    statusEl.textContent = '';
-    return true;
-  }
+      function render() {
+        sections.forEach((s) => (s.hidden = Number(s.dataset.step) !== step));
+        bar.style.width = `${(step / TOTAL) * 100}%`;
+        stepLabel.textContent = `שלב ${step} מתוך ${TOTAL}`;
+        prevBtn.hidden = step === 1;
+        nextBtn.hidden = step === TOTAL;
+        submitBtn.hidden = step !== TOTAL;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
 
-  nextBtn.addEventListener('click', () => { if (validateStep1() && step < TOTAL) { step++; render(); saveDraft(); } });
-  prevBtn.addEventListener('click', () => { if (step > 1) { step--; render(); } });
+      // ולידציה לשלב 1 בלבד (פרטי קשר חובה)
+      function validateStep1(): boolean {
+        if (step !== 1) return true;
+        const reqs = sections[0].querySelectorAll<HTMLInputElement>('[required]');
+        for (const el of reqs) {
+          if (!el.value.trim()) { el.focus(); statusEl.textContent = 'נא למלא שם עסק, איש קשר וטלפון.'; return false; }
+        }
+        statusEl.textContent = '';
+        return true;
+      }
 
-  // טיוטה ב-localStorage
-  function saveDraft() {
-    const data: Record<string, string[]> = {};
-    new FormData(form).forEach((v, k) => {
-      if (k === '_honey') return;
-      (data[k] ??= []).push(v.toString());
-    });
-    localStorage.setItem(KEY, JSON.stringify(data));
-  }
-  function restoreDraft() {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return;
-    try {
-      const data = JSON.parse(raw) as Record<string, string[]>;
-      for (const [k, vals] of Object.entries(data)) {
-        const fields = form.querySelectorAll<HTMLInputElement>(`[name="${CSS.escape(k)}"]`);
-        fields.forEach((f) => {
-          if (f.type === 'checkbox' || f.type === 'radio') f.checked = vals.includes(f.value);
-          else f.value = vals[0] ?? '';
+      nextBtn.addEventListener('click', () => { if (validateStep1() && step < TOTAL) { step++; render(); saveDraft(); } });
+      prevBtn.addEventListener('click', () => { if (step > 1) { step--; render(); } });
+
+      // טיוטה ב-localStorage
+      function saveDraft() {
+        const data: Record<string, string[]> = {};
+        new FormData(form).forEach((v, k) => {
+          if (k === '_honey') return;
+          (data[k] ??= []).push(v.toString());
         });
+        localStorage.setItem(KEY, JSON.stringify(data));
       }
-    } catch { /* ignore corrupt draft */ }
-  }
-  form.addEventListener('input', saveDraft);
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!validateStep1()) { step = 1; render(); return; }
-    submitBtn.disabled = true;
-    statusEl.textContent = 'שולח…';
-    try {
-      const res = await fetch('/api/brief', { method: 'POST', body: new FormData(form) });
-      const out = await res.json();
-      if (out.success) {
-        localStorage.removeItem(KEY);
-        form.hidden = true;
-        document.querySelector('.brief-head')!.setAttribute('hidden', '');
-        doneEl.hidden = false;
-      } else {
-        statusEl.textContent = 'שגיאה בשליחה. בדקו את פרטי הקשר ונסו שוב.';
-        submitBtn.disabled = false;
+      function restoreDraft() {
+        const raw = localStorage.getItem(KEY);
+        if (!raw) return;
+        try {
+          const data = JSON.parse(raw) as Record<string, string[]>;
+          for (const [k, vals] of Object.entries(data)) {
+            const fields = form.querySelectorAll<HTMLInputElement>(`[name="${CSS.escape(k)}"]`);
+            fields.forEach((f) => {
+              if (f.type === 'checkbox' || f.type === 'radio') f.checked = vals.includes(f.value);
+              else f.value = vals[0] ?? '';
+            });
+          }
+        } catch { /* ignore corrupt draft */ }
       }
-    } catch {
-      statusEl.textContent = 'תקלת רשת. נסו שוב.';
-      submitBtn.disabled = false;
-    }
-  });
+      form.addEventListener('input', saveDraft);
 
-  restoreDraft();
-  render();
-</script>
-<style>
-  .brief { min-height: 100vh; background: #08090c; color: #f5f5f7; padding: 56px 16px; display: flex; justify-content: center; }
-  .brief-card { width: 100%; max-width: 660px; background: #0e1117; border: 1px solid #20242e; border-radius: 22px; padding: 36px 32px; }
-  .brief-eyebrow { font-family: 'Rubik', sans-serif; font-weight: 900; letter-spacing: 0.22em; font-size: 12px; color: #ffd166; }
-  .brief-title { font-family: 'Rubik', sans-serif; font-weight: 900; font-size: 30px; margin: 10px 0 8px; color: #f5f5f7; }
-  .brief-intro { font-size: 15px; line-height: 1.6; color: #a8acb6; margin-bottom: 4px; }
-  .brief-progress { height: 6px; background: #1c1d22; border-radius: 999px; margin: 20px 0 6px; overflow: hidden; }
-  .brief-progress span { display: block; height: 100%; width: 12.5%; background: linear-gradient(90deg, #b3001b, #ff2a3c); transition: width .3s ease; }
-  .brief-step { font-size: 13px; color: #a8acb6; }
-  .brief-section h2 { font-family: 'Rubik', sans-serif; font-weight: 800; font-size: 22px; margin: 24px 0 18px; color: #f5f5f7; }
-  .brief-section .q { font-weight: 700; margin: 18px 0 8px; color: #f5f5f7; }
-  .brief-section label { display: block; margin-bottom: 12px; font-size: 15px; color: #f5f5f7; }
-  .brief-section label.opt { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #161b24; border: 1px solid #2e3340; border-radius: 10px; cursor: pointer; transition: border-color .15s ease; }
-  .brief-section label.opt:hover { border-color: #ff2a3c; }
-  .brief-section input[type="text"], .brief-section input[type="tel"], .brief-section input[type="email"], .brief-section input:not([type]), .brief-section textarea {
-    display: block; width: 100%; margin-top: 6px; padding: 12px 14px; background: #161b24; border: 1px solid #2e3340; border-radius: 10px; color: #f5f5f7; font: inherit;
-  }
-  .brief-section input::placeholder, .brief-section textarea::placeholder { color: #6b7180; }
-  .brief-section input:focus, .brief-section textarea:focus { outline: 2px solid #ff2a3c; outline-offset: 1px; border-color: #ff2a3c; }
-  .brief-nav { display: flex; gap: 12px; justify-content: space-between; margin-top: 28px; }
-  .brief .btn { padding: 12px 22px; border-radius: 999px; font-weight: 700; border: 1px solid #2e3340; background: transparent; color: #f5f5f7; cursor: pointer; }
-  .brief .btn-primary { background: #ff2a3c; border-color: #ff2a3c; color: #fff; }
-  .brief .btn-primary:disabled { opacity: .5; cursor: default; }
-  .form-status { margin-top: 14px; min-height: 20px; color: #ffd166; font-size: 14px; }
-  .brief-done { text-align: center; padding: 60px 0; }
-  .brief-done h2 { font-family: 'Rubik', sans-serif; font-weight: 900; font-size: 28px; }
-  @media (prefers-reduced-motion: reduce) { .brief-progress span { transition: none; } }
-</style>
-</Layout>
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!validateStep1()) { step = 1; render(); return; }
+        submitBtn.disabled = true;
+        statusEl.textContent = 'שולח…';
+        try {
+          const res = await fetch('/api/brief', { method: 'POST', body: new FormData(form) });
+          const out = await res.json();
+          if (out.success) {
+            localStorage.removeItem(KEY);
+            form.hidden = true;
+            document.querySelector('.brief-head')!.setAttribute('hidden', '');
+            doneEl.hidden = false;
+          } else {
+            statusEl.textContent = 'שגיאה בשליחה. בדקו את פרטי הקשר ונסו שוב.';
+            submitBtn.disabled = false;
+          }
+        } catch {
+          statusEl.textContent = 'תקלת רשת. נסו שוב.';
+          submitBtn.disabled = false;
+        }
+      });
+
+      restoreDraft();
+      render();
+    </script>
+
+    <style is:global>
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      [hidden] { display: none !important; }
+      body { font-family: 'Heebo', system-ui, -apple-system, sans-serif; background: #08090c; color: #f5f5f7; }
+      .brief { min-height: 100vh; background: #08090c; color: #f5f5f7; padding: 56px 16px; display: flex; justify-content: center; }
+      .brief-card { width: 100%; max-width: 660px; background: #0e1117; border: 1px solid #20242e; border-radius: 22px; padding: 36px 32px; }
+      .brief-eyebrow { font-family: 'Rubik', sans-serif; font-weight: 900; letter-spacing: 0.22em; font-size: 12px; color: #ffd166; }
+      .brief-title { font-family: 'Rubik', sans-serif; font-weight: 900; font-size: 30px; margin: 10px 0 8px; color: #f5f5f7; }
+      .brief-intro { font-size: 15px; line-height: 1.6; color: #a8acb6; margin-bottom: 4px; }
+      .brief-progress { height: 6px; background: #1c1d22; border-radius: 999px; margin: 20px 0 6px; overflow: hidden; }
+      .brief-progress span { display: block; height: 100%; width: 12.5%; background: linear-gradient(90deg, #b3001b, #ff2a3c); transition: width .3s ease; }
+      .brief-step { font-size: 13px; color: #a8acb6; }
+      .brief-section { border: 0; margin: 0; padding: 0; min-width: 0; }
+      .brief-section h2 { font-family: 'Rubik', sans-serif; font-weight: 800; font-size: 22px; margin: 24px 0 18px; color: #f5f5f7; }
+      .brief-section .q { font-weight: 700; margin: 18px 0 8px; color: #f5f5f7; }
+      .brief-section label { display: block; margin-bottom: 12px; font-size: 15px; color: #f5f5f7; }
+      .brief-section label.opt { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #161b24; border: 1px solid #2e3340; border-radius: 10px; cursor: pointer; transition: border-color .15s ease; }
+      .brief-section label.opt:hover { border-color: #ff2a3c; }
+      .brief-section input[type="text"], .brief-section input[type="tel"], .brief-section input[type="email"], .brief-section input:not([type]), .brief-section textarea {
+        display: block; width: 100%; margin-top: 6px; padding: 12px 14px; background: #161b24; border: 1px solid #2e3340; border-radius: 10px; color: #f5f5f7; font: inherit;
+      }
+      .brief-section input[type="radio"], .brief-section input[type="checkbox"] { width: auto; margin: 0; accent-color: #ff2a3c; flex-shrink: 0; }
+      .brief-section input::placeholder, .brief-section textarea::placeholder { color: #6b7180; }
+      .brief-section input:focus, .brief-section textarea:focus { outline: 2px solid #ff2a3c; outline-offset: 1px; border-color: #ff2a3c; }
+      .brief-nav { display: flex; gap: 12px; justify-content: space-between; margin-top: 28px; }
+      .btn { padding: 12px 22px; border-radius: 999px; font-weight: 700; border: 1px solid #2e3340; background: transparent; color: #f5f5f7; cursor: pointer; font-family: inherit; font-size: 15px; }
+      .btn-primary { background: #ff2a3c; border-color: #ff2a3c; color: #fff; }
+      .btn-primary:disabled { opacity: .5; cursor: default; }
+      .form-status { margin-top: 14px; min-height: 20px; color: #ffd166; font-size: 14px; }
+      .brief-done { text-align: center; padding: 60px 0; }
+      .brief-done h2 { font-family: 'Rubik', sans-serif; font-weight: 900; font-size: 28px; }
+      @media (prefers-reduced-motion: reduce) { .brief-progress span { transition: none; } }
+    </style>
+  </body>
+</html>
