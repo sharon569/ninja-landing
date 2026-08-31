@@ -54,6 +54,20 @@ const findings = [
   },
 ];
 
+// המקומי — מיקום נוכחי לכל סניף, מתוך הדוח. זו המטרה הראשונה.
+const branches = [
+  { city: 'הוד השרון',   atliz: '10.7', katzavia: '9.0',  impr: '3,531', page: '/branch/הוד-השרון/ + /hod-hasharon/', note: 'הביקוש הגדול ביותר ברשת — ומפוצל בין שתי כתובות', tone: 'push' },
+  { city: 'גבעתיים',     atliz: '23.3', katzavia: '15.4', impr: '1,345', page: '/givatayim/', note: 'התשתית הכי טובה ברשת, והמיקום הכי גרוע', tone: 'push' },
+  { city: 'קריית אונו',  atliz: '6.8',  katzavia: '4.5',  impr: '1,311', page: '/branch/קרית-אונו/', note: 'המצב הטוב ביותר ברשת — ממנו לומדים', tone: 'ok' },
+  { city: 'תל אביב',     atliz: '16.4', katzavia: '18.9', impr: '1,293', page: '/ · /product/סינטה-וואגיו/', note: 'השוק הגדול ביותר, ועמוד מוצר מדורג במקום הסניף', tone: 'push' },
+  { city: 'הרצליה',      atliz: '15.0', katzavia: '10.1', impr: '803',   page: '/herzliya/סניפים/', note: 'גוגל בחר את העמוד הלא נכון', tone: 'fix' },
+  { city: 'רמת השרון',   atliz: '5.5',  katzavia: '5.9',  impr: '641',   page: '/ · /branch/רמת-השרון/', note: 'קרוב לפריצה — ועדיין מפוצל', tone: 'ok' },
+  { city: 'חיפה',        atliz: '19.4', katzavia: '9.8',  impr: '558',   page: '/branch/חיפה/', note: 'הסניף חבוי. מוגדר public=0', tone: 'push' },
+  { city: 'יהוד',        atliz: '8.5',  katzavia: '8.9',  impr: '509',   page: '/yehud/ · /branch/יהוד/', note: 'מפוצל בין שתי כתובות', tone: 'fix' },
+  { city: 'רמת אביב',    atliz: '9.5',  katzavia: '7.9',  impr: '43',    page: '/branch/תל-אביב/', note: 'כמעט לא קיים בחיפוש המקומי', tone: 'fix' },
+  { city: 'בני דרור',    atliz: '—',    katzavia: '—',    impr: '1',     page: '/branch/bnei-dror/', note: 'אפס נוכחות', tone: 'fix' },
+];
+
 // ההזדמנויות הגדולות — ביקוש שכבר נמדד ב-GSC של האתר עצמו
 const gaps = [
   { topic: 'נתחים ספציפיים', impr: '24,120', pos: '9.0', missing: 'אין מדריך נתחים. פיקניה, ראמפ, ניו יורק, שייטל, אונטריב — כולם 7–10' },
@@ -73,8 +87,8 @@ const gaps = [
 const phases = [
   {
     n: 'חודש 1',
-    title: 'לעצור את הדימום',
-    when: 'טכני · יישום ישיר באתר',
+    title: 'לאחד כל עיר לכתובת אחת',
+    when: 'מקומי · טכני',
     items: [
       '<strong>noindex לכל עמודי המוצר, הקטגוריה והמתכון בתתי-האתרים.</strong> נשאר מאונדקס: עמוד הבית של כל סניף. מוריד כ-3,800 כתובות כפולות מהאינדקס.',
       '<strong>noindex והוצאה ממפת האתר</strong> ל-/cart/, /my-account/, /עמוד-תשלום/, /wishlist/, /היסטוריית-הזמנות/ ו-/product-category/uncategorized/.',
@@ -85,14 +99,15 @@ const phases = [
   },
   {
     n: 'חודש 2',
-    title: 'לגרום למה שכבר מדורג להיקלץ',
-    when: 'מטא, סכמה ופיד',
+    title: 'לתת לכל סניף זהות בעיר שלו',
+    when: 'מקומי · טייטלים, סכמה ומפה',
     items: [
       '<strong>Meta description ל-62 העמודים החסרים</strong>, בעדיפות /סניפים/ (14,264 חשיפות), /shop/ (8,811) ואז כל קטגוריות "המזווה שלנו" — מלחים, תבלינים, חמוצים, לחמים, דבש, סלטים.',
       '<strong>טייטל ייחודי לכל 10 עמודי הבית של הסניפים</strong> לפי התבנית שכבר מוכחת בגבעתיים. זו הפעולה עם ה-ROI הגבוה ביותר בכל הדוח.',
       '<strong>H1 בכל עמודי הבית</strong> — היום אין אף אחד, כולל בראשי.',
       '<strong>סכמת LocalBusiness/Store על 96 עמודי הסניף</strong>: שם, כתובת, טלפון, שעות, גיאו, קישור ניווט. אפס כאלה קיימות היום.',
       '<strong>תיקון אי-ההתאמות</strong>: ה-H1 בהולשטיין ובאנגוס, השגיאה "90:00" ברמת השרון, והדסקריפשן של יין איטלקי שמוצג היום ב-/shop/.',
+      '<strong>Google Business Profile לכל סניף</strong> — קטגוריות, שעות, תמונות ואזורי שירות, מקושר לעמוד המקומי הנכון. חיפוש "אטליז ב[עיר]" מוכרע ברובו במקבץ המפות, ולכן זה נעשה במקביל לעמוד ולא אחריו.',
       '<strong>בדיקת פיד המוצרים</strong> — 145,841 חשיפות מגיעות כקרוסלת מוצרים ורק 31 כ-Merchant Listing. מחיר וזמינות תקינים בסכמה הם ההבדל בין CTR של 0.04% ל-3%.',
     ],
   },
@@ -118,7 +133,6 @@ const phases = [
       '<strong>תפיסת שגיאות הכתיב</strong> — "ואסיו" לבד מייצר 1,120 חשיפות במיקום 10.4. שורה אחת בתוכן העמוד פותרת את זה.',
       '<strong>עמודי חג</strong> — ראש השנה, פסח, סוכות. אפריל הכפיל את התנועה בלי שום עמוד ייעודי.',
       '<strong>מהירות עמוד הבית</strong> — LCP של 4.33 שניות ומשקל של 13.4MB. זה בדיוק העמוד שמדורג ל"קצביה", "אטליז" ו"בשר".',
-      '<strong>Google Business Profile לכל סניף</strong>, מקושר לעמוד המקומי הנכון. חיפוש "אטליז ב[עיר]" מוכרע ברובו במפה ולא בקישורים הכחולים.',
     ],
   },
 ];
@@ -170,11 +184,14 @@ const monthly = [
 
 // המדדים שלפיהם נמדדת ההצלחה
 const metrics = [
+  { m: 'מיקום ממוצע "אטליז / קצביה / חנות בשר ב[עיר]"', now: '4.5 – 23.3', why: 'המדד הראשי. היעד: כל סניף בעשירייה הראשונה בעיר שלו, ואז בשלישייה.' },
+  { m: 'קליקים מקומיים · 90 יום', now: 'כ-10,035 חשיפות', why: 'כמעט כולן ללא קליק היום. זה הפער שההצעה הזו נועדה לסגור.' },
+  { m: 'סניפים עם עמוד מקומי יחיד', now: '1 / 10', why: 'רק גבעתיים. שאר הערים מפוצלות בין שתי כתובות מתחרות.' },
   { m: 'CTR לא־מותגי', now: '1.47%', why: 'המדד המרכזי. 218,945 חשיפות שכמעט לא נלחצות — כאן נמצא כל הפוטנציאל.' },
   { m: 'קליקים לא־מותגיים · 90 יום', now: '3,226', why: 'תנועה של אנשים שלא הכירו את הטחנה. זה מה שקידום אורגני אמור לייצר.' },
   { m: 'מיקום ממוצע', now: '7.2', why: 'ירד מ-6.3. היעד הראשון הוא לעצור את ההידרדרות, ואז לחזור.' },
   { m: 'כתובות באינדקס', now: '~4,943', why: 'כאן ירידה היא שיפור. פחות עותקים כפולים = יותר סמכות לעמוד אחד.' },
-  { m: 'עמודי סניף עם סכמת LocalBusiness', now: '0 / 96', why: 'התנאי לתחרות רצינית בחיפוש המקומי.' },
+  { m: 'עמודי סניף עם סכמת LocalBusiness', now: '0 / 96', why: 'התנאי הטכני לתחרות רצינית בחיפוש המקומי ובמקבץ המפות.' },
   { m: 'Merchant Listings', now: '31', why: 'מול 145,841 חשיפות שמגיעות כקרוסלת מוצרים. הפער הזה הוא הפיד.' },
 ];
 
@@ -209,9 +226,11 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
     <span class="eyebrow">הצעת מחיר · NINJA Digital</span>
     <h1>קידום אורגני ל<em>הטחנה</em>.</h1>
     <p class="lede">
-      ההצעה הזו נשענת על הדוח שהעברנו — <strong>"הרדאר האורגני של הטחנה"</strong> — שנבנה מנתוני Search Console
-      של 90 יום, מסריקה חיה של 144 כתובות ומנתוני מהירות של משתמשים אמיתיים.
-      כאן מופיע מה עושים עם הממצאים האלה, באיזה סדר, ובכמה. ההצעה תקפה ל-30 יום מתאריך השליחה.
+      <strong>המטרה הראשונה: שכל סניף ידורג גבוה בעיר שלו.</strong> שמי שמחפש "חנות בשר ברמת השרון",
+      "אטליז בהוד השרון" או "קצביה בגבעתיים" ימצא את הסניף הקרוב אליו — לא את המתחרה.
+      זה הערוץ עם הכוונה הקנייה הגבוהה ביותר, והוא היום הפער הגדול ביותר של הרשת.
+      ההצעה נשענת על הדוח שהעברנו — <strong>"הרדאר האורגני של הטחנה"</strong> — ומפרטת מה עושים,
+      באיזה סדר, ובכמה. תקפה ל-30 יום מתאריך השליחה.
     </p>
 
     <div class="meta">
@@ -230,7 +249,9 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
     <p class="lede">
       361 אלף חשיפות ב-90 יום שמייצרות 12.6 אלף קליקים, ומתוכם 56% הם אנשים שחיפשו "הטחנה" בשם.
       על כל החיפושים הלא-מותגיים ביחד — 218,945 חשיפות — האתר מוציא CTR של 1.47%.
-      הביקוש כבר שם. הוא פשוט לא נלחץ.
+      הביקוש כבר שם. הוא פשוט לא נלחץ. וזה נכון בכפליים במקומי:
+      <strong>10,035 חשיפות של אנשים שחיפשו אטליז או קצביה בעיר שבה יש לכם סניף</strong> —
+      והסניף לא היה שם.
     </p>
 
     <div class="kpis">
@@ -243,6 +264,77 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
       ))}
     </div>
     <p class="src">מקור: Google Search Console API · sc-domain:meat-shop.co.il · 27.5–24.8.2026 מול 25.2–26.5.2026</p>
+  </div>
+</section>
+
+<section class="local">
+  <div class="container">
+    <span class="eyebrow">היעד מספר 1</span>
+    <h2>כל סניף מדורג בעיר שלו.</h2>
+    <p class="lede">
+      זה החיפוש עם כוונת הקנייה הגבוהה ביותר שקיים לרשת קצביות: אדם שמחפש
+      "חנות בשר ב[עיר]" נמצא במרחק נסיעה מהסניף ורוצה לקנות היום.
+      להלן המיקום של כל סניף בעיר שלו נכון להיום, מתוך הדוח.
+    </p>
+
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr>
+            <th>סניף</th>
+            <th class="num">"אטליז ב…"</th>
+            <th class="num">"קצביה ב…"</th>
+            <th class="num">חשיפות מקומיות</th>
+            <th>העמוד שמדורג היום</th>
+            <th>מה שבור</th>
+          </tr>
+        </thead>
+        <tbody>
+          {branches.map((b) => (
+            <tr>
+              <td class="kw">{b.city}</td>
+              <td class={`num pos-${b.tone}`}>{b.atliz}</td>
+              <td class={`num pos-${b.tone}`}>{b.katzavia}</td>
+              <td class="num">{b.impr}</td>
+              <td class="url">{b.page}</td>
+              <td class="miss">{b.note}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr><td class="kw">סה״כ</td><td class="num">—</td><td class="num">—</td><td class="num accent">10,035</td><td colspan="2" class="miss">חשיפות מקומיות ב-90 יום, כמעט כולן ללא קליק</td></tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="callout">
+      <h4>ההוכחה כבר קיימת בתוך הנתונים שלכם: גבעתיים</h4>
+      <p>
+        גבעתיים היא <strong>תת-האתר היחיד עם טייטל מקומי אמיתי</strong> —
+        "ברוכים הבאים לסניף גבעתיים של הטחנה | חנות בשר ואטליז בגבעתיים".
+        כל השאר מקבלים או את הטייטל של עמוד הבית הראשי מילה במילה, או תבנית שבורה מסוג "הטחנה - הטחנה - יהוד".
+        וזה בדיוק תת-האתר היחיד שעמוד הבית שלו נכנס לדירוגים המקומיים של העיר שלו — 595 חשיפות מקומיות ו-70 קליקים.
+        <strong>שכפול התבנית הזו על תשעת הסניפים האחרים היא הפעולה עם ההחזר הגבוה ביותר בכל הדוח, וגם הזולה ביותר.</strong>
+      </p>
+    </div>
+
+    <div class="local-why">
+      <div class="why-card">
+        <span class="why-n">1</span>
+        <h4>לפצל זה להפסיד פעמיים</h4>
+        <p>לרוב הערים יש שתי כתובות מתחרות — <span class="u">/עיר/</span> ו-<span class="u">/branch/עיר/</span>. גוגל מחלק ביניהן את הסמכות ואף אחת לא מנצחת. איחוד לכתובת אחת עם 301 הוא הצעד הראשון.</p>
+      </div>
+      <div class="why-card">
+        <span class="why-n">2</span>
+        <h4>אין סכמה מקומית בכלל</h4>
+        <p>אפס עמודי סניף עם סכמת LocalBusiness, מתוך 96. בלי כתובת, שעות, טלפון וגיאו בקוד — גוגל לא יודע שמדובר בחנות פיזית בעיר הזו.</p>
+      </div>
+      <div class="why-card">
+        <span class="why-n">3</span>
+        <h4>המפה מכריעה, לא רק האתר</h4>
+        <p>חיפוש "אטליז ב[עיר]" מוכרע ברובו במקבץ המפות. לכן Google Business Profile של כל סניף מטופל במקביל לעמוד — לא אחריו.</p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -313,7 +405,9 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
     <span class="eyebrow">תוכנית עבודה</span>
     <h2>בסדר הזה — לא אחרת.</h2>
     <p class="lede">
-      הסדר כאן הוא תלות אמיתית ולא העדפה. אין טעם לכתוב תוכן חדש כשהאתר משכפל את עצמו פי שמונה,
+      <strong>שני החודשים הראשונים מוקדשים כמעט כולם למקומי</strong> — כי שם נמצא הפער הגדול ביותר,
+      שם כוונת הקנייה הגבוהה ביותר, ושם השינוי הזול והמהיר ביותר.
+      הסדר הוא תלות אמיתית ולא העדפה: אין טעם לכתוב תוכן חדש כשהאתר משכפל את עצמו פי שמונה,
       ואין טעם לרדוף אחרי דירוגים חדשים כשמה שכבר מדורג לא מקבל קליק.
     </p>
 
@@ -697,6 +791,20 @@ section h2 { font-size: clamp(1.9rem, 4vw, 2.8rem); font-weight: 800; letter-spa
 .find .fn { font-family: 'Rubik', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--gold, #ffd166); padding-top: 3px; min-width: 2.2em; }
 .find h3 { font-size: 1.2rem; font-weight: 700; line-height: 1.35; }
 .find p { margin-top: 8px; color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.95rem; }
+
+/* ---------- LOCAL ---------- */
+td.url { font-family: 'Rubik', monospace; font-size: 0.78rem; color: rgba(255,255,255,0.55); unicode-bidi: plaintext; }
+.num.pos-ok { color: rgb(74, 222, 128); font-weight: 700; }
+.num.pos-push { color: #ff8b95; font-weight: 700; }
+.num.pos-fix { color: var(--gold, #ffd166); font-weight: 700; }
+tfoot td { border-top: 1px solid rgba(255,209,102,0.3); font-weight: 700; }
+.local-why { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 22px; }
+@media (min-width: 900px) { .local-why { grid-template-columns: repeat(3, 1fr); } }
+.why-card { padding: 24px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+.why-n { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: rgba(255,209,102,0.12); border: 1px solid rgba(255,209,102,0.3); color: var(--gold, #ffd166); font-family: 'Rubik', sans-serif; font-weight: 700; font-size: 0.9rem; margin-bottom: 14px; }
+.why-card h4 { font-size: 1.08rem; font-weight: 700; margin-bottom: 8px; line-height: 1.35; }
+.why-card p { color: rgba(255,255,255,0.7); line-height: 1.65; font-size: 0.92rem; }
+.u { font-family: 'Rubik', monospace; font-size: 0.86em; color: rgba(255,255,255,0.85); unicode-bidi: plaintext; }
 
 /* ---------- TABLES ---------- */
 .tscroll { overflow-x: auto; margin-top: 30px; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.02); }
