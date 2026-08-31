@@ -1,0 +1,841 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+/* ---------------------------------------------------------------------------
+ * מחיר — למלא לפני שליחה ללקוח.
+ * MONTHLY הוא המחיר בפועל; LIST הוא מחיר המחירון שמוצג מחוק לידו.
+ * שניהם זורמים לכרטיס המחיר, לתיבת האישור
+ * ולטקסט המשפטי.
+ * ------------------------------------------------------------------------- */
+const MONTHLY = '1,500';
+const LIST = '3,500';   // מחיר מחירון — מוצג מחוק ליד המחיר בפועל
+const PRICE_SET = !MONTHLY.includes('X');
+
+// מדדי הפתיחה מתוך "הרדאר האורגני של הטחנה" — Search Console, 27.5–24.8.2026
+const kpis = [
+  { k: 'חשיפות · 90 יום', v: '361,715', d: '+6.5%', tone: 'up' },
+  { k: 'קליקים · 90 יום', v: '12,619', d: '−4.6%', tone: 'down' },
+  { k: 'CTR כללי', v: '3.49%', d: 'ירד מ-3.90%', tone: 'down' },
+  { k: 'CTR לא־מותגי', v: '1.47%', d: '218,945 חשיפות', tone: 'flat' },
+  { k: 'מיקום ממוצע', v: '7.2', d: 'ירד מ-6.3', tone: 'down' },
+];
+
+// ששת הממצאים מהדוח — מקוצרים לכדי "למה יש עבודה"
+const findings = [
+  {
+    n: '01',
+    title: 'המולטי-סייט אוכל את עצמו',
+    body: '8 תתי-אתרים מפרסמים 4,943 כתובות, מתוכן 3,989 עמודי מוצר — 8 עותקים כמעט זהים של אותו קטלוג, כל אחד עם canonical לעצמו. בפועל: "אנטריקוט" (8,040 חשיפות) מדורג עם עמוד מוצר של גבעתיים, ו"פורטרהאוס" עם יהוד — לא עם האתר הראשי.',
+  },
+  {
+    n: '02',
+    title: 'וואגיו הוא הנכס — והוא היחיד',
+    body: 'עמוד קטגוריית הוואגיו לבדו: 28,950 חשיפות ו-1,909 קליקים — 59% מכל התנועה הלא-מותגית של האתר. הוא היחיד עם טייטל, דסקריפשן ו-H1 שנכתבו באמת. אנגוס, אנטריקוט ומיושן לא קיבלו את אותו טיפול, ורואים את זה בדירוג.',
+  },
+  {
+    n: '03',
+    title: 'סיפור המותג לא מקודם בכלל',
+    body: 'הטייטל אומר "בשר ישראלי מהגליל". בפועל: "בשר מהגליל" — מיקום 24. "בשר מרמת הגולן" — מיקום 23. "בשר מיושן" — מיקום 54. אין ולו עמוד תוכן אחד שמסביר את מקור הבשר.',
+  },
+  {
+    n: '04',
+    title: 'המקומי בטווח השגה — ומפוצל',
+    body: '"קצביה קרית אונו" במיקום 4.5, "אטליז רמת השרון" ב-5.5 — אבל "אטליז גבעתיים" ב-23.3 ו"קצביה תל אביב" ב-18.9. לכל עיר שתי כתובות מתחרות: /עיר/ ו-/branch/עיר/. אף אחת לא מנצחת.',
+  },
+  {
+    n: '05',
+    title: '43% מהעמודים בלי meta description',
+    body: 'בדגימה של 144 כתובות: 62 בלי דסקריפשן, 95 עם טייטל בתבנית האוטומטית "שם — הטחנה", אפס עמודים עם סכמת LocalBusiness ב-96 עמודי סניף, ואפס H1 בכל עשרת עמודי הבית.',
+  },
+  {
+    n: '06',
+    title: '241 מתכונים במערכת, 31 באינדקס',
+    body: 'נכס התוכן החזק ביותר של הרשת יושב כמעט כולו מחוץ למנוע. במקביל "איך מבשלים" מייצר 3,994 חשיפות במיקום 14.2, ו"מנגל / על האש" — 816 חשיפות במיקום 22.3.',
+  },
+];
+
+// ההזדמנויות הגדולות — ביקוש שכבר נמדד ב-GSC של האתר עצמו
+const gaps = [
+  { topic: 'נתחים ספציפיים', impr: '24,120', pos: '9.0', missing: 'אין מדריך נתחים. פיקניה, ראמפ, ניו יורק, שייטל, אונטריב — כולם 7–10' },
+  { topic: '"נתח קצבים"', impr: '10,965', pos: '5.3', missing: 'הביקוש הבודד הגדול ביותר אחרי "בשר" — 5 קליקים' },
+  { topic: 'מחיר / כמה עולה', impr: '8,243', pos: '9.8', missing: 'אין עמודי מחירון לנתח' },
+  { topic: 'עוף והודו', impr: '7,556', pos: '4.8', missing: 'מיקום מצוין, CTR של 1%' },
+  { topic: 'טחון / המבורגר / קבב', impr: '6,922', pos: '10.5', missing: 'קטגוריה קיימת ולא מקודמת' },
+  { topic: 'טלה וכבש', impr: '6,484', pos: '8.8', missing: '6 מוצרים בלבד מול ביקוש של 6.5K' },
+  { topic: 'אווז (חזה / כבד)', impr: '5,492', pos: '6.5', missing: 'שוק כמעט ריק בישראל' },
+  { topic: 'איך מבשלים / הכנה', impr: '3,994', pos: '14.2', missing: '241 מתכונים קיימים — 31 באינדקס' },
+  { topic: 'כשרות והשגחה', impr: '2,296', pos: '8.4', missing: 'אין עמוד כשרות בכלל' },
+  { topic: 'זכיינות', impr: '1,293', pos: '13.9', missing: 'ליד B2B בשווי גבוה — אפס קליקים' },
+  { topic: 'מנגל / על האש', impr: '816', pos: '22.3', missing: 'הקטגוריה הכי ישראלית שיש — והאתר לא שם' },
+];
+
+// תוכנית העבודה — לפי סדר התלות מהדוח
+const phases = [
+  {
+    n: 'חודש 1',
+    title: 'לעצור את הדימום',
+    when: 'טכני · יישום ישיר באתר',
+    items: [
+      '<strong>noindex לכל עמודי המוצר, הקטגוריה והמתכון בתתי-האתרים.</strong> נשאר מאונדקס: עמוד הבית של כל סניף. מוריד כ-3,800 כתובות כפולות מהאינדקס.',
+      '<strong>noindex והוצאה ממפת האתר</strong> ל-/cart/, /my-account/, /עמוד-תשלום/, /wishlist/, /היסטוריית-הזמנות/ ו-/product-category/uncategorized/.',
+      '<strong>301 מ-/branch/עיר/ לתת-האתר של אותה עיר</strong> — חוץ מחיפה, קריית אונו ודפנה, שנשארים כפי שהם.',
+      '<strong>noindex ל-/עיר/סניפים/</strong> בכל תת-אתר — 8 עותקים כפולים של אותו עמוד.',
+      'קביעת הכתובת המייצגת לכל עיר, וניקוי הפיצול בין www ל-non-www בתוצאות.',
+    ],
+  },
+  {
+    n: 'חודש 2',
+    title: 'לגרום למה שכבר מדורג להיקלץ',
+    when: 'מטא, סכמה ופיד',
+    items: [
+      '<strong>Meta description ל-62 העמודים החסרים</strong>, בעדיפות /סניפים/ (14,264 חשיפות), /shop/ (8,811) ואז כל קטגוריות "המזווה שלנו" — מלחים, תבלינים, חמוצים, לחמים, דבש, סלטים.',
+      '<strong>טייטל ייחודי לכל 10 עמודי הבית של הסניפים</strong> לפי התבנית שכבר מוכחת בגבעתיים. זו הפעולה עם ה-ROI הגבוה ביותר בכל הדוח.',
+      '<strong>H1 בכל עמודי הבית</strong> — היום אין אף אחד, כולל בראשי.',
+      '<strong>סכמת LocalBusiness/Store על 96 עמודי הסניף</strong>: שם, כתובת, טלפון, שעות, גיאו, קישור ניווט. אפס כאלה קיימות היום.',
+      '<strong>תיקון אי-ההתאמות</strong>: ה-H1 בהולשטיין ובאנגוס, השגיאה "90:00" ברמת השרון, והדסקריפשן של יין איטלקי שמוצג היום ב-/shop/.',
+      '<strong>בדיקת פיד המוצרים</strong> — 145,841 חשיפות מגיעות כקרוסלת מוצרים ורק 31 כ-Merchant Listing. מחיר וזמינות תקינים בסכמה הם ההבדל בין CTR של 0.04% ל-3%.',
+    ],
+  },
+  {
+    n: 'חודשים 3–4',
+    title: 'לתפוס את הפערים הגדולים',
+    when: 'תוכן ומבנה',
+    items: [
+      '<strong>מדריך נתחי בקר</strong> — הנושא הגדול ביותר בדוח (24,120 חשיפות, מיקום 9.0). עמוד hub + עמוד לכל נתח מרכזי: אנטריקוט, סינטה, פיקניה, ראמפ, נתח קצבים, שייטל, אונטריב, אסאדו — כל אחד מקשר לקטגוריה ולמוצר.',
+      '<strong>עמוד "מאיפה הבשר שלנו"</strong> — הגליל, רמת הגולן, שישה דורות, ללא אנטיביוטיקה והורמונים. זה העמוד שאמור לדרג על "בשר ישראלי", "בשר מהגליל" ו"בשר מגידול מקומי" — כולם היום במיקום 13–24.',
+      '<strong>קטגוריית אנטריקוט אמיתית באתר הראשי</strong> — 11,920 חשיפות שהולכות היום לעמוד מוצר של סניף.',
+      '<strong>תיקון ה-slug של אנגוס</strong> מ-"נתחים-עם-עצם" ל-"אנגוס" עם 301. 4,558 חשיפות תקועות במיקום 8.5.',
+      '<strong>הכנסת 210 המתכונים החסרים לאינדקס</strong> וקישור פנימי מכל מתכון למוצרים שבו — הקשר כבר קיים במסד הנתונים.',
+      '<strong>עמוד כשרות והשגחה</strong> (2,296 חשיפות) ו<strong>עמוד מנגל / על האש</strong> (816 חשיפות במיקום 22), לפני עונת 2027.',
+    ],
+  },
+  {
+    n: 'חודשים 5–6',
+    title: 'להעמיק את מה שכבר מנצח',
+    when: 'הגנה והרחבה',
+    items: [
+      '<strong>Hub וואגיו</strong> סביב הקטגוריה שכבר מדורגת: ישראלי מול אוסטרלי, מה זה A5, איך מבשלים, טבלת דרגות שיוש. המטרה: להחזיר את "וואגיו ישראלי" ממיקום 4.0 ל-1.2 שהיה, ואת "וואגיו" מ-4.9 ל-2.',
+      '<strong>תפיסת שגיאות הכתיב</strong> — "ואסיו" לבד מייצר 1,120 חשיפות במיקום 10.4. שורה אחת בתוכן העמוד פותרת את זה.',
+      '<strong>עמודי חג</strong> — ראש השנה, פסח, סוכות. אפריל הכפיל את התנועה בלי שום עמוד ייעודי.',
+      '<strong>מהירות עמוד הבית</strong> — LCP של 4.33 שניות ומשקל של 13.4MB. זה בדיוק העמוד שמדורג ל"קצביה", "אטליז" ו"בשר".',
+      '<strong>Google Business Profile לכל סניף</strong>, מקושר לעמוד המקומי הנכון. חיפוש "אטליז ב[עיר]" מוכרע ברובו במפה ולא בקישורים הכחולים.',
+    ],
+  },
+];
+
+// שני מסלולי התוכן — לפי חלוקת התפקידים שנקבעה בדוח
+const contentTracks = [
+  {
+    tag: 'אתר ראשי',
+    title: 'תוכן שמחזיק סמכות ארצית',
+    body: 'כאן נכתב התוכן שנלחם על הכוונות הגדולות. כל פריט נבחר לפי הביקוש שנמדד בפועל ב-Search Console, לא לפי תחושה, ומקושר פנימית לקטגוריה ולמוצרים הרלוונטיים.',
+    items: [
+      'מדריכי נתחים — אנטריקוט, סינטה, פיקניה, ראמפ, נתח קצבים, שייטל, אונטריב, אסאדו',
+      'מחירונים לפי נתח — "כמה עולה" הוא ביקוש של 8,243 חשיפות',
+      'תוכן הכנה ובישול, שמחובר ל-241 המתכונים הקיימים',
+      'כשרות והשגחה, מקור הבשר, מנגל ועל האש, ותוכן עונתי לחגים',
+    ],
+  },
+  {
+    tag: 'עמודי הסניפים',
+    title: 'תוכן מקומי שאין לו כפילות',
+    body: 'לא בלוג לכל סניף — הדוח ממליץ נגד זה במפורש, כי 10 עותקים של אותו מאמר יתחרו זה בזה בדיוק כמו עמודי המוצר היום. במקום זה, כל סניף מקבל תוכן שרק הוא יכול לכתוב, ולכן רק הוא ידרג עליו.',
+    items: [
+      'שכונות ואזורי שירות, נגישות וחנייה, ציוני דרך מקומיים',
+      'המוצרים והנתחים החזקים של אותו סניף בפועל',
+      'שעות, מלאי, מבצעים ואירועים מקומיים',
+      'סכמת LocalBusiness מלאה וקישור ל-Google Business Profile של הסניף',
+    ],
+  },
+];
+
+// מה נכנס בכל חודש, בלי קשר לשלב
+const monthly = [
+  {
+    icon: 'wrench',
+    title: 'יישום בפועל — לא רשימת המלצות',
+    body: 'יש לנו גישת FTP וגישת ניהול לאתר. כל תיקון טכני, כל טייטל, כל סכמה וכל עמוד תוכן נכנסים לאתר על ידינו. אתם לא צריכים מפתח בתווך, ואין שלב שבו ההצעה נתקעת בהמתנה לביצוע.',
+  },
+  {
+    icon: 'radar',
+    title: 'ניטור שוטף וזיהוי נפילות',
+    body: 'מעקב אחרי סל מילות המפתח המוגדר, אחרי מספר הכתובות באינדקס ואחרי המיקום הממוצע. נפילה כמו "וואגיו ישראלי" שירד ממיקום 1.2 ל-4.0 מזוהה בזמן אמת, לא רבעון אחרי.',
+  },
+  {
+    icon: 'report',
+    title: 'דוח חודשי ושיחת עבודה',
+    body: 'דוח שמראה מה נעשה החודש, מה זז במספרים, ומה בתור לחודש הבא — באותה רמת פירוט של הדוח הזה. פלוס שיחה חודשית לסגירת עדיפויות.',
+  },
+];
+
+// המדדים שלפיהם נמדדת ההצלחה
+const metrics = [
+  { m: 'CTR לא־מותגי', now: '1.47%', why: 'המדד המרכזי. 218,945 חשיפות שכמעט לא נלחצות — כאן נמצא כל הפוטנציאל.' },
+  { m: 'קליקים לא־מותגיים · 90 יום', now: '3,226', why: 'תנועה של אנשים שלא הכירו את הטחנה. זה מה שקידום אורגני אמור לייצר.' },
+  { m: 'מיקום ממוצע', now: '7.2', why: 'ירד מ-6.3. היעד הראשון הוא לעצור את ההידרדרות, ואז לחזור.' },
+  { m: 'כתובות באינדקס', now: '~4,943', why: 'כאן ירידה היא שיפור. פחות עותקים כפולים = יותר סמכות לעמוד אחד.' },
+  { m: 'עמודי סניף עם סכמת LocalBusiness', now: '0 / 96', why: 'התנאי לתחרות רצינית בחיפוש המקומי.' },
+  { m: 'Merchant Listings', now: '31', why: 'מול 145,841 חשיפות שמגיעות כקרוסלת מוצרים. הפער הזה הוא הפיד.' },
+];
+
+// החלטות שדורשות אישור הלקוח לפני שמתחילים
+const decisions = [
+  {
+    title: 'איזו כתובת מייצגת כל עיר',
+    body: 'לכל עיר יש היום שתי כתובות מתחרות. ההמלצה לפי הנתונים: לסניפים החיים — /עיר/ הוא העמוד המקומי ו-/branch/עיר/ עושה 301 אליו. לחיפה וקריית אונו, שמוגדרים public=0 — /branch/עיר/ נשאר, כי הוא כבר מייצר 339 קליקים ביניהם.',
+  },
+  {
+    title: 'robots.txt וסריקת מנועי AI',
+    body: 'ה-robots.txt חוסם היום את GPTBot, ClaudeBot, CCBot, Google-Extended, meta-externalagent ו-Applebot-Extended. גוגל החיפוש לא מושפע — אבל כשמישהו שואל ChatGPT "איפה קונים וואגיו ישראלי", הטחנה לא בתמונה והמתחרים כן. זו החלטה עסקית שלכם, לא באג, וצריך להכריע בה.',
+  },
+  {
+    title: 'הרשאות גישה',
+    body: 'Search Console, ניהול וורדפרס, Cloudflare (שם מנוהל ה-robots.txt) ו-Google Business Profile של כל סניף. בלי אלה חלק מהעבודה הופכת להמלצה במקום לביצוע.',
+  },
+];
+
+const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+---
+<Layout
+  title="הצעת מחיר · קידום אורגני · הטחנה ריטייל בע״מ — NINJA Digital"
+  description="הצעת מחיר לקידום אורגני של רשת הטחנה — meat-shop.co.il. תוכנית עבודה מבוססת נתוני Search Console, יישום ישיר באתר, וריטיינר חודשי."
+  noindex={true}
+  hideFloatWA={true}
+  hideNav={true}
+>
+
+<section class="proposal-hero">
+  <div class="container">
+    <span class="eyebrow">הצעת מחיר · NINJA Digital</span>
+    <h1>קידום אורגני ל<em>הטחנה</em>.</h1>
+    <p class="lede">
+      ההצעה הזו נשענת על הדוח שהעברנו — <strong>"הרדאר האורגני של הטחנה"</strong> — שנבנה מנתוני Search Console
+      של 90 יום, מסריקה חיה של 144 כתובות ומנתוני מהירות של משתמשים אמיתיים.
+      כאן מופיע מה עושים עם הממצאים האלה, באיזה סדר, ובכמה. ההצעה תקפה ל-30 יום מתאריך השליחה.
+    </p>
+
+    <div class="meta">
+      <div><span>לקוח</span><strong>הטחנה ריטייל בע״מ</strong></div>
+      <div><span>נכס</span><strong>meat-shop.co.il</strong></div>
+      <div><span>שירות</span><strong>קידום אורגני · ריטיינר חודשי</strong></div>
+      <div><span>תאריך</span><strong>{today}</strong></div>
+    </div>
+  </div>
+</section>
+
+<section class="state">
+  <div class="container">
+    <span class="eyebrow">נקודת הפתיחה</span>
+    <h2>זו לא בעיית דירוגים. זו בעיית קליקים.</h2>
+    <p class="lede">
+      361 אלף חשיפות ב-90 יום שמייצרות 12.6 אלף קליקים, ומתוכם 56% הם אנשים שחיפשו "הטחנה" בשם.
+      על כל החיפושים הלא-מותגיים ביחד — 218,945 חשיפות — האתר מוציא CTR של 1.47%.
+      הביקוש כבר שם. הוא פשוט לא נלחץ.
+    </p>
+
+    <div class="kpis">
+      {kpis.map((k) => (
+        <div class="kpi">
+          <div class="k">{k.k}</div>
+          <div class="v">{k.v}</div>
+          <div class={`d ${k.tone}`}>{k.d}</div>
+        </div>
+      ))}
+    </div>
+    <p class="src">מקור: Google Search Console API · sc-domain:meat-shop.co.il · 27.5–24.8.2026 מול 25.2–26.5.2026</p>
+  </div>
+</section>
+
+<section class="findings">
+  <div class="container">
+    <span class="eyebrow">מה הדוח מצא</span>
+    <h2>שישה ממצאים שמסבירים את הפער.</h2>
+    <div class="finds">
+      {findings.map((f) => (
+        <div class="find">
+          <div class="fn">{f.n}</div>
+          <div>
+            <h3>{f.title}</h3>
+            <p>{f.body}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="gaps">
+  <div class="container">
+    <span class="eyebrow">ההזדמנות</span>
+    <h2>ביקוש שכבר נמדד — ולא נלקח.</h2>
+    <p class="lede">
+      אף שורה בטבלה הזו אינה הערכה או ניחוש. כל אחת מהן היא ביקוש שנמדד ב-Search Console של האתר עצמו,
+      עם חשיפות אמיתיות וכמעט אפס קליקים.
+    </p>
+
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr>
+            <th>נושא</th>
+            <th class="num">חשיפות · 90 יום</th>
+            <th class="num">מיקום</th>
+            <th>מה חסר</th>
+          </tr>
+        </thead>
+        <tbody>
+          {gaps.map((g) => (
+            <tr>
+              <td class="kw">{g.topic}</td>
+              <td class="num">{g.impr}</td>
+              <td class="num">{g.pos}</td>
+              <td class="miss">{g.missing}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <h4>הדפוס החוזר בכל הטבלה</h4>
+      <p>
+        כמעט כל שורה כאן היא נושא שכבר מדורג יפה ופשוט לא נלחץ. המכנה המשותף אחד:
+        אין meta description, אין מחיר וזמינות בסניפט, ואין ביקורות.
+        <strong>לפני שנכתבת מילה אחת של תוכן חדש — מתקנים את הסניפטים של מה שכבר מדורג.</strong>
+        זה שינוי טכני, לא פרויקט תוכן, והוא שווה יותר מכל מאמר שייכתב השנה.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="plan">
+  <div class="container">
+    <span class="eyebrow">תוכנית עבודה</span>
+    <h2>בסדר הזה — לא אחרת.</h2>
+    <p class="lede">
+      הסדר כאן הוא תלות אמיתית ולא העדפה. אין טעם לכתוב תוכן חדש כשהאתר משכפל את עצמו פי שמונה,
+      ואין טעם לרדוף אחרי דירוגים חדשים כשמה שכבר מדורג לא מקבל קליק.
+    </p>
+
+    {phases.map((p) => (
+      <article class="phase">
+        <header>
+          <span class="pn">{p.n}</span>
+          <h3>{p.title}</h3>
+          <span class="when">{p.when}</span>
+        </header>
+        <ul>
+          {p.items.map((i) => <li set:html={i} />)}
+        </ul>
+      </article>
+    ))}
+
+    <p class="plan-note">
+      מחודש 7 והלאה העבודה עוברת לקצב שוטף: הרחבת מדריכי הנתחים, תוכן עונתי לחגים ולעונת המנגל,
+      חיזוק הסניפים שנפתחים, והגנה על הנכסים שכבר מנצחים.
+    </p>
+  </div>
+</section>
+
+<section class="included">
+  <div class="container">
+    <span class="eyebrow">מה נכנס בכל חודש</span>
+    <h2>שלושה דברים שקורים תמיד.</h2>
+    <div class="inc-grid">
+      {monthly.map((m) => (
+        <div class="inc-card">
+          <div class="inc-icon" aria-hidden="true">
+            {m.icon === 'wrench' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14.7 6.3a4 4 0 0 1-5 5L4 17v3h3l5.7-5.7a4 4 0 0 1 5-5l2.3-2.3-3-3-2.3 2.3z"/></svg>
+            )}
+            {m.icon === 'radar' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><path d="M12 12 19 7"/></svg>
+            )}
+            {m.icon === 'report' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
+            )}
+          </div>
+          <h3>{m.title}</h3>
+          <p>{m.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container">
+    <span class="eyebrow">תוכן שוטף</span>
+    <h2>שני מסלולים, לפי חלוקת התפקידים מהדוח.</h2>
+    <p class="lede">
+      אין תעריף לפי מספר מאמרים. בכל חודש נכתב התוכן שמייצר את ההחזר הגבוה ביותר באותו רגע —
+      לפי מה שהנתונים מראים, לפי העונה, ולפי מה שכבר קרוב לפריצה.
+      חודש לפני פסח זה תוכן חג; אחרי חודש 2 זה מדריכי הנתחים; כשנפתח סניף חדש זה תוכן מקומי.
+      את סדר העדיפויות סוגרים יחד בשיחה החודשית.
+    </p>
+
+    <div class="track-grid">
+      {contentTracks.map((t) => (
+        <div class="track-card">
+          <span class="track-tag">{t.tag}</span>
+          <h3>{t.title}</h3>
+          <p>{t.body}</p>
+          <ul>
+            {t.items.map((i) => <li>{i}</li>)}
+          </ul>
+        </div>
+      ))}
+    </div>
+
+    <div class="callout">
+      <h4>למה אין מספר קבוע של פוסטים</h4>
+      <p>
+        לקוחות רבים מקבלים הצעה עם "4 מאמרים בחודש" ואז מקבלים ארבעה מאמרים שאיש לא חיפש.
+        <strong>העבודה כאן מתחילה בתיקון הסניפטים של מה שכבר מדורג</strong> — וזה שווה יותר מכל מאמר
+        שייכתב השנה. התוכן נכנס אחרי זה, לפי הפערים שהדוח מיפה, ובדוח החודשי מופיע בדיוק מה נכתב ולמה.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="metrics">
+  <div class="container">
+    <span class="eyebrow">איך מודדים</span>
+    <h2>שישה מדדים, עם נקודת פתיחה מתועדת.</h2>
+    <p class="lede">
+      כל מדד כאן נמדד היום ומופיע בדוח. אנחנו לא מבטיחים מיקומים — אף אחד לא יכול,
+      וכל מי שמבטיח מוכר לכם משהו אחר. מה שכן: המספרים האלה נמדדים כל חודש מול הפתיחה, בשקיפות מלאה.
+    </p>
+
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr><th>מדד</th><th class="num">היום</th><th>למה הוא נבחר</th></tr>
+        </thead>
+        <tbody>
+          {metrics.map((m) => (
+            <tr>
+              <td class="kw">{m.m}</td>
+              <td class="num accent">{m.now}</td>
+              <td class="miss">{m.why}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="decisions">
+  <div class="container">
+    <span class="eyebrow">לפני שמתחילים</span>
+    <h2>שלוש החלטות שהן שלכם.</h2>
+    <div class="dec-grid">
+      {decisions.map((d) => (
+        <div class="dec-card">
+          <h3>{d.title}</h3>
+          <p>{d.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="price">
+  <div class="container">
+    <span class="eyebrow">סיכום עלות</span>
+    <h2>ריטיינר חודשי. בלי תשלום הקמה.</h2>
+    <div class="price-card">
+      <div class="price-row">
+        <span>קידום אורגני — אסטרטגיה, יישום טכני, תוכן, סכמה וניטור</span>
+        <strong><s class="was">{LIST} ₪</s> {MONTHLY} ₪ / חודש</strong>
+      </div>
+      <div class="price-row sub"><span>אודיט טכני ותוכנית עבודה (הדוח שהועבר)</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>יישום בפועל באתר — ללא עלות מפתח נפרדת</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>דוח חודשי ושיחת עבודה</span><strong>כלול</strong></div>
+      <div class="price-row sub timeline"><span>תקופת התחייבות</span><strong>ללא — חודש לחודש</strong></div>
+      <div class="price-row total">
+        <span>סה״כ חודשי לפני מע״מ</span>
+        <strong><s class="was">{LIST} ₪</s> {MONTHLY} ₪</strong>
+      </div>
+      <p class="price-note">
+        תוספת מע״מ כחוק. חיוב חודשי בהוראת קבע או בהעברה בנקאית, בתחילת כל חודש עבודה.
+        ההתקשרות היא מחודש לחודש, ללא תקופת התחייבות, וניתנת לסיום בהודעה של 30 יום מראש משני הצדדים.
+        חשוב לסייג: קידום אורגני הוא תהליך מצטבר. תוכנית העבודה בנויה כך שהערך המשמעותי מצטבר לאורך
+        השלבים — עצירה אחרי חודש-חודשיים תשאיר את העבודה הטכנית באוויר.
+        רכישת מיקומים באתרי תוכן חיצוניים אינה כלולה בסכום ומחויבת בנפרד במחיר עלות, בכפוף לאישורכם מראש.
+      </p>
+      {!PRICE_SET && (
+        <p class="price-todo">⚠︎ טרם הוזן מחיר. לעדכן את <code>MONTHLY</code> בראש הקובץ לפני שליחה ללקוח.</p>
+      )}
+    </div>
+
+    <div class="extras">
+      <div class="extras-head">
+        <span class="extras-tag">הוצאה נפרדת</span>
+        <h3>קישורים חיצוניים ופרסומים באתרי תוכן</h3>
+      </div>
+      <p>
+        בניית פרופיל קישורים חיצוניים היא רכיב נפרד מהריטיינר. פרסום כתבה או אזכור באתרי תוכן
+        גדולים — מאקו, וואלה, ynet ודומיהם — כרוך בתשלום לאתר עצמו, והתעריף משתנה לפי האתר,
+        המדור והיקף הפרסום.
+      </p>
+      <ul class="extras-list">
+        <li><strong>מחיר עלות, ללא עמלה.</strong> מה שהאתר גובה הוא מה שמחויב. אנחנו לא לוקחים אחוזים על הרכיב הזה.</li>
+        <li><strong>אישור מראש לכל פרסום.</strong> לא נרכש שום מיקום בלי שאישרתם את האתר ואת הסכום מראש.</li>
+        <li><strong>הכתיבה והתיאום כלולים בריטיינר.</strong> אתם משלמים על המיקום עצמו בלבד.</li>
+        <li><strong>לא תנאי לתחילת עבודה.</strong> נכנס בשלב שבו התשתית באתר כבר תומכת בזה — אין טעם להביא סמכות לעמוד שעדיין משוכפל פי שמונה.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="sign">
+  <div class="container">
+    <span class="eyebrow">אישור הצעה</span>
+    <h2>אם המחיר ותיאור העבודה מקובלים, חתמו כאן.</h2>
+    <p class="lede">אישור ההצעה ישלח התראה במייל ואחזור אליכם לתיאום הקיק-אוף והרשאות הגישה.</p>
+
+    <form id="proposal-sign" class="sign-card">
+      <div class="field-row">
+        <div class="field">
+          <label for="name">שם מלא</label>
+          <input id="name" name="name" type="text" required autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="email">אימייל</label>
+          <input id="email" name="email" type="email" required autocomplete="email" dir="ltr" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="phone">טלפון</label>
+          <input id="phone" name="phone" type="tel" autocomplete="tel" dir="ltr" />
+        </div>
+        <div class="field">
+          <label for="title">תפקיד</label>
+          <input id="title" name="title" type="text" placeholder="לדוגמה: מנכ״ל, סמנכ״ל שיווק" />
+        </div>
+      </div>
+
+      <fieldset class="confirms">
+        <label class="check">
+          <input type="checkbox" name="confirm_scope" required />
+          <span>אני מאשר את היקף העבודה שתואר בהצעה, כולל תוכנית העבודה והגבולות שצוינו.</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="confirm_price" required />
+          <span>אני מאשר את המחיר: {MONTHLY} ₪ + מע״מ לחודש (במקום {LIST} ₪), בהתקשרות מחודש לחודש ללא תקופת התחייבות. ידוע לי שרכישת מיקומים באתרי תוכן חיצוניים מחויבת בנפרד במחיר עלות ובאישורי מראש.</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="confirm_terms" required />
+          <span>אני מתחייב להעמיד את הרשאות הגישה הנדרשות (Search Console, ניהול האתר, Cloudflare ו-Google Business Profile) עם תחילת העבודה.</span>
+        </label>
+      </fieldset>
+
+      <div class="signature-block">
+        <label for="signature">חתימה דיגיטלית</label>
+        <p class="hint">לחצו בתוך הריבוע וציירו את שמכם כחתימה.</p>
+        <div class="sig-wrap">
+          <canvas id="signature" aria-label="אזור חתימה"></canvas>
+          <span class="sig-line" aria-hidden="true"></span>
+          <span class="sig-x" aria-hidden="true">×</span>
+        </div>
+        <div class="sig-actions">
+          <button type="button" id="sig-clear" class="btn-ghost">נקה חתימה</button>
+        </div>
+      </div>
+
+      <div class="sign-actions">
+        <button type="submit" class="btn-primary">
+          אישור ושליחה
+          <span aria-hidden="true">←</span>
+        </button>
+        <p class="legal">בלחיצה על האישור, אני מקבל את התנאים המופיעים בהצעה זו ומסמיך את NINJA Digital להתחיל בעבודה.</p>
+      </div>
+    </form>
+
+    <div id="sign-success" class="sign-success" hidden>
+      <h3>התקבל. תודה.</h3>
+      <p>שרון יחזור אליכם תוך יום עסקים אחד עם רשימת ההרשאות הנדרשות ולוח זמנים לחודש הראשון.</p>
+    </div>
+  </div>
+</section>
+
+<script is:inline>
+(() => {
+  const form = document.getElementById('proposal-sign');
+  const success = document.getElementById('sign-success');
+  const canvas = /** @type {HTMLCanvasElement} */(document.getElementById('signature'));
+  const ctx = canvas?.getContext('2d');
+  let drawing = false;
+  let hasInk = false;
+
+  if (canvas && ctx) {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    function setupCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#1a1a1a';
+    }
+    setupCanvas();
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const data = canvas.toDataURL();
+        setupCanvas();
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, 0, 0, canvas.width / dpr, canvas.height / dpr);
+        img.src = data;
+      }, 150);
+    });
+
+    function pos(e) {
+      const r = canvas.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+    function onDown(e) {
+      drawing = true;
+      canvas.setPointerCapture?.(e.pointerId);
+      const { x, y } = pos(e);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      e.preventDefault();
+    }
+    function onMove(e) {
+      if (!drawing) return;
+      const { x, y } = pos(e);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      hasInk = true;
+      e.preventDefault();
+    }
+    function onUp(e) {
+      if (!drawing) return;
+      drawing = false;
+      canvas.releasePointerCapture?.(e.pointerId);
+    }
+    canvas.addEventListener('pointerdown', onDown);
+    canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointercancel', onUp);
+    canvas.addEventListener('pointerleave', onUp);
+
+    document.getElementById('sig-clear')?.addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasInk = false;
+    });
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!hasInk) {
+      alert('נדרשת חתימה לפני האישור.');
+      return;
+    }
+    const data = Object.fromEntries(new FormData(form).entries());
+    const signature = canvas?.toDataURL('image/png');
+    try {
+      const res = await fetch('/api/proposal-sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proposal: 'hatachana-seo', ...data, signature, signedAt: new Date().toISOString() }),
+      });
+      if (res.ok || res.status === 202) {
+        form.style.display = 'none';
+        success.removeAttribute('hidden');
+        success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        alert('משהו השתבש. נסו שוב או שלחו לי במייל ישירות.');
+      }
+    } catch {
+      alert('משהו השתבש בחיבור. נסו שוב.');
+    }
+  });
+})();
+</script>
+
+<style>
+/* ---------- HERO ---------- */
+.proposal-hero { padding: 120px 0 70px; position: relative; z-index: 2; }
+.proposal-hero h1 { font-size: clamp(2.4rem, 5.5vw, 4.4rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; line-height: 1.05; }
+.proposal-hero h1 em { font-style: normal; color: var(--gold, #ffd166); }
+.lede { color: rgba(255,255,255,0.78); max-width: 760px; margin-top: 18px; font-size: 1.05rem; line-height: 1.7; }
+.lede strong { color: #fff; font-weight: 700; }
+.meta { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 48px; padding: 22px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+@media (min-width: 860px) { .meta { grid-template-columns: repeat(4, 1fr); } }
+.meta > div { display: flex; flex-direction: column; gap: 4px; }
+.meta span { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+.meta strong { font-size: 1.02rem; color: #fff; }
+
+section { padding: 60px 0; }
+.eyebrow { font-size: 0.78rem; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.55); display: inline-block; }
+section h2 { font-size: clamp(1.9rem, 4vw, 2.8rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; }
+
+/* ---------- KPI STRIP ---------- */
+.kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 34px; }
+@media (min-width: 900px) { .kpis { grid-template-columns: repeat(5, 1fr); } }
+.kpi { padding: 22px 18px; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(255,255,255,0.02); }
+.kpi .k { font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+.kpi .v { font-size: 2rem; font-weight: 800; color: #fff; line-height: 1.2; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.kpi .d { font-size: 0.8rem; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.kpi .d.up { color: rgb(74, 222, 128); }
+.kpi .d.down { color: #ff6b78; }
+.kpi .d.flat { color: rgba(255,255,255,0.5); }
+.src { margin-top: 16px; font-size: 0.8rem; color: rgba(255,255,255,0.42); }
+
+/* ---------- FINDINGS ---------- */
+.finds { display: grid; gap: 14px; margin-top: 34px; }
+@media (min-width: 900px) { .finds { grid-template-columns: 1fr 1fr; } }
+.find { display: grid; grid-template-columns: auto 1fr; gap: 0 18px; align-items: start; padding: 24px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.02); }
+.find .fn { font-family: 'Rubik', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--gold, #ffd166); padding-top: 3px; min-width: 2.2em; }
+.find h3 { font-size: 1.2rem; font-weight: 700; line-height: 1.35; }
+.find p { margin-top: 8px; color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.95rem; }
+
+/* ---------- TABLES ---------- */
+.tscroll { overflow-x: auto; margin-top: 30px; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.02); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 0.92rem; }
+th { text-align: start; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.45); font-weight: 600; padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.12); white-space: nowrap; }
+td { padding: 13px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: top; color: rgba(255,255,255,0.8); line-height: 1.55; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: rgba(255,255,255,0.025); }
+td.kw { font-weight: 700; color: #fff; white-space: nowrap; }
+td.num, th.num { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: start; }
+td.num.accent { color: var(--gold, #ffd166); font-weight: 700; }
+td.miss { color: rgba(255,255,255,0.65); font-size: 0.88rem; }
+
+/* ---------- CALLOUT ---------- */
+.callout { margin-top: 26px; padding: 22px 26px; border: 1px solid rgba(255,209,102,0.22); border-inline-start: 3px solid var(--gold, #ffd166); border-radius: 0 16px 16px 0; background: rgba(255,209,102,0.05); }
+.callout h4 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; color: #fff; }
+.callout p { color: rgba(255,255,255,0.78); line-height: 1.7; font-size: 0.97rem; }
+.callout strong { color: var(--gold, #ffd166); }
+
+/* ---------- PHASES ---------- */
+.phase { margin-top: 18px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); overflow: hidden; }
+.phase > header { display: flex; align-items: baseline; gap: 16px; padding: 18px 26px; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); flex-wrap: wrap; }
+.phase .pn { font-family: 'Rubik', sans-serif; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--gold, #ffd166); border: 1px solid rgba(255,209,102,0.35); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+.phase h3 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+.phase .when { margin-inline-start: auto; font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.42); }
+.phase ul { list-style: none; padding: 20px 26px; display: grid; gap: 13px; margin: 0; }
+.phase li { position: relative; padding-inline-start: 22px; color: rgba(255,255,255,0.75); line-height: 1.68; font-size: 0.96rem; }
+.phase li::before { content: ''; position: absolute; inset-inline-start: 0; top: 10px; width: 8px; height: 8px; border-radius: 50%; background: rgba(255,209,102,0.65); }
+.phase li :global(strong) { color: #fff; font-weight: 700; }
+.plan-note { margin-top: 26px; padding: 18px 22px; font-size: 0.9rem; line-height: 1.7; color: rgba(255,255,255,0.62); border-inline-start: 2px solid rgba(255,209,102,0.4); background: rgba(255,255,255,0.02); border-radius: 0 10px 10px 0; }
+
+/* ---------- MONTHLY INCLUDES ---------- */
+.inc-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 34px; }
+@media (min-width: 860px) { .inc-grid { grid-template-columns: repeat(3, 1fr); } }
+.inc-card { padding: 28px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+.inc-icon { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; color: var(--gold, #ffd166); background: rgba(255,209,102,0.1); border: 1px solid rgba(255,209,102,0.2); margin-bottom: 16px; }
+.inc-icon svg { width: 23px; height: 23px; }
+.inc-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; line-height: 1.35; }
+.inc-card p { color: rgba(255,255,255,0.7); line-height: 1.65; font-size: 0.94rem; }
+
+/* ---------- DECISIONS ---------- */
+.dec-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 34px; }
+@media (min-width: 900px) { .dec-grid { grid-template-columns: repeat(3, 1fr); } }
+.dec-card { padding: 26px; border: 1px solid rgba(120,180,255,0.18); border-radius: 18px; background: linear-gradient(180deg, rgba(120,180,255,0.05), rgba(255,255,255,0.01)); }
+.dec-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; color: rgb(170, 200, 255); line-height: 1.35; }
+.dec-card p { color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.92rem; }
+
+/* ---------- CONTENT TRACKS ---------- */
+.track-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 34px; }
+@media (min-width: 900px) { .track-grid { grid-template-columns: 1fr 1fr; } }
+.track-card { padding: 28px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+.track-tag { display: inline-block; font-family: 'Rubik', sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold, #ffd166); border: 1px solid rgba(255,209,102,0.32); border-radius: 999px; padding: 4px 13px; margin-bottom: 16px; }
+.track-card h3 { font-size: 1.3rem; font-weight: 700; line-height: 1.35; margin-bottom: 10px; }
+.track-card > p { color: rgba(255,255,255,0.72); line-height: 1.68; font-size: 0.95rem; }
+.track-card ul { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 10px; border-top: 1px solid rgba(255,255,255,0.07); padding-top: 18px; }
+.track-card li { position: relative; padding-inline-start: 22px; color: rgba(255,255,255,0.75); line-height: 1.6; font-size: 0.92rem; }
+.track-card li::before { content: ''; position: absolute; inset-inline-start: 0; top: 9px; width: 7px; height: 7px; border-radius: 50%; background: rgba(255,209,102,0.6); }
+
+/* ---------- PRICE ---------- */
+.price h2 { margin-bottom: 28px; }
+.price-card { border: 1px solid rgba(255,255,255,0.12); border-radius: 22px; padding: 30px 36px; background: linear-gradient(180deg, rgba(255,209,102,0.08), rgba(255,255,255,0.02)); }
+.price-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-top: 1px solid rgba(255,255,255,0.06); gap: 14px; }
+.price-row:first-of-type { border-top: none; }
+.price-row span { line-height: 1.55; }
+.price-row strong { font-weight: 700; color: #fff; font-size: 1.05rem; white-space: nowrap; }
+.price-row.sub { color: rgba(255,255,255,0.7); }
+.price-row.sub strong { color: rgb(74, 222, 128); font-size: 0.95rem; }
+.price-row.timeline strong { color: var(--gold, #ffd166); font-size: 0.95rem; }
+.price-row.total { border-top: 1px solid rgba(255,209,102,0.4); padding-top: 22px; margin-top: 12px; }
+.price-row.total strong { font-size: 2rem; color: var(--gold, #ffd166); }
+.was { color: rgba(255,255,255,0.38); text-decoration-thickness: 1.5px; font-weight: 600; margin-inline-end: 10px; }
+.price-row.total .was { font-size: 0.55em; vertical-align: 0.35em; }
+.price-note { color: rgba(255,255,255,0.55); font-size: 0.85rem; margin-top: 16px; line-height: 1.7; }
+.price-todo { margin-top: 14px; padding: 12px 16px; border: 1px dashed rgba(255,42,60,0.5); border-radius: 10px; background: rgba(255,42,60,0.08); color: #ff9aa4; font-size: 0.88rem; }
+.price-todo code { font-family: 'Rubik', monospace; color: #fff; }
+
+/* ---------- EXTRAS ---------- */
+.extras { margin-top: 20px; padding: 28px 32px; border: 1px solid rgba(255,255,255,0.1); border-radius: 22px; background: rgba(255,255,255,0.02); }
+.extras-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.extras-tag { font-family: 'Rubik', sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(170, 200, 255); border: 1px solid rgba(120,180,255,0.32); border-radius: 999px; padding: 4px 13px; white-space: nowrap; }
+.extras-head h3 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+.extras > p { color: rgba(255,255,255,0.72); line-height: 1.7; font-size: 0.96rem; }
+.extras-list { list-style: none; padding: 18px 0 0; margin: 18px 0 0; display: grid; gap: 12px; border-top: 1px solid rgba(255,255,255,0.07); }
+.extras-list li { position: relative; padding-inline-start: 22px; color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.93rem; }
+.extras-list li::before { content: ''; position: absolute; inset-inline-start: 0; top: 9px; width: 7px; height: 7px; border-radius: 50%; background: rgba(120,180,255,0.6); }
+.extras-list strong { color: #fff; font-weight: 700; }
+@media (max-width: 720px) { .extras { padding: 22px 20px; } }
+
+/* ---------- SIGN ---------- */
+.sign-card { margin-top: 32px; padding: 32px; border: 1px solid rgba(255,255,255,0.12); border-radius: 22px; background: rgba(255,255,255,0.03); display: grid; gap: 20px; }
+.field-row { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 768px) { .field-row { grid-template-columns: 1fr 1fr; } }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+.field input { height: 48px; padding: 0 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: #fff; font-size: 1rem; transition: border-color 0.2s; }
+.field input:focus { outline: none; border-color: var(--gold, #ffd166); }
+.confirms { display: grid; gap: 8px; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(0,0,0,0.2); }
+.check { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: start; cursor: pointer; padding: 10px 8px; border-radius: 10px; transition: background 0.15s; }
+.check:hover { background: rgba(255,255,255,0.04); }
+.check input[type=checkbox] { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--gold, #ffd166); cursor: pointer; flex-shrink: 0; }
+.check span { line-height: 1.55; color: rgba(255,255,255,0.88); font-size: 0.95rem; }
+
+.signature-block { display: grid; gap: 10px; padding: 18px 20px; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; background: rgba(0,0,0,0.25); }
+.signature-block label { font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.65); }
+.signature-block .hint { font-size: 0.85rem; color: rgba(255,255,255,0.55); margin: 0; }
+.sig-wrap { position: relative; width: 100%; }
+canvas#signature { display: block; width: 100%; height: 200px; background: #ffffff; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); cursor: crosshair; touch-action: none; }
+.sig-line { position: absolute; inset-inline: 24px; bottom: 38px; height: 1px; background: rgba(0,0,0,0.18); pointer-events: none; }
+.sig-x { position: absolute; inset-inline-start: 24px; bottom: 26px; font-size: 0.85rem; color: rgba(0,0,0,0.45); letter-spacing: 0.05em; pointer-events: none; font-family: 'Rubik', sans-serif; }
+.sig-actions { display: flex; justify-content: flex-end; }
+.btn-ghost { background: transparent; border: 1px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.7); padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: border-color 0.2s; }
+.btn-ghost:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
+
+.sign-actions { margin-top: 12px; display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
+.btn-primary { height: 56px; background: linear-gradient(135deg, var(--gold, #ffd166), #d4a534); color: #0a0a0a; border: none; font-size: 1.05rem; font-weight: 700; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.2s, box-shadow 0.2s; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 30px -10px rgba(255,209,102,0.3); }
+.legal { color: rgba(255,255,255,0.5); font-size: 0.82rem; text-align: center; }
+
+.sign-success { margin-top: 32px; padding: 36px; border: 1px solid rgba(74,222,128,0.3); background: rgba(74,222,128,0.06); border-radius: 22px; text-align: center; }
+.sign-success h3 { font-size: 1.8rem; font-weight: 700; color: rgb(134, 239, 172); margin-bottom: 10px; }
+.sign-success p { color: rgba(255,255,255,0.85); line-height: 1.6; }
+
+@media (max-width: 720px) {
+  .proposal-hero { padding: 36px 0 50px; }
+  .proposal-hero h1 { font-size: 2.1rem; line-height: 1.15; }
+  .proposal-hero .lede { font-size: 0.98rem; }
+  .meta { gap: 12px; padding: 16px; margin-top: 24px; }
+  .meta strong { font-size: 0.92rem; }
+  section { padding: 44px 0; }
+  .price-card { padding: 22px 20px; }
+  .price-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .sign-card { padding: 22px 18px; }
+}
+</style>
+
+<style is:global>
+/* site.js מצפה לניווט הרגיל שהוסתר בעמוד הזה וזורק TypeError,
+ * מה ששובר את ה-IntersectionObserver שמוסיף .in — לכן כופים נראות. */
+[data-reveal] { opacity: 1 !important; transform: none !important; }
+html, body { overflow-x: clip; }
+</style>
+</Layout>
