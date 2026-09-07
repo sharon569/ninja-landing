@@ -8,7 +8,7 @@ import Layout from '../../layouts/Layout.astro';
  * MEDIA הוא תקציב המדיה החודשי שהולך ישירות לגוגל — לא עובר דרכנו.
  * ------------------------------------------------------------------------- */
 const MONTHLY = '1,500';
-const LIST = '';            // ריק = לא מוצג מחיר מחירון מחוק
+const LIST = '2,500';       // מחיר מחירון — מוצג מחוק ליד המחיר בפועל. ריק = מוסתר
 const MEDIA = '3,500';
 const PRICE_SET = !MONTHLY.includes('X');
 
@@ -473,7 +473,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
     <div class="price-card">
       <div class="price-row">
         <span>ניהול Google Ads — אסטרטגיה, בנייה, אופטימיזציה ומדידה</span>
-        <strong>{LIST && <s class="was">{LIST} ₪</s>}{MONTHLY} ₪ / חודש</strong>
+        <strong>{LIST && <s class="was">{LIST} ₪</s>}{' '}{MONTHLY} ₪ / חודש</strong>
       </div>
       <div class="price-row sub"><span>אודיט לחשבון הקיים ותוכנית עבודה</span><strong>כלול</strong></div>
       <div class="price-row sub"><span>הקמת Merchant Center, חיבור הפיד וניקויו</span><strong>כלול</strong></div>
@@ -483,7 +483,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
       <div class="price-row sub timeline"><span>תקופת התחייבות</span><strong>ללא — חודש לחודש</strong></div>
       <div class="price-row total">
         <span>סה״כ חודשי, כולל מע״מ</span>
-        <strong>{LIST && <s class="was">{LIST} ₪</s>}{MONTHLY} ₪</strong>
+        <strong>{LIST && <s class="was">{LIST} ₪</s>}{' '}{MONTHLY} ₪</strong>
       </div>
       <p class="price-note">
         המחיר כולל מע״מ. חיוב חודשי בהוראת קבע או בהעברה בנקאית, בתחילת כל חודש עבודה.
@@ -551,7 +551,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
         </label>
         <label class="check">
           <input type="checkbox" name="confirm_price" required />
-          <span>אני מאשר את דמי הניהול: {MONTHLY} ₪ לחודש כולל מע״מ, בהתקשרות מחודש לחודש ללא תקופת התחייבות. ידוע לי שתקציב המדיה בסך {MEDIA} ₪ לחודש אינו כלול בסכום זה, וכי הוא משולם על ידי מקס קפה בע״מ ישירות לגוגל מאמצעי תשלום של החברה — ולא נגבה על ידי NINJA Digital.</span>
+          <span>אני מאשר את דמי הניהול: {MONTHLY} ₪ לחודש כולל מע״מ{LIST ? ` (במקום ${LIST} ₪)` : ''}, בהתקשרות מחודש לחודש ללא תקופת התחייבות. ידוע לי שתקציב המדיה בסך {MEDIA} ₪ לחודש אינו כלול בסכום זה, וכי הוא משולם על ידי מקס קפה בע״מ ישירות לגוגל מאמצעי תשלום של החברה — ולא נגבה על ידי NINJA Digital.</span>
         </label>
         <label class="check">
           <input type="checkbox" name="confirm_terms" required />
