@@ -1,0 +1,868 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+/* ---------------------------------------------------------------------------
+ * מחיר — נקבע מול שרון: 1,500 ₪ לחודש כולל מע״מ.
+ * MONTHLY הוא המחיר בפועל. LIST הוא מחיר מחירון שמוצג מחוק לידו —
+ * להשאיר ריק כדי להסתיר אותו לגמרי, או למלא (למשל '2,500') כדי להציג.
+ * MEDIA הוא תקציב המדיה החודשי שהולך ישירות לגוגל — לא עובר דרכנו.
+ * ------------------------------------------------------------------------- */
+const MONTHLY = '1,500';
+const LIST = '';            // ריק = לא מוצג מחיר מחירון מחוק
+const MEDIA = '3,500';
+const PRICE_SET = !MONTHLY.includes('X');
+
+// מה שנמצא בסריקה של האתר — עובדות, לא הערכות
+const kpis = [
+  { k: 'מותגים בקטלוג', v: '100+', d: 'מ-Lavazza ועד Rocket', tone: 'flat' },
+  { k: 'מוצר יקר ביותר', v: '34,200 ₪', d: 'סל ממוצע גבוה במיוחד', tone: 'up' },
+  { k: 'פלטפורמה', v: 'Shopify', d: 'פיד מוצרים מובנה', tone: 'up' },
+  { k: 'שפות באתר', v: '2', d: 'עברית + רוסית מלאה', tone: 'up' },
+  { k: 'חשבון גוגל אדס', v: 'מושבת', d: 'קיים, עם היסטוריה', tone: 'flat' },
+];
+
+// שישה ממצאים — כולם מבוססים על סריקת האתר ועל מפת השוק, לא על החשבון עצמו
+const findings = [
+  {
+    n: '01',
+    title: 'החשבון המושבת הוא נכס, לא חוב',
+    body: 'לחשבון קיים יש ותק, היסטוריית קליקים ואיתותים שגוגל כבר צבר — ובנייה על גביו יוצאת לדרך מהר יותר מאשר חשבון חדש לגמרי. מה שכן צריך בדיקה: מדידת ההמרות, שנוטה להישבר כשחשבון עומד, והמבנה הישן שברוב המקרים כבר לא רלוונטי לפורמטים של היום.',
+  },
+  {
+    n: '02',
+    title: 'הקטלוג הוא המנוע — לא הקטגוריה',
+    body: 'האתר מחזיק למעלה מ-100 מותגים, עם סינון לפי אחוז ערביקה, גודל אריזה, תאימות קפסולה, סוג משאבה וסוג חימום. זה בדיוק סוג הקטלוג ש-Shopping ו-Performance Max נבנו בשבילו: כל דגם ספציפי הוא מילת חיפוש בפני עצמה, והוא זול בהרבה מהמילה הכללית.',
+  },
+  {
+    n: '03',
+    title: 'בראש הפירמידה אי אפשר לנצח בכסף',
+    body: '"מכונת קפה" ו"מכונת אספרסו" הן זירה של KSP, Pay&Go, אייבורי וזאפ — שחקנים עם תקציבי מדיה גדולים פי עשרות. תקציב של 3,500 ₪ שנשפך למילים האלה נשרף בלי מכירה. האסטרטגיה כאן היא ההפך: לתפוס את הזנב הארוך של הדגמים, המותגים והצרכים הספציפיים, שם התחרות נמוכה וכוונת הקנייה גבוהה בהרבה.',
+  },
+  {
+    n: '04',
+    title: 'הנישה המקצועית היא היתרון שאין למתחרים',
+    body: 'Lelit, ECM, Rocket, Gaggia — מכונות אספרסו למקצוענים, במחירים של אלפי עד עשרות אלפי שקלים. הקמעונאים הגדולים כמעט לא מחזיקים אותן, ולכן גם לא מפרסמים עליהן. מי שמחפש "Rocket Appartamento מחיר" הוא קונה ממוקד עם סל גבוה — ובדיוק שם שטרנ׳ס יכול להיות התוצאה היחידה שרלוונטית.',
+  },
+  {
+    n: '05',
+    title: 'הרוסית פתוחה לרווחה',
+    body: 'לאתר יש גרסה מלאה ב-/ru/ ושירות לקוחות ברוסית. בישראל כמעט אף מפרסם בתחום הקפה לא מריץ קמפיין בשפה הרוסית. זה שוק עם ביקוש אמיתי, CPC נמוך משמעותית מהעברית, ותחרות כמעט אפסית — והתשתית לזה כבר קיימת באתר.',
+  },
+  {
+    n: '06',
+    title: 'קפה טרי הוא הכנסה חוזרת — מכונה היא עסקה אחת',
+    body: 'בית הקלייה הצמוד לחנות הוא מה שהופך לקוח שקנה פעם אחת ללקוח שחוזר כל חודש. בגוגל אדס זה משנה את החשבון לגמרי: על מכונה אפשר להרשות CPA גבוה יחסית כי אחריה מגיעות שנים של פולים וקפסולות. מדידה נכונה של הערך הזה היא ההבדל בין קמפיין שנראה יקר לקמפיין שהוא רווחי.',
+  },
+];
+
+// שלושת המנועים — הליבה של ההצעה. כל השאר תומך בהם.
+const engines = [
+  {
+    tag: 'מנוע 1',
+    name: 'Google Shopping',
+    line: 'המוצר, התמונה והמחיר — בראש תוצאות החיפוש.',
+    body: 'הפורמט שמוכר הכי טוב לחנות אונליין, כי הקונה רואה את המכונה ואת המחיר לפני שהוא בכלל לוחץ. מי שמגיע מכאן כבר יודע מה הוא קונה ובכמה. הדלק שלו הוא הפיד — ולכן ניקוי הפיד וה-Merchant Center הם הפעולה הראשונה בתוכנית.',
+  },
+  {
+    tag: 'מנוע 2',
+    name: 'Performance Max',
+    line: 'הקטלוג המלא, על כל שטחי הפרסום של גוגל.',
+    body: 'לוקח את אותו פיד ופורש אותו על חיפוש, שופינג, יוטיוב, ג׳ימייל ודיספליי, ומוצא בעצמו את הדגם הנכון לחיפוש הנכון. עם 100+ מותגים בקטלוג זה בדיוק המקרה שבו האוטומציה מנצחת ניהול ידני — בתנאי שהיא מפוצלת לקבוצות נכסים לפי קטגוריה, ולא נזרקת כקמפיין אחד.',
+  },
+  {
+    tag: 'מנוע 3',
+    name: 'קמפיין חיפוש',
+    line: 'הדגם המבוקש, במילים המדויקות של הקונה.',
+    body: 'כאן נתפס הזנב הארוך: "Lelit Bianca מחיר", "Jura E8 ביקורת", "פולי קפה קלויים טרי". CPC נמוך, כוונת קנייה מקסימלית, וסל ממוצע גבוה. זה גם המנוע שמגן על השם שלכם מפני מתחרים שקונים אותו בזול.',
+  },
+];
+
+// מפת הקמפיינים — מה נבנה, למי, ולמה
+const campaigns = [
+  {
+    type: 'Brand · הגנה על השם',
+    target: '"שטרנ׳ס", "שטרנס קפה", "sterns coffee"',
+    why: 'מי שמחפש אתכם בשם כבר החליט. מתחרים ומשווקי שותפים קונים את המילה הזו בזול, וזו התנועה הזולה והרווחית ביותר שיש.',
+    prio: 'ראשון',
+  },
+  {
+    type: 'Performance Max · קטלוג',
+    target: 'כל הקטלוג, דרך פיד Shopify המחובר ל-Merchant Center',
+    why: 'המנוע המרכזי. גוגל מוצא בעצמו את הדגם הנכון לחיפוש הנכון, על פני חיפוש, שופינג, יוטיוב ודיספליי — בתנאי שהפיד נקי.',
+    prio: 'ראשון',
+  },
+  {
+    type: 'Search · דגמים ומותגים',
+    target: 'Jura, Delonghi, Lelit, ECM, Rocket, Gaggia + שם דגם',
+    why: 'הזנב הארוך. CPC נמוך, כוונת קנייה גבוהה, וסל ממוצע גבוה. כאן נמצא הרווח האמיתי בתקציב הזה.',
+    prio: 'ראשון',
+  },
+  {
+    type: 'Search · קפה, פולים וקפסולות',
+    target: '"פולי קפה טריים", "קפה קלוי טרי", קפסולות תואמות',
+    why: 'סל נמוך אבל חוזר. בית הקלייה הוא היתרון התחרותי, וזה גם מה שמייצר את ההכנסה החוזרת שמצדיקה את מחיר הרכישה של לקוח מכונה.',
+    prio: 'שני',
+  },
+  {
+    type: 'Search · רוסית',
+    target: 'кофемашина · кофе в зернах · капсулы + מותגים',
+    query: true,
+    why: 'שוק שכמעט אף אחד לא מפרסם בו בישראל, מול אתר שכבר קיים ברוסית. CPC נמוך מאוד ביחס לעברית.',
+    prio: 'שני',
+  },
+  {
+    type: 'Demand Gen / רימרקטינג',
+    target: 'נטישות עגלה, צופי מוצר, לקוחות קיימים',
+    why: 'מכונת קפה ב-8,000 ₪ לא נקנית בביקור אחד. הרימרקטינג הוא מה שסוגר את המכירה שכבר שילמתם עליה.',
+    prio: 'שלישי',
+  },
+];
+
+// תוכנית עבודה — לפי סדר תלות
+const phases = [
+  {
+    n: 'שבועות 1–2',
+    title: 'לפני שקל אחד יוצא — לבנות את המדידה',
+    when: 'תשתית · אודיט',
+    items: [
+      '<strong>אודיט לחשבון הקיים.</strong> מה יש בו, מה עבד, מה נשבר בזמן שהוא עמד, ומה שווה לשמר. אם יש היסטוריית המרות תקינה — היא שווה זהב, ולא נמחק אותה.',
+      '<strong>מדידת המרות מאפס ובאמת.</strong> רכישה עם ערך דינמי (הכנסה בפועל, לא המרה שטוחה), Enhanced Conversions, וסימון ברור בין רכישה, פנייה טלפונית ופנייה בוואטסאפ.',
+      '<strong>חיבור GA4 ל-Google Ads</strong> וייבוא קהלים — כדי שהרימרקטינג יהיה מוכן לפני שהוא נדרש, לא אחרי.',
+      '<strong>Merchant Center: הקמה ואימות.</strong> חיבור הפיד של Shopify, אימות בעלות על הדומיין, והזנת מדיניות משלוחים והחזרות — בלעדיהן החשבון לא מאושר בכלל.',
+      '<strong>ניקוי הפיד.</strong> בסריקה שלנו הופיעו מוצרים במחיר 0 ₪ — כאלה נפסלים אוטומטית ובכמות גדולה יכולים לגרור אזהרה על החשבון כולו. יחד איתם נטפל בחוסרי GTIN, מותג ומק״ט, ובכותרות מוצר שלא מכילות את שם הדגם.',
+      '<strong>קביעת יעדי ROAS ו-CPA</strong> לפי מרווח אמיתי לקטגוריה — מכונות, קפה וקפסולות אינם אותו עסק ולא יכולים לחלוק יעד אחד.',
+    ],
+  },
+  {
+    n: 'חודש 1',
+    title: 'להעלות את שלושת המנועים הראשונים',
+    when: 'העלאה לאוויר',
+    items: [
+      '<strong>קמפיין Brand</strong> — הגנה על "שטרנ׳ס" בכל הכתיבים, בעברית, באנגלית וברוסית. תקציב קטן, החזר מיידי.',
+      '<strong>Performance Max על הקטלוג</strong>, מפוצל לקבוצות נכסים לפי קטגוריה: מכונות, מטחנות, קפה, קפסולות. פיצול כזה הוא מה שמאפשר לשלוט בתקציב לפי רווחיות, במקום לתת לאלגוריתם להחליט לבד.',
+      '<strong>קמפיין חיפוש למותגים ולדגמים</strong> — קבוצת מודעות לכל מותג מרכזי, עם מודעות שמזכירות מחיר, מלאי ואיסוף עצמי מפתח תקווה.',
+      '<strong>רשימת מילים שליליות מהיום הראשון</strong> — "חינם", "יד שנייה", "השכרה", "תיקון", "שירות" ו"חלקי חילוף". התקציב כולו הולך לכוונת קנייה, ולכן חיפושי שירות ותחזוקה נחסמים ולא נקנים. בנוסף: שמות של מותגים שאינכם מוכרים.',
+      '<strong>סנכרון עם מלאי.</strong> אין טעם לשלם על קליק למוצר שאזל. הפיד מסונכרן לזמינות בפועל.',
+    ],
+  },
+  {
+    n: 'חודשים 2–3',
+    title: 'להרחיב לאן שהמתחרים לא הגיעו',
+    when: 'הרחבה',
+    items: [
+      '<strong>קמפיין ברוסית</strong> — מילות מפתח, מודעות ועמודי נחיתה ב-/ru/. זו ההזדמנות עם יחס העלות-תועלת הטוב ביותר בכל התוכנית.',
+      '<strong>קמפיין קפה, פולים וקפסולות</strong> — סל נמוך, קנייה חוזרת. כאן נמדדת גם החזרה השנייה, לא רק ההזמנה הראשונה.',
+      '<strong>רימרקטינג ונטישות עגלה</strong> על בסיס הקהלים שנאספו מהיום הראשון.',
+      '<strong>העשרת הפיד</strong> — כותרות מוצר שמכילות מותג + דגם + מאפיין, תיאורים, ותוויות מותאמות לפי מרווח ולפי עונה.',
+    ],
+  },
+  {
+    n: 'חודש 4 והלאה',
+    title: 'לעבור ממחזור לרווח',
+    when: 'אופטימיזציה שוטפת',
+    items: [
+      '<strong>מעבר לאסטרטגיות הצעה חכמות</strong> (tROAS) ברגע שהצטברו מספיק המרות — לפני זה זה פשוט מזיק.',
+      '<strong>חלוקת תקציב מחדש לפי רווחיות בפועל</strong>, לא לפי מחזור. קטגוריה עם ROAS 8 ומרווח 12% פחות טובה מקטגוריה עם ROAS 4 ומרווח 40%.',
+      '<strong>בדיקות מודעות ונכסים שוטפות</strong> — כותרות, תמונות, הצעות מכר והרחבות.',
+      '<strong>הרחבה עונתית</strong> — חגים, בלאק פריידי, ומתנות לעובדים ולחברות. שוק המתנות העסקיות לקפה הוא ביקוש עונתי אמיתי שהאתר כבר יכול לשרת.',
+      '<strong>שקילת Demand Gen ויוטיוב</strong> רק אם החיפוש והשופינג כבר רוויים — לא לפני.',
+    ],
+  },
+];
+
+// מה קורה בכל חודש
+const monthly = [
+  {
+    icon: 'wrench',
+    title: 'ניהול בפועל — לא דוח עם המלצות',
+    body: 'הצעות מחיר, מילים שליליות, מודעות, נכסים, פיצולי קמפיין, תיקוני פיד ותקלות ב-Merchant Center — כל אלה מטופלים על ידינו בתוך החשבון. אין שלב שבו העבודה מחכה לכם.',
+  },
+  {
+    icon: 'radar',
+    title: 'ניטור יומיומי של בזבוז',
+    body: 'מעקב אחרי דוח מונחי החיפוש, אחרי מוצרים שנפסלו ב-Merchant Center ואחרי קמפיינים שיצאו מהיעד. תקציב יומי באדס נשרף מהר — לכן הבדיקה היא שוטפת, לא חודשית.',
+  },
+  {
+    icon: 'report',
+    title: 'דוח חודשי ושיחת עבודה',
+    body: 'מה הוצא, מה נכנס, ROAS לפי קטגוריה, מה נבדק החודש ומה בתור לחודש הבא. פלוס שיחה חודשית לסגירת עדיפויות ותקציב.',
+  },
+];
+
+// המדדים
+const metrics = [
+  { m: 'ROAS כולל', now: 'לא נמדד היום', why: 'המדד הראשי. נקודת הפתיחה תיקבע בסוף חודש 1, אחרי שהמדידה תקינה.' },
+  { m: 'ROAS לפי קטגוריה', now: 'לא נמדד היום', why: 'מכונות, קפה וקפסולות הם שלושה עסקים שונים עם מרווח שונה. יעד אחד לכולם הוא טעות.' },
+  { m: 'עלות לרכישה (CPA)', now: 'לא נמדד היום', why: 'נמדד בנפרד למכונה ולקפה, כי הערך לאורך חיי הלקוח שונה לגמרי.' },
+  { m: 'מוצרים מאושרים ב-Merchant Center', now: '0 — לא מוקם', why: 'התנאי הטכני לכל Shopping ו-Performance Max. מוצר פסול הוא מוצר שלא קיים.' },
+  { m: 'שיעור התנועה המותגית', now: 'לא נמדד היום', why: 'אם רוב ההמרות מגיעות מהשם שלכם, הקמפיין לא באמת מייצר לקוחות חדשים. זה המדד שמונה אותנו על עצמנו.' },
+  { m: 'תקינות מדידת ההמרות', now: 'טעון בדיקה', why: 'בחשבון שעמד, תגי המדידה כמעט תמיד נשברים. בלי זה כל שאר המספרים הם ניחוש.' },
+  { m: 'ערך הזמנה ממוצע', now: 'לא נמדד היום', why: 'עם קטלוג שנע עד 34,200 ₪, ממוצע לבדו מטעה. נמדד גם החציון ופילוח לפי טווח מחיר.' },
+  { m: 'רכישה חוזרת של קפה', now: 'לא נמדד היום', why: 'זה מה שמצדיק את מחיר רכישת הלקוח. בלי המדד הזה הקמפיין ייראה יקר מכפי שהוא באמת.' },
+];
+
+// החלטות שהן של הלקוח
+const decisions = [
+  {
+    title: 'הרשאות גישה',
+    body: 'חשבון הגוגל אדס הקיים (קישור ל-MCC שלנו), Google Analytics 4, Merchant Center, ניהול חנות Shopify לצורך הפיד ותגי המדידה, ו-Google Business Profile של החנות בפתח תקווה — לצורך הרחבות מיקום ואיסוף עצמי במודעות המכירה בלבד. בלי אלה חלק מהעבודה הופכת להמלצה במקום לביצוע.',
+  },
+  {
+    title: 'מדיניות משלוחים והחזרות',
+    body: 'Merchant Center לא מאשר חשבון בלי מדיניות משלוחים ומדיניות החזרות מוצהרות, נגישות באתר ותואמות למה שמוזן במערכת. אם הן חסרות או לא מדויקות — זה חוסם את כל השופינג, ולכן צריך לסגור את זה לפני העלייה לאוויר.',
+  },
+  {
+    title: 'אמצעי תשלום ובעלות על החשבון',
+    body: 'תקציב המדיה משולם על ידי מקס קפה בע״מ ישירות לגוגל, מאמצעי תשלום של החברה שמוזן בחשבון הגוגל אדס של החברה. NINJA Digital אינה גובה, אינה מחזיקה ואינה מעבירה את תקציב המדיה בשום שלב. אנחנו מנהלים, אתם הבעלים — ואם ההתקשרות מסתיימת, החשבון, ההיסטוריה והנתונים נשארים אצלכם במלואם.',
+  },
+  {
+    title: 'מוצרים במחיר 0 ₪ באתר',
+    body: 'בסריקה של הקטלוג עלו מוצרים ללא מחיר. אלה נפסלים אוטומטית ב-Merchant Center, ובכמות גדולה יכולים לגרור אזהרה על החשבון. צריך להחליט אם מסירים אותם מהפיד או מתמחרים אותם.',
+  },
+];
+
+const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+---
+<Layout
+  title="הצעת מחיר · ניהול גוגל אדס · מקס קפה בע״מ — NINJA Digital"
+  description="הצעת מחיר לניהול קמפיין Google Ads לשטרנ׳ס קפה — sterns.co.il. מפת קמפיינים, תוכנית עבודה, מדידה ותמחור."
+  noindex={true}
+  hideFloatWA={true}
+  hideNav={true}
+>
+
+<section class="proposal-hero">
+  <div class="container">
+    <span class="eyebrow">הצעת מחיר · NINJA Digital</span>
+    <h1>גוגל אדס ל<em>שטרנ׳ס קפה</em>.</h1>
+    <p class="lede">
+      <strong>שלושה מנועים: Google Shopping, Performance Max וקמפיין חיפוש.</strong>
+      זו כל ההצעה, ואין בה שום דבר אחר. המטרה היא להפוך תקציב מדיה של {MEDIA} ₪ בחודש
+      למכירות שאפשר למדוד — ולא לקליקים.
+      לשטרנ׳ס יש בדיוק את הצירוף שהמנועים האלה עובדים עליו הכי טוב: קטלוג עמוק עם למעלה מ-100 מותגים,
+      סל ממוצע גבוה, ואתר Shopify שמזין פיד מוצרים בלחיצת כפתור.
+      ההצעה מפרטת מה בונים, באיזה סדר, איך מודדים ובכמה. תקפה ל-30 יום מתאריך השליחה.
+    </p>
+
+    <div class="meta">
+      <div><span>לקוח</span><strong>מקס קפה בע״מ</strong></div>
+      <div><span>ח.פ</span><strong>516972585</strong></div>
+      <div><span>נכס</span><strong>sterns.co.il</strong></div>
+      <div><span>שירות</span><strong>Google Ads · ניהול חודשי</strong></div>
+      <div><span>תאריך</span><strong>{today}</strong></div>
+    </div>
+  </div>
+</section>
+
+<section class="state">
+  <div class="container">
+    <span class="eyebrow">נקודת הפתיחה</span>
+    <h2>הנכסים כבר קיימים. מה שחסר הוא המנוע.</h2>
+    <p class="lede">
+      ההצעה הזו נבנתה על סריקה של האתר ועל מפת התחרות בשוק הקפה בישראל — לא על נתוני החשבון,
+      שאליו עדיין אין לנו גישה. <strong>זה מכוון, ואנחנו אומרים את זה מראש:</strong> אנחנו לא מציגים
+      מספרים שלא ראינו. האודיט של החשבון הקיים הוא הפעולה הראשונה בתוכנית העבודה,
+      והממצאים ממנו יוצגו לכם במלואם בסוף השבועיים הראשונים.
+    </p>
+
+    <div class="kpis">
+      {kpis.map((k) => (
+        <div class="kpi">
+          <div class="k">{k.k}</div>
+          <div class="v">{k.v}</div>
+          <div class={`d ${k.tone}`}>{k.d}</div>
+        </div>
+      ))}
+    </div>
+    <p class="src">מקור: סריקה של sterns.co.il · ספטמבר 2026 · קטלוג, סייטמאפ, מבנה קטגוריות ומיפוי מתחרים</p>
+  </div>
+</section>
+
+<section class="findings">
+  <div class="container">
+    <span class="eyebrow">מה מצאנו</span>
+    <h2>שישה דברים שקובעים את האסטרטגיה.</h2>
+    <div class="finds">
+      {findings.map((f) => (
+        <div class="find">
+          <div class="fn">{f.n}</div>
+          <div>
+            <h3>{f.title}</h3>
+            <p>{f.body}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div class="callout">
+      <h4>המשפט שמסכם את כל השאר</h4>
+      <p>
+        עם {MEDIA} ₪ בחודש אי אפשר לנצח את KSP על "מכונת קפה", ואין טעם לנסות.
+        <strong>אפשר בהחלט להיות התוצאה הראשונה על "Lelit Bianca מחיר", על "פולי קפה קלויים טרי",
+        ועל "кофемашина для дома"</strong> —
+        וזה בדיוק הקהל שקונה, לא מתלבט.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="engines">
+  <div class="container">
+    <span class="eyebrow">הליבה</span>
+    <h2>שלושה מנועי מכירה. זה כל הסיפור.</h2>
+    <p class="lede">
+      ההצעה הזו היא <strong>מכירות בלבד</strong>. אין בה קידום אורגני, אין בה תוכן, ואין בה
+      קמפיינים שמביאים פניות שירות או תיקונים — חיפושים כאלה נחסמים כמילים שליליות מהיום הראשון,
+      כדי שכל שקל מהתקציב ילך לקונה. שלושת המנועים למטה הם מה שמייצר את המכירות,
+      וכל השאר בהצעה קיים רק כדי לשרת אותם.
+    </p>
+
+    <div class="eng-grid">
+      {engines.map((e) => (
+        <div class="eng-card">
+          <span class="eng-tag">{e.tag}</span>
+          <h3>{e.name}</h3>
+          <p class="eng-line">{e.line}</p>
+          <p>{e.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="gaps">
+  <div class="container">
+    <span class="eyebrow">מפת הקמפיינים</span>
+    <h2>איך זה מתפרק לקמפיינים בחשבון.</h2>
+    <p class="lede">
+      שלושת המנועים למעלה מתורגמים לשישה קמפיינים נפרדים, כל אחד עם קהל, תקציב ויעד משלו.
+      הם נפתחים לפי הסדר שבעמודה האחרונה — כי קמפיין שנפתח לפני שהמדידה שלו מוכנה
+      שורף כסף בלי ללמד כלום. <strong>כל שורה כאן מסתיימת ברכישה באתר.</strong>
+    </p>
+
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr>
+            <th>סוג קמפיין</th>
+            <th>על מה הוא רץ</th>
+            <th>למה הוא שם</th>
+            <th class="num">שלב</th>
+          </tr>
+        </thead>
+        <tbody>
+          {campaigns.map((c) => (
+            <tr>
+              <td class="kw">{c.type}</td>
+              <td class={c.query ? 'url' : 'miss'}>{c.target}</td>
+              <td class="miss">{c.why}</td>
+              <td class="num accent">{c.prio}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="plan">
+  <div class="container">
+    <span class="eyebrow">תוכנית עבודה</span>
+    <h2>בסדר הזה — לא אחרת.</h2>
+    <p class="lede">
+      <strong>השבועיים הראשונים לא מוציאים כסף על מדיה.</strong> הם בונים את המדידה,
+      את הפיד ואת ה-Merchant Center. זה לא עיכוב — זו הסיבה שהתקציב מחודש שני והלאה
+      עובד. קמפיין שרץ בלי מדידת המרות תקינה הוא לא קמפיין, הוא תרומה לגוגל.
+    </p>
+
+    {phases.map((p) => (
+      <article class="phase">
+        <header>
+          <span class="pn">{p.n}</span>
+          <h3>{p.title}</h3>
+          <span class="when">{p.when}</span>
+        </header>
+        <ul>
+          {p.items.map((i) => <li set:html={i} />)}
+        </ul>
+      </article>
+    ))}
+
+    <p class="plan-note">
+      מחודש 5 והלאה העבודה עוברת לקצב שוטף: הרחבה עונתית, בדיקות מודעות ונכסים,
+      העשרת הפיד, והחלטות תקציב לפי רווחיות בפועל לכל קטגוריה.
+    </p>
+  </div>
+</section>
+
+<section class="included">
+  <div class="container">
+    <span class="eyebrow">מה נכנס בכל חודש</span>
+    <h2>שלושה דברים שקורים תמיד.</h2>
+    <div class="inc-grid">
+      {monthly.map((m) => (
+        <div class="inc-card">
+          <div class="inc-icon" aria-hidden="true">
+            {m.icon === 'wrench' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14.7 6.3a4 4 0 0 1-5 5L4 17v3h3l5.7-5.7a4 4 0 0 1 5-5l2.3-2.3-3-3-2.3 2.3z"/></svg>
+            )}
+            {m.icon === 'radar' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><path d="M12 12 19 7"/></svg>
+            )}
+            {m.icon === 'report' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
+            )}
+          </div>
+          <h3>{m.title}</h3>
+          <p>{m.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="metrics">
+  <div class="container">
+    <span class="eyebrow">איך מודדים</span>
+    <h2>שמונה מדדים — ואף אחד מהם הוא לא "קליקים".</h2>
+    <p class="lede">
+      חלק מהמדדים כאן רשומים היום כ"לא נמדד" בכוונה, כי אין לנו עדיין גישה לחשבון
+      ואנחנו לא ממציאים נקודת פתיחה. <strong>בסוף חודש 1 כל שורה בטבלה תקבל מספר,
+      וממנו והלאה נמדד מולו כל חודש.</strong> מה שכן נאמר כבר עכשיו: אנחנו לא מבטיחים ROAS.
+      אף אחד לא יכול, וכל מי שמבטיח מוכר לכם משהו אחר.
+    </p>
+
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr><th>מדד</th><th class="num">היום</th><th>למה הוא נבחר</th></tr>
+        </thead>
+        <tbody>
+          {metrics.map((m) => (
+            <tr>
+              <td class="kw">{m.m}</td>
+              <td class="num accent">{m.now}</td>
+              <td class="miss">{m.why}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="decisions">
+  <div class="container">
+    <span class="eyebrow">לפני שמתחילים</span>
+    <h2>ארבע החלטות שהן שלכם.</h2>
+    <div class="dec-grid">
+      {decisions.map((d) => (
+        <div class="dec-card">
+          <h3>{d.title}</h3>
+          <p>{d.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="price">
+  <div class="container">
+    <span class="eyebrow">סיכום עלות</span>
+    <h2>דמי ניהול חודשיים. בלי תשלום הקמה.</h2>
+    <div class="price-card">
+      <div class="price-row">
+        <span>ניהול Google Ads — אסטרטגיה, בנייה, אופטימיזציה ומדידה</span>
+        <strong>{LIST && <s class="was">{LIST} ₪</s>}{MONTHLY} ₪ / חודש</strong>
+      </div>
+      <div class="price-row sub"><span>אודיט לחשבון הקיים ותוכנית עבודה</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>הקמת Merchant Center, חיבור הפיד וניקויו</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>הקמת מדידת המרות, GA4 ו-Enhanced Conversions</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>כתיבת מודעות, נכסים ומילות מפתח</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>דוח חודשי ושיחת עבודה</span><strong>כלול</strong></div>
+      <div class="price-row sub timeline"><span>תקופת התחייבות</span><strong>ללא — חודש לחודש</strong></div>
+      <div class="price-row total">
+        <span>סה״כ חודשי, כולל מע״מ</span>
+        <strong>{LIST && <s class="was">{LIST} ₪</s>}{MONTHLY} ₪</strong>
+      </div>
+      <p class="price-note">
+        המחיר כולל מע״מ. חיוב חודשי בהוראת קבע או בהעברה בנקאית, בתחילת כל חודש עבודה.
+        ההתקשרות היא מחודש לחודש, ללא תקופת התחייבות, וניתנת לסיום בהודעה של 30 יום מראש משני הצדדים.
+        <strong>תקציב המדיה אינו כלול בסכום זה</strong> ומחויב ישירות על ידי גוגל — הפירוט בסעיף הבא.
+        חשוב לסייג: קמפיין גוגל אדס לומד. החודש-חודשיים הראשונים הם שלב איסוף נתונים,
+        והרווחיות מתייצבת אחרי שהאלגוריתם צבר מספיק המרות. עצירה בשלב הזה מאפסת את הלמידה.
+      </p>
+      {!PRICE_SET && (
+        <p class="price-todo">⚠︎ טרם הוזן מחיר. לעדכן את <code>MONTHLY</code> בראש הקובץ לפני שליחה ללקוח.</p>
+      )}
+    </div>
+
+    <div class="extras">
+      <div class="extras-head">
+        <span class="extras-tag">הוצאה נפרדת</span>
+        <h3>תקציב המדיה — {MEDIA} ₪ בחודש</h3>
+      </div>
+      <p>
+        זהו הכסף שמשולם לגוגל עבור הקליקים עצמם, והוא נפרד לחלוטין מדמי הניהול.
+        הוא לא עובר דרכנו ואנחנו לא גובים עליו עמלה.
+      </p>
+      <ul class="extras-list">
+        <li><strong>משולם על ידכם ישירות לגוגל.</strong> אמצעי תשלום של מקס קפה בע״מ מוזן בחשבון הגוגל אדס של החברה, וגוגל מחייבת את החברה ישירות. הכסף לא עובר דרך NINJA Digital בשום שלב — אין תיווך, אין גבייה ואין תוספת מחיר.</li>
+        <li><strong>החשבון בבעלותכם המלאה.</strong> אנחנו מקבלים הרשאת ניהול דרך ה-MCC של הסוכנות. בסיום ההתקשרות ההרשאה מוסרת, והחשבון על כל ההיסטוריה שלו נשאר אצלכם.</li>
+        <li><strong>ניתן לשינוי בכל חודש.</strong> {MEDIA} ₪ הוא נקודת הפתיחה המומלצת. אם קטגוריה מוכיחה רווחיות — ההמלצה תהיה להגדיל; אם לא — נצמצם. ההחלטה תמיד שלכם ומראש.</li>
+        <li><strong>שקוף עד השקל.</strong> בכל דוח חודשי מופיע בדיוק כמה הוצא, על מה, ומה חזר.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="sign">
+  <div class="container">
+    <span class="eyebrow">אישור הצעה</span>
+    <h2>אם המחיר ותיאור העבודה מקובלים, חתמו כאן.</h2>
+    <p class="lede">אישור ההצעה ישלח התראה במייל ואחזור אליכם לתיאום הקיק-אוף והרשאות הגישה.</p>
+
+    <form id="proposal-sign" class="sign-card">
+      <div class="field-row">
+        <div class="field">
+          <label for="name">שם מלא</label>
+          <input id="name" name="name" type="text" required autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="email">אימייל</label>
+          <input id="email" name="email" type="email" required autocomplete="email" dir="ltr" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="phone">טלפון</label>
+          <input id="phone" name="phone" type="tel" autocomplete="tel" dir="ltr" />
+        </div>
+        <div class="field">
+          <label for="title">תפקיד</label>
+          <input id="title" name="title" type="text" placeholder="לדוגמה: מנכ״ל, בעלים" />
+        </div>
+      </div>
+
+      <fieldset class="confirms">
+        <label class="check">
+          <input type="checkbox" name="confirm_scope" required />
+          <span>אני מאשר את היקף העבודה שתואר בהצעה, כולל מפת הקמפיינים, תוכנית העבודה והגבולות שצוינו.</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="confirm_price" required />
+          <span>אני מאשר את דמי הניהול: {MONTHLY} ₪ לחודש כולל מע״מ, בהתקשרות מחודש לחודש ללא תקופת התחייבות. ידוע לי שתקציב המדיה בסך {MEDIA} ₪ לחודש אינו כלול בסכום זה, וכי הוא משולם על ידי מקס קפה בע״מ ישירות לגוגל מאמצעי תשלום של החברה — ולא נגבה על ידי NINJA Digital.</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="confirm_terms" required />
+          <span>אני מתחייב להעמיד את הרשאות הגישה הנדרשות (חשבון Google Ads הקיים, GA4, Merchant Center, ניהול Shopify ו-Google Business Profile) עם תחילת העבודה, ולהסדיר מדיניות משלוחים והחזרות באתר כנדרש על ידי Merchant Center.</span>
+        </label>
+      </fieldset>
+
+      <div class="signature-block">
+        <label for="signature">חתימה דיגיטלית</label>
+        <p class="hint">לחצו בתוך הריבוע וציירו את שמכם כחתימה.</p>
+        <div class="sig-wrap">
+          <canvas id="signature" aria-label="אזור חתימה"></canvas>
+          <span class="sig-line" aria-hidden="true"></span>
+          <span class="sig-x" aria-hidden="true">×</span>
+        </div>
+        <div class="sig-actions">
+          <button type="button" id="sig-clear" class="btn-ghost">נקה חתימה</button>
+        </div>
+      </div>
+
+      <div class="sign-actions">
+        <button type="submit" class="btn-primary">
+          אישור ושליחה
+          <span aria-hidden="true">←</span>
+        </button>
+        <p class="legal">בלחיצה על האישור, אני מקבל את התנאים המופיעים בהצעה זו ומסמיך את NINJA Digital להתחיל בעבודה.</p>
+      </div>
+    </form>
+
+    <div id="sign-success" class="sign-success" hidden>
+      <h3>התקבל. תודה.</h3>
+      <p>שרון יחזור אליכם תוך יום עסקים אחד עם רשימת ההרשאות הנדרשות ולוח זמנים לשבועיים הראשונים.</p>
+    </div>
+  </div>
+</section>
+<script is:inline>
+(() => {
+  const form = document.getElementById('proposal-sign');
+  const success = document.getElementById('sign-success');
+  const canvas = /** @type {HTMLCanvasElement} */(document.getElementById('signature'));
+  const ctx = canvas?.getContext('2d');
+  let drawing = false;
+  let hasInk = false;
+
+  if (canvas && ctx) {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    function setupCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#1a1a1a';
+    }
+    setupCanvas();
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const data = canvas.toDataURL();
+        setupCanvas();
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, 0, 0, canvas.width / dpr, canvas.height / dpr);
+        img.src = data;
+      }, 150);
+    });
+
+    function pos(e) {
+      const r = canvas.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+    function onDown(e) {
+      drawing = true;
+      canvas.setPointerCapture?.(e.pointerId);
+      const { x, y } = pos(e);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      e.preventDefault();
+    }
+    function onMove(e) {
+      if (!drawing) return;
+      const { x, y } = pos(e);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      hasInk = true;
+      e.preventDefault();
+    }
+    function onUp(e) {
+      if (!drawing) return;
+      drawing = false;
+      canvas.releasePointerCapture?.(e.pointerId);
+    }
+    canvas.addEventListener('pointerdown', onDown);
+    canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointercancel', onUp);
+    canvas.addEventListener('pointerleave', onUp);
+
+    document.getElementById('sig-clear')?.addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasInk = false;
+    });
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!hasInk) {
+      alert('נדרשת חתימה לפני האישור.');
+      return;
+    }
+    const data = Object.fromEntries(new FormData(form).entries());
+    const signature = canvas?.toDataURL('image/png');
+    try {
+      const res = await fetch('/api/proposal-sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proposal: 'maxcafe-ads', ...data, signature, signedAt: new Date().toISOString() }),
+      });
+      if (res.ok || res.status === 202) {
+        form.style.display = 'none';
+        success.removeAttribute('hidden');
+        success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        alert('משהו השתבש. נסו שוב או שלחו לי במייל ישירות.');
+      }
+    } catch {
+      alert('משהו השתבש בחיבור. נסו שוב.');
+    }
+  });
+})();
+</script>
+
+<style>
+/* ---------- HERO ---------- */
+.proposal-hero { padding: 120px 0 70px; position: relative; z-index: 2; }
+.proposal-hero h1 { font-size: clamp(2.4rem, 5.5vw, 4.4rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; line-height: 1.05; }
+.proposal-hero h1 em { font-style: normal; color: var(--gold, #ffd166); }
+.lede { color: rgba(255,255,255,0.78); max-width: 760px; margin-top: 18px; font-size: 1.05rem; line-height: 1.7; }
+.lede strong { color: #fff; font-weight: 700; }
+.meta { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 48px; padding: 22px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+@media (min-width: 860px) { .meta { grid-template-columns: repeat(5, 1fr); } }
+.meta > div { display: flex; flex-direction: column; gap: 4px; }
+.meta span { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+.meta strong { font-size: 1.02rem; color: #fff; }
+
+section { padding: 60px 0; }
+.eyebrow { font-size: 0.78rem; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.55); display: inline-block; }
+section h2 { font-size: clamp(1.9rem, 4vw, 2.8rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; }
+
+/* ---------- KPI STRIP ---------- */
+.kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 34px; }
+@media (min-width: 900px) { .kpis { grid-template-columns: repeat(5, 1fr); } }
+.kpi { padding: 22px 18px; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(255,255,255,0.02); }
+.kpi .k { font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+.kpi .v { font-size: 1.7rem; font-weight: 800; color: #fff; line-height: 1.2; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.kpi .d { font-size: 0.8rem; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.kpi .d.up { color: rgb(74, 222, 128); }
+.kpi .d.down { color: #ff6b78; }
+.kpi .d.flat { color: rgba(255,255,255,0.5); }
+.src { margin-top: 16px; font-size: 0.8rem; color: rgba(255,255,255,0.42); }
+
+/* ---------- FINDINGS ---------- */
+.finds { display: grid; gap: 14px; margin-top: 34px; }
+@media (min-width: 900px) { .finds { grid-template-columns: 1fr 1fr; } }
+.find { display: grid; grid-template-columns: auto 1fr; gap: 0 18px; align-items: start; padding: 24px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.02); }
+.find .fn { font-family: 'Rubik', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--gold, #ffd166); padding-top: 3px; min-width: 2.2em; }
+.find h3 { font-size: 1.2rem; font-weight: 700; line-height: 1.35; }
+.find p { margin-top: 8px; color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.95rem; }
+
+td.url { font-size: 0.86rem; color: rgba(255,255,255,0.62); unicode-bidi: plaintext; }
+
+/* ---------- ENGINES ---------- */
+.eng-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 34px; }
+@media (min-width: 900px) { .eng-grid { grid-template-columns: repeat(3, 1fr); } }
+.eng-card { padding: 28px 26px; border: 1px solid rgba(255,209,102,0.22); border-radius: 18px; background: linear-gradient(180deg, rgba(255,209,102,0.07), rgba(255,255,255,0.015)); }
+.eng-tag { display: inline-block; font-family: 'Rubik', sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold, #ffd166); border: 1px solid rgba(255,209,102,0.35); border-radius: 999px; padding: 4px 13px; margin-bottom: 16px; }
+.eng-card h3 { font-size: 1.45rem; font-weight: 800; letter-spacing: -0.01em; line-height: 1.25; }
+.eng-line { color: var(--gold, #ffd166); font-size: 0.97rem; font-weight: 600; line-height: 1.5; margin-top: 8px; }
+.eng-card > p:last-child { color: rgba(255,255,255,0.72); line-height: 1.68; font-size: 0.93rem; margin-top: 12px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08); }
+
+/* ---------- TABLES ---------- */
+.tscroll { overflow-x: auto; margin-top: 30px; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.02); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 0.92rem; }
+th { text-align: start; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.45); font-weight: 600; padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.12); white-space: nowrap; }
+td { padding: 13px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: top; color: rgba(255,255,255,0.8); line-height: 1.55; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: rgba(255,255,255,0.025); }
+td.kw { font-weight: 700; color: #fff; }
+td.num, th.num { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: start; }
+td.num.accent { color: var(--gold, #ffd166); font-weight: 700; }
+td.miss { color: rgba(255,255,255,0.65); font-size: 0.88rem; }
+
+/* ---------- CALLOUT ---------- */
+.callout { margin-top: 26px; padding: 22px 26px; border: 1px solid rgba(255,209,102,0.22); border-inline-start: 3px solid var(--gold, #ffd166); border-radius: 0 16px 16px 0; background: rgba(255,209,102,0.05); }
+.callout h4 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; color: #fff; }
+.callout p { color: rgba(255,255,255,0.78); line-height: 1.7; font-size: 0.97rem; }
+.callout strong { color: var(--gold, #ffd166); }
+
+/* ---------- PHASES ---------- */
+.phase { margin-top: 18px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); overflow: hidden; }
+.phase > header { display: flex; align-items: baseline; gap: 16px; padding: 18px 26px; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); flex-wrap: wrap; }
+.phase .pn { font-family: 'Rubik', sans-serif; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--gold, #ffd166); border: 1px solid rgba(255,209,102,0.35); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+.phase h3 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+.phase .when { margin-inline-start: auto; font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.42); }
+.phase ul { list-style: none; padding: 20px 26px; display: grid; gap: 13px; margin: 0; }
+.phase li { position: relative; padding-inline-start: 22px; color: rgba(255,255,255,0.75); line-height: 1.68; font-size: 0.96rem; }
+.phase li::before { content: ''; position: absolute; inset-inline-start: 0; top: 10px; width: 8px; height: 8px; border-radius: 50%; background: rgba(255,209,102,0.65); }
+.phase li :global(strong) { color: #fff; font-weight: 700; }
+.plan-note { margin-top: 26px; padding: 18px 22px; font-size: 0.9rem; line-height: 1.7; color: rgba(255,255,255,0.62); border-inline-start: 2px solid rgba(255,209,102,0.4); background: rgba(255,255,255,0.02); border-radius: 0 10px 10px 0; }
+
+/* ---------- MONTHLY INCLUDES ---------- */
+.inc-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 34px; }
+@media (min-width: 860px) { .inc-grid { grid-template-columns: repeat(3, 1fr); } }
+.inc-card { padding: 28px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+.inc-icon { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; color: var(--gold, #ffd166); background: rgba(255,209,102,0.1); border: 1px solid rgba(255,209,102,0.2); margin-bottom: 16px; }
+.inc-icon svg { width: 23px; height: 23px; }
+.inc-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; line-height: 1.35; }
+.inc-card p { color: rgba(255,255,255,0.7); line-height: 1.65; font-size: 0.94rem; }
+
+/* ---------- DECISIONS ---------- */
+.dec-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 34px; }
+@media (min-width: 900px) { .dec-grid { grid-template-columns: repeat(2, 1fr); } }
+.dec-card { padding: 26px; border: 1px solid rgba(120,180,255,0.18); border-radius: 18px; background: linear-gradient(180deg, rgba(120,180,255,0.05), rgba(255,255,255,0.01)); }
+.dec-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; color: rgb(170, 200, 255); line-height: 1.35; }
+.dec-card p { color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.92rem; }
+
+
+/* ---------- PRICE ---------- */
+.price h2 { margin-bottom: 28px; }
+.price-card { border: 1px solid rgba(255,255,255,0.12); border-radius: 22px; padding: 30px 36px; background: linear-gradient(180deg, rgba(255,209,102,0.08), rgba(255,255,255,0.02)); }
+.price-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-top: 1px solid rgba(255,255,255,0.06); gap: 14px; }
+.price-row:first-of-type { border-top: none; }
+.price-row span { line-height: 1.55; }
+.price-row strong { font-weight: 700; color: #fff; font-size: 1.05rem; white-space: nowrap; }
+.price-row.sub { color: rgba(255,255,255,0.7); }
+.price-row.sub strong { color: rgb(74, 222, 128); font-size: 0.95rem; }
+.price-row.timeline strong { color: var(--gold, #ffd166); font-size: 0.95rem; }
+.price-row.total { border-top: 1px solid rgba(255,209,102,0.4); padding-top: 22px; margin-top: 12px; }
+.price-row.total strong { font-size: 2rem; color: var(--gold, #ffd166); }
+.was { color: rgba(255,255,255,0.38); text-decoration-thickness: 1.5px; font-weight: 600; margin-inline-end: 10px; }
+.price-row.total .was { font-size: 0.55em; vertical-align: 0.35em; }
+.price-note { color: rgba(255,255,255,0.55); font-size: 0.85rem; margin-top: 16px; line-height: 1.7; }
+.price-note strong { color: rgba(255,255,255,0.8); }
+.price-todo { margin-top: 14px; padding: 12px 16px; border: 1px dashed rgba(255,42,60,0.5); border-radius: 10px; background: rgba(255,42,60,0.08); color: #ff9aa4; font-size: 0.88rem; }
+.price-todo code { font-family: 'Rubik', monospace; color: #fff; }
+
+/* ---------- EXTRAS ---------- */
+.extras { margin-top: 20px; padding: 28px 32px; border: 1px solid rgba(255,255,255,0.1); border-radius: 22px; background: rgba(255,255,255,0.02); }
+.extras-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.extras-tag { font-family: 'Rubik', sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(170, 200, 255); border: 1px solid rgba(120,180,255,0.32); border-radius: 999px; padding: 4px 13px; white-space: nowrap; }
+.extras-head h3 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+.extras > p { color: rgba(255,255,255,0.72); line-height: 1.7; font-size: 0.96rem; }
+.extras-list { list-style: none; padding: 18px 0 0; margin: 18px 0 0; display: grid; gap: 12px; border-top: 1px solid rgba(255,255,255,0.07); }
+.extras-list li { position: relative; padding-inline-start: 22px; color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.93rem; }
+.extras-list li::before { content: ''; position: absolute; inset-inline-start: 0; top: 9px; width: 7px; height: 7px; border-radius: 50%; background: rgba(120,180,255,0.6); }
+.extras-list strong { color: #fff; font-weight: 700; }
+@media (max-width: 720px) { .extras { padding: 22px 20px; } }
+
+/* ---------- SIGN ---------- */
+.sign-card { margin-top: 32px; padding: 32px; border: 1px solid rgba(255,255,255,0.12); border-radius: 22px; background: rgba(255,255,255,0.03); display: grid; gap: 20px; }
+.field-row { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 768px) { .field-row { grid-template-columns: 1fr 1fr; } }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+.field input { height: 48px; padding: 0 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: #fff; font-size: 1rem; transition: border-color 0.2s; }
+.field input:focus { outline: none; border-color: var(--gold, #ffd166); }
+.confirms { display: grid; gap: 8px; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(0,0,0,0.2); }
+.check { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: start; cursor: pointer; padding: 10px 8px; border-radius: 10px; transition: background 0.15s; }
+.check:hover { background: rgba(255,255,255,0.04); }
+.check input[type=checkbox] { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--gold, #ffd166); cursor: pointer; flex-shrink: 0; }
+.check span { line-height: 1.55; color: rgba(255,255,255,0.88); font-size: 0.95rem; }
+
+.signature-block { display: grid; gap: 10px; padding: 18px 20px; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; background: rgba(0,0,0,0.25); }
+.signature-block label { font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.65); }
+.signature-block .hint { font-size: 0.85rem; color: rgba(255,255,255,0.55); margin: 0; }
+.sig-wrap { position: relative; width: 100%; }
+canvas#signature { display: block; width: 100%; height: 200px; background: #ffffff; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); cursor: crosshair; touch-action: none; }
+.sig-line { position: absolute; inset-inline: 24px; bottom: 38px; height: 1px; background: rgba(0,0,0,0.18); pointer-events: none; }
+.sig-x { position: absolute; inset-inline-start: 24px; bottom: 26px; font-size: 0.85rem; color: rgba(0,0,0,0.45); letter-spacing: 0.05em; pointer-events: none; font-family: 'Rubik', sans-serif; }
+.sig-actions { display: flex; justify-content: flex-end; }
+.btn-ghost { background: transparent; border: 1px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.7); padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: border-color 0.2s; }
+.btn-ghost:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
+
+.sign-actions { margin-top: 12px; display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
+.btn-primary { height: 56px; background: linear-gradient(135deg, var(--gold, #ffd166), #d4a534); color: #0a0a0a; border: none; font-size: 1.05rem; font-weight: 700; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.2s, box-shadow 0.2s; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 30px -10px rgba(255,209,102,0.3); }
+.legal { color: rgba(255,255,255,0.5); font-size: 0.82rem; text-align: center; }
+
+.sign-success { margin-top: 32px; padding: 36px; border: 1px solid rgba(74,222,128,0.3); background: rgba(74,222,128,0.06); border-radius: 22px; text-align: center; }
+.sign-success h3 { font-size: 1.8rem; font-weight: 700; color: rgb(134, 239, 172); margin-bottom: 10px; }
+.sign-success p { color: rgba(255,255,255,0.85); line-height: 1.6; }
+
+@media (max-width: 720px) {
+  .proposal-hero { padding: 36px 0 50px; }
+  .proposal-hero h1 { font-size: 2.1rem; line-height: 1.15; }
+  .proposal-hero .lede { font-size: 0.98rem; }
+  .meta { gap: 12px; padding: 16px; margin-top: 24px; }
+  .meta strong { font-size: 0.92rem; }
+  section { padding: 44px 0; }
+  .price-card { padding: 22px 20px; }
+  .price-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .sign-card { padding: 22px 18px; }
+}
+</style>
+
+<style is:global>
+/* site.js מצפה לניווט הרגיל שהוסתר בעמוד הזה וזורק TypeError,
+ * מה ששובר את ה-IntersectionObserver שמוסיף .in — לכן כופים נראות. */
+[data-reveal] { opacity: 1 !important; transform: none !important; }
+html, body { overflow-x: clip; }
+</style>
+</Layout>
