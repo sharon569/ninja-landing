@@ -13,7 +13,7 @@ const MEDIA = '5,000';
 
 const MODULES = [
   {
-    id: 'ads',
+    id: 'performance',
     tag: 'מודול A',
     name: 'Google Ads · Performance',
     line: 'מנוע הרכישה: לקוחות חדשות, מכירות מדידות.',
@@ -263,10 +263,10 @@ const synergy = [
 
 /* =============================== מדדים =============================== */
 const metrics = [
-  { mod: 'ads', m: 'ROAS כולל ולפי קטגוריה', why: 'המדד הראשי באדס. נמדד בנפרד לאיפור, טיפוח, שיער ובישום.' },
-  { mod: 'ads', m: 'עלות לרכישה (CPA) — לקוחה חדשה', why: 'כמה עולה לגייס לקוחה שלא קנתה מעולם. ההבחנה בין חדשה לחוזרת היא מה שמונע מאיתנו לייפות מספרים.' },
-  { mod: 'ads', m: 'שיעור התנועה המותגית', why: 'אם רוב ההמרות מגיעות מחיפוש "גילטי", הקמפיין לא באמת מייצר לקוחות חדשים.' },
-  { mod: 'ads', m: 'מוצרים מאושרים ב-Merchant Center', why: 'התנאי הטכני לכל Shopping ו-Performance Max. מוצר פסול הוא מוצר שלא קיים.' },
+  { mod: 'performance', m: 'ROAS כולל ולפי קטגוריה', why: 'המדד הראשי באדס. נמדד בנפרד לאיפור, טיפוח, שיער ובישום.' },
+  { mod: 'performance', m: 'עלות לרכישה (CPA) — לקוחה חדשה', why: 'כמה עולה לגייס לקוחה שלא קנתה מעולם. ההבחנה בין חדשה לחוזרת היא מה שמונע מאיתנו לייפות מספרים.' },
+  { mod: 'performance', m: 'שיעור התנועה המותגית', why: 'אם רוב ההמרות מגיעות מחיפוש "גילטי", הקמפיין לא באמת מייצר לקוחות חדשים.' },
+  { mod: 'performance', m: 'מוצרים מאושרים ב-Merchant Center', why: 'התנאי הטכני לכל Shopping ו-Performance Max. מוצר פסול הוא מוצר שלא קיים.' },
   { mod: 'flashy', m: 'הכנסה מדיוור (% מסך ההכנסות)', why: 'המדד הראשי ב-Flashy. כמה מהמחזור מגיע מאוטומציות ומקמפיינים.' },
   { mod: 'flashy', m: 'הכנסה לנמען', why: 'מנרמל את ההכנסה לגודל הרשימה — כדי שרשימה גדלה לא תסתיר ביצועים שיורדים.' },
   { mod: 'flashy', m: 'שיעור רכישה חוזרת', why: 'המדד שאוטומציית חידוש המלאי נבנתה בשבילו.' },
@@ -275,8 +275,8 @@ const metrics = [
 
 /* =============================== החלטות =============================== */
 const decisions = [
-  { mod: 'ads', title: 'הרשאות Google', body: 'חשבון Google Ads (קישור ל-MCC שלנו), Google Analytics 4, Google Tag Manager ו-Merchant Center. בלעדיהן חלק מהעבודה הופכת להמלצה במקום לביצוע.' },
-  { mod: 'ads', title: 'פיד מוצרים מהאתר', body: 'האתר בנוי על פלטפורמה ייעודית (IWP). צריך לוודא שהיא מייצאת פיד מוצרים מלא — מחיר, מלאי, GTIN, מותג ותמונות — או לתאם איתה את הפקתו.' },
+  { mod: 'performance', title: 'הרשאות Google', body: 'חשבון Google Ads (קישור ל-MCC שלנו), Google Analytics 4, Google Tag Manager ו-Merchant Center. בלעדיהן חלק מהעבודה הופכת להמלצה במקום לביצוע.' },
+  { mod: 'performance', title: 'פיד מוצרים מהאתר', body: 'האתר בנוי על פלטפורמה ייעודית (IWP). צריך לוודא שהיא מייצאת פיד מוצרים מלא — מחיר, מלאי, GTIN, מותג ותמונות — או לתאם איתה את הפקתו.' },
   { mod: 'flashy', title: 'הרשאות Flashy', body: 'הרשאת משתמש מלאה בחשבון Flashy, וגישה להגדרות ה-DNS של הדומיין לצורך אימות השולח.' },
   { mod: 'flashy', title: 'נכסים ומבצעים', body: 'גישה לתמונות מוצר ולנכסי מותג, ולוח מבצעים חודשי מצד גילטי — כדי שכל ניוזלטר ו-SMS ייצאו מתואמים למה שקורה באתר ובחנויות.' },
 ];
@@ -404,9 +404,9 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
 </section>
 
 <!-- ============================ מודול A ============================ -->
-<div class="module-block mod-ads" data-module-section="ads">
+<div class="module-block mod-performance" data-module-section="performance">
   <div class="container">
-    <div class="module-banner">
+    <div class="module-head">
       <span class="mb-tag">מודול A</span>
       <h2>Google Ads · Performance</h2>
       <p>מנוע הרכישה. {fmt(2500)} ₪ לחודש + מע״מ · תקציב מדיה מומלץ: {MEDIA} ₪ לחודש, משולם ישירות לגוגל.</p>
@@ -508,7 +508,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
 <!-- ============================ מודול B ============================ -->
 <div class="module-block mod-flashy" data-module-section="flashy">
   <div class="container">
-    <div class="module-banner">
+    <div class="module-head">
       <span class="mb-tag">מודול B</span>
       <h2>Flashy · ניהול לקוחות, דיוור ואוטומציות</h2>
       <p>מנוע החזרה. {fmt(2500)} ₪ לחודש + מע״מ · כולל סטודיו ועיצוב לניוזלטרים ול-SMS.</p>
@@ -653,7 +653,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
           {metrics.map((m) => (
             <tr data-module-row={m.mod}>
               <td class="kw">{m.m}</td>
-              <td class="num accent">{m.mod === 'ads' ? 'Google Ads' : 'Flashy'}</td>
+              <td class="num accent">{m.mod === 'performance' ? 'Google Ads' : 'Flashy'}</td>
               <td class="miss">{m.why}</td>
             </tr>
           ))}
@@ -670,7 +670,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
     <div class="dec-grid">
       {decisions.map((d) => (
         <div class="dec-card" data-module-row={d.mod}>
-          <span class="dec-mod">{d.mod === 'ads' ? 'Google Ads' : 'Flashy'}</span>
+          <span class="dec-mod">{d.mod === 'performance' ? 'Google Ads' : 'Flashy'}</span>
           <h3>{d.title}</h3>
           <p>{d.body}</p>
         </div>
@@ -755,7 +755,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
           <span>
             הריני לאשר דמי ניהול בסך <strong><span data-total-net>5,000</span> ₪ לחודש + מע״מ</strong>
             (<span data-total-gross>5,900</span> ₪ כולל מע״מ), בחיוב חודשי בכרטיס אשראי, בהתקשרות מחודש לחודש ללא תקופת התחייבות וללא דמי הקמה.
-            <span data-confirm="ads"> ידוע לי שתקציב המדיה לגוגל (מומלץ {MEDIA} ₪ לחודש) אינו כלול ומשולם ישירות לגוגל.</span>
+            <span data-confirm="performance"> ידוע לי שתקציב המדיה לגוגל (מומלץ {MEDIA} ₪ לחודש) אינו כלול ומשולם ישירות לגוגל.</span>
             <span data-confirm="flashy"> ידוע לי שמנוי פלטפורמת Flashy אינו כלול ומשולם ישירות ל-Flashy לפי גודל מועדון הלקוחות.</span>
           </span>
         </label>
@@ -763,7 +763,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
           <input type="checkbox" name="confirm_terms" required />
           <span>
             הריני להתחייב להעמיד את הרשאות הגישה הנדרשות עם תחילת העבודה:
-            <span data-confirm="ads">Google Ads, GA4, Tag Manager ו-Merchant Center</span><span data-confirm="both">, וכן </span><span data-confirm="flashy">חשבון Flashy והגדרות DNS לאימות השולח</span>.
+            <span data-confirm="performance">Google Ads, GA4, Tag Manager ו-Merchant Center</span><span data-confirm="both">, וכן </span><span data-confirm="flashy">חשבון Flashy והגדרות DNS לאימות השולח</span>.
           </span>
         </label>
       </fieldset>
@@ -936,7 +936,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
     const net = chosen.reduce((s, m) => s + m.price, 0);
     const vat = net * VAT;
     const extras = [];
-    if (selected.has('ads')) extras.push(`תקציב מדיה לגוגל — מומלץ ${MEDIA} ₪ לחודש, משולם ישירות לגוגל`);
+    if (selected.has('performance')) extras.push(`תקציב מדיה לגוגל — מומלץ ${MEDIA} ₪ לחודש, משולם ישירות לגוגל`);
     if (selected.has('flashy')) extras.push('מנוי פלטפורמת Flashy — לפי גודל מועדון הלקוחות, משולם ישירות ל-Flashy');
 
     // סיכום שנכנס כמו שהוא ל-PDF החתום ולמייל
@@ -1030,7 +1030,7 @@ section h2 { font-size: clamp(1.9rem, 4vw, 2.8rem); font-weight: 800; letter-spa
 .callout strong { color: var(--gold, #ffd166); }
 
 /* ---------- MODULE PICKER ---------- */
-.mod-ads { --mc: 255, 209, 102; }
+.mod-performance { --mc: 255, 209, 102; }
 .mod-flashy { --mc: 255, 122, 182; }
 .mod-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 34px; }
 @media (min-width: 900px) { .mod-grid { grid-template-columns: 1fr 1fr; } }
@@ -1061,10 +1061,10 @@ section h2 { font-size: clamp(1.9rem, 4vw, 2.8rem); font-weight: 800; letter-spa
 
 /* ---------- MODULE BLOCKS ---------- */
 .module-block { position: relative; padding-top: 40px; transition: opacity 0.3s, filter 0.3s; }
-.module-banner { position: relative; padding: 34px 32px; border-radius: 24px; border: 1px solid rgba(var(--mc), 0.35); background: linear-gradient(135deg, rgba(var(--mc), 0.16), rgba(var(--mc), 0.03) 60%, transparent); }
+.module-head { position: relative; padding: 34px 32px; border-radius: 24px; border: 1px solid rgba(var(--mc), 0.35); background: linear-gradient(135deg, rgba(var(--mc), 0.16), rgba(var(--mc), 0.03) 60%, transparent); }
 .mb-tag { font-family: 'Rubik', sans-serif; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(var(--mc)); }
-.module-banner h2 { font-size: clamp(2rem, 4.5vw, 3.2rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 8px; line-height: 1.1; }
-.module-banner p { color: rgba(255,255,255,0.75); margin-top: 10px; font-size: 1rem; line-height: 1.6; }
+.module-head h2 { font-size: clamp(2rem, 4.5vw, 3.2rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 8px; line-height: 1.1; }
+.module-head p { color: rgba(255,255,255,0.75); margin-top: 10px; font-size: 1rem; line-height: 1.6; }
 .mb-off { display: none; margin-top: 14px; font-size: 0.82rem; letter-spacing: 0.06em; color: rgba(255,255,255,0.6); border: 1px dashed rgba(255,255,255,0.3); border-radius: 999px; padding: 5px 14px; }
 .module-block.is-off { opacity: 0.38; filter: grayscale(0.8); }
 .module-block.is-off .mb-off { display: inline-block; }
@@ -1210,7 +1210,7 @@ canvas#signature { display: block; width: 100%; height: 200px; background: #ffff
   section { padding: 44px 0; }
   .mod-card { padding: 24px 20px 22px; }
   .mod-name { font-size: 1.3rem; }
-  .module-banner { padding: 26px 20px; }
+  .module-head { padding: 26px 20px; }
   .extras { padding: 22px 20px; }
   .price-card { padding: 22px 20px; }
   .price-row { flex-direction: column; align-items: flex-start; gap: 6px; }
