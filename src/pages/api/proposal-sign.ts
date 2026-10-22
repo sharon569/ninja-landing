@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { generateProposalPDF } from '../../lib/proposal-pdf';
+import { generateProposalPDF, type ProposalSummary } from '../../lib/proposal-pdf';
 
 export const prerender = false;
 
@@ -19,6 +19,8 @@ interface Payload {
   signature?: string;
   signedAt?: string;
   interest?: string[];
+  modules?: string[];
+  summary?: ProposalSummary;
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -47,6 +49,8 @@ export const POST: APIRoute = async ({ request }) => {
     signedAt: payload.signedAt,
     signatureBytes: payload.signature?.length ?? 0,
     interest: payload.interest,
+    modules: payload.modules,
+    total: payload.summary?.total?.amount,
     ip,
     ua,
   }));
@@ -76,7 +80,7 @@ export const POST: APIRoute = async ({ request }) => {
   const adminRes = await sendEmail(key, {
     to: [TO_EMAIL],
     reply_to: payload.email,
-    subject: `הצעת מחיר ${payload.proposal}: אושרה ע"י ${payload.name ?? 'לקוח'}`,
+    subject: `הצעת מחיר ${payload.proposal}: אושרה ע"י ${payload.name ?? 'לקוח'}${payload.summary?.project ? ` · ${payload.summary.project}` : ''}${payload.summary?.total?.amount ? ` · ${payload.summary.total.amount}` : ''}`,
     html: renderAdmin(payload, ip),
     attachments: [...(sigAttachment ?? []), ...pdfAttachment],
   });
@@ -187,6 +191,7 @@ function renderAdmin(payload: Payload, ip: string) {
       </table>
       <h3 style="margin-top: 22px;">חתימה דיגיטלית</h3>
       ${payload.signature ? `<img src="cid:signature" alt="Signature" style="max-width: 100%; border: 1px solid #ddd; padding: 4px;" />` : '<em>לא צורפה תמונה</em>'}
+      ${renderSummaryAdmin(payload.summary)}
       ${payload.interest && payload.interest.length ? `
         <h3 style="margin-top: 22px;">שירותים נוספים שסומנו כמעניינים</h3>
         <ul style="padding-inline-start: 20px; line-height: 1.8;">
@@ -197,6 +202,19 @@ function renderAdmin(payload: Payload, ip: string) {
       </p>
     </div>
   `;
+}
+
+function renderSummaryAdmin(summary?: ProposalSummary) {
+  if (!summary?.items?.length) return '';
+  const rows = summary.items
+    .map((i) => `<tr><td style="padding: 6px 10px; border-bottom: 1px solid #eee;">${escape(i.label ?? '')}</td><td style="padding: 6px 10px; border-bottom: 1px solid #eee; white-space: nowrap;">${escape(i.amount ?? '')}</td></tr>`)
+    .join('');
+  const total = summary.total
+    ? `<tr><td style="padding: 8px 10px;"><strong>${escape(summary.total.label ?? '')}</strong></td><td style="padding: 8px 10px; white-space: nowrap;"><strong>${escape(summary.total.amount ?? '')}</strong></td></tr>`
+    : '';
+  return `
+      <h3 style="margin-top: 22px;">מה אושר</h3>
+      <table style="border-collapse: collapse; width: 100%;">${rows}${total}</table>`;
 }
 
 function renderCustomer(payload: Payload, hasPDF: boolean) {
@@ -241,7 +259,7 @@ function renderCustomer(payload: Payload, hasPDF: boolean) {
         </table>
 
         <div style="background:#fafafa;border-right:3px solid #ff2a3c;border-radius:6px;padding:14px 18px;margin-bottom:24px;color:#27272a;font-size:13px;line-height:1.7;">
-          אישרת את היקף השירותים, את המחיר ואת תנאי ההתקשרות.
+          אישרת את היקף השירותים, את המחיר ואת תנאי ההתקשרות.${payload.summary?.items?.length ? `<br><strong>${payload.summary.items.map((i) => escape(i.label ?? '')).join(' · ')}</strong>${payload.summary.total ? ` — ${escape(payload.summary.total.amount ?? '')} ${escape(payload.summary.total.label ?? '')}` : ''}` : ''}
         </div>
 
         ${payload.signature ? `

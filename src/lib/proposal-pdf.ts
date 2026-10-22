@@ -15,6 +15,22 @@ export interface ProposalPDFInput {
   confirm_scope?: string;
   confirm_price?: string;
   confirm_terms?: string;
+  summary?: ProposalSummary;
+}
+
+// סיכום שהעמוד עצמו שולח — כך כל הצעה מקבלת PDF עם התוכן שלה.
+// בלי summary נופלים לתוכן הישן (UNOX × פפר).
+export interface ProposalSummary {
+  title?: string;
+  client?: string;
+  project?: string;
+  lede?: string;
+  items?: { label?: string; detail?: string; amount?: string }[];
+  totals?: { label?: string; amount?: string }[];
+  total?: { label?: string; amount?: string };
+  extras?: string[];
+  terms?: string;
+  confirms?: string[];
 }
 
 export async function generateProposalPDF(input: ProposalPDFInput): Promise<Buffer> {
@@ -57,13 +73,15 @@ function formatDate(iso?: string) {
   }
 }
 
-function renderHTML(d: ProposalPDFInput): string {
+export function renderHTML(d: ProposalPDFInput): string {
   const today = formatDate(new Date().toISOString());
   const signedAt = formatDate(d.signedAt);
   const name = escape(d.name ?? '');
   const role = escape(d.title ?? '');
   const email = escape(d.email ?? '');
   const phone = escape(d.phone ?? '');
+  const body = d.summary ? renderSummaryBody(d.summary, name) : LEGACY_BODY(name);
+  const confirms = d.summary ? renderSummaryConfirms(d.summary) : LEGACY_CONFIRMS;
 
   return `<!DOCTYPE html>
 <html lang="he" dir="rtl">
@@ -143,7 +161,91 @@ function renderHTML(d: ProposalPDFInput): string {
     </div>
   </header>
 
-  <h1>אתר התאגידי של <em>UNOX × י. פפר בע"מ</em></h1>
+${body}
+  <div class="signing">
+    <span class="section-eyebrow">אישור חתימה</span>
+    <h2 style="font-family:'Rubik',sans-serif;font-size:16px;font-weight:800;margin-bottom:14px;">פרטי החותם והחתימה הדיגיטלית</h2>
+    <div class="signing-grid">
+      <div class="sig-meta">
+        <div class="row"><span class="lbl">שם מלא</span><span class="val">${name || '—'}</span></div>
+        <div class="row"><span class="lbl">תפקיד</span><span class="val">${role || '—'}</span></div>
+        <div class="row"><span class="lbl">אימייל</span><span class="val">${email || '—'}</span></div>
+        <div class="row"><span class="lbl">טלפון</span><span class="val">${phone || '—'}</span></div>
+        <div class="row"><span class="lbl">תאריך חתימה</span><span class="val">${signedAt || '—'}</span></div>
+      </div>
+      <div>
+        <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:#71717a;font-weight:700;margin-bottom:6px;">חתימה דיגיטלית</div>
+        <div class="sig-box">
+          ${d.signature ? `<img src="${d.signature}" alt="חתימה">` : `<span class="sig-empty">לא צורפה חתימה</span>`}
+        </div>
+      </div>
+    </div>
+
+${confirms}  </div>
+
+  <div class="footer">
+    <span class="brand-mini">NINJA DIGITAL</span>
+    <span>sharon@samp.ninja · 054-582-2451 · samp.ninja</span>
+  </div>
+</body>
+</html>`;
+}
+
+
+function renderSummaryBody(sm: ProposalSummary, name: string): string {
+  const e = (v?: string) => escape(v ?? '');
+  const items = (sm.items ?? [])
+    .map((i) => `
+        <tr>
+          <td>${e(i.label)}${i.detail ? `<div style="font-size:11px;color:#71717a;margin-top:2px;">${e(i.detail)}</div>` : ''}</td>
+          <td class="amount">${e(i.amount)}</td>
+        </tr>`)
+    .join('');
+  const totals = (sm.totals ?? [])
+    .map((t) => `<tr class="muted"><td>${e(t.label)}</td><td class="amount">${e(t.amount)}</td></tr>`)
+    .join('');
+  const total = sm.total
+    ? `<tr class="total"><td>${e(sm.total.label)}</td><td class="amount">${e(sm.total.amount)}</td></tr>`
+    : '';
+  const extras = (sm.extras ?? [])
+    .map((x) => `<tr class="muted"><td colspan="2">לא כלול — ${e(x)}</td></tr>`)
+    .join('');
+  return `  <h1>${e(sm.title)}</h1>
+  <p class="lede">${e(sm.lede)}</p>
+
+  <div class="recipient">
+    <div class="cell"><div class="label">לקוח</div><div class="value">${e(sm.client)}</div></div>
+    <div class="cell"><div class="label">חתימה ע"י</div><div class="value">${name || '—'}</div></div>
+    <div class="cell"><div class="label">שירותים</div><div class="value">${e(sm.project)}</div></div>
+  </div>
+
+  <div class="section">
+    <span class="section-eyebrow">סיכום עלויות</span>
+    <h2>השירותים שאושרו</h2>
+    <table class="price">
+      <thead>
+        <tr><th>פריט</th><th style="text-align:left;">סכום</th></tr>
+      </thead>
+      <tbody>${items}${totals}${total}${extras}
+      </tbody>
+    </table>
+    ${sm.terms ? `<div class="terms"><strong>תנאי תשלום והתקשרות:</strong> ${e(sm.terms)}</div>` : ''}
+  </div>
+`;
+}
+
+function renderSummaryConfirms(sm: ProposalSummary): string {
+  const rows = (sm.confirms ?? [])
+    .map((c) => `      <div><span class="check">✓</span> ${escape(c)}</div>`)
+    .join('\n');
+  return `    <div class="confirms">
+      <span class="ok">אישור מלא ע"י החותם:</span>
+${rows}
+    </div>
+`;
+}
+
+const LEGACY_BODY = (name: string) => `  <h1>אתר התאגידי של <em>UNOX × י. פפר בע"מ</em></h1>
   <p class="lede">פירוט מלא של היקף העבודה, תוכן הפרויקט, סיכום עלויות ותנאי ההתקשרות.</p>
 
   <div class="recipient">
@@ -203,37 +305,12 @@ function renderHTML(d: ProposalPDFInput): string {
     </div>
   </div>
 
-  <div class="signing">
-    <span class="section-eyebrow">אישור חתימה</span>
-    <h2 style="font-family:'Rubik',sans-serif;font-size:16px;font-weight:800;margin-bottom:14px;">פרטי החותם והחתימה הדיגיטלית</h2>
-    <div class="signing-grid">
-      <div class="sig-meta">
-        <div class="row"><span class="lbl">שם מלא</span><span class="val">${name || '—'}</span></div>
-        <div class="row"><span class="lbl">תפקיד</span><span class="val">${role || '—'}</span></div>
-        <div class="row"><span class="lbl">אימייל</span><span class="val">${email || '—'}</span></div>
-        <div class="row"><span class="lbl">טלפון</span><span class="val">${phone || '—'}</span></div>
-        <div class="row"><span class="lbl">תאריך חתימה</span><span class="val">${signedAt || '—'}</span></div>
-      </div>
-      <div>
-        <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:#71717a;font-weight:700;margin-bottom:6px;">חתימה דיגיטלית</div>
-        <div class="sig-box">
-          ${d.signature ? `<img src="${d.signature}" alt="חתימה">` : `<span class="sig-empty">לא צורפה חתימה</span>`}
-        </div>
-      </div>
-    </div>
+`;
 
-    <div class="confirms">
+const LEGACY_CONFIRMS = `    <div class="confirms">
       <span class="ok">אישור מלא ע"י החותם:</span>
       <div><span class="check">✓</span> אישור היקף השירותים שתואר בהצעה</div>
       <div><span class="check">✓</span> אישור המחיר: 9,000 ש"ח + מע"מ עבור בנייה, ו-850 ש"ח + מע"מ לשנה אחסון</div>
       <div><span class="check">✓</span> אישור תנאי ההתקשרות: מקדמה 50% ויתרה במסירה</div>
     </div>
-  </div>
-
-  <div class="footer">
-    <span class="brand-mini">NINJA DIGITAL</span>
-    <span>sharon@samp.ninja · 054-582-2451 · samp.ninja</span>
-  </div>
-</body>
-</html>`;
-}
+`;

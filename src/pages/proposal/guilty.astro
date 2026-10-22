@@ -1,0 +1,1227 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+/* ---------------------------------------------------------------------------
+ * הצעה מודולרית — הלקוח מסמן אילו מודולים נכנסים, והמחיר מתעדכן בזמן אמת.
+ * מחירים לפני מע״מ (נקבע מול שרון): 2,500 ₪ לכל מודול, בלי הנחת חבילה,
+ * בלי דמי הקמה, בלי התחייבות. חיוב חודשי בכרטיס אשראי.
+ * MEDIA — תקציב המדיה המומלץ לגוגל, משולם ישירות לגוגל ולא עובר דרכנו.
+ * VAT — שיעור המע״מ בישראל.
+ * ------------------------------------------------------------------------- */
+const VAT = 0.18;
+const MEDIA = '5,000';
+
+const MODULES = [
+  {
+    id: 'ads',
+    tag: 'מודול A',
+    name: 'Google Ads · Performance',
+    line: 'מנוע הרכישה: לקוחות חדשות, מכירות מדידות.',
+    price: 2500,
+    points: [
+      'Performance Max · Shopping · Search · Demand Gen',
+      'Merchant Center והפיד — הקמה, ניקוי והעשרה',
+      'מדידת המרות עם ערך דינמי ו-Enhanced Conversions',
+      'לוח קמפיינים עונתי ודוח חודשי',
+    ],
+  },
+  {
+    id: 'flashy',
+    tag: 'מודול B',
+    name: 'Flashy · ניהול לקוחות ודיוור',
+    line: 'מנוע החזרה: הלקוחה שכבר קנתה — קונה שוב.',
+    price: 2500,
+    points: [
+      'בנייה וניהול של אוטומציות מלאות',
+      'עד 4 ניוזלטרים ועד 4 קמפייני SMS בחודש',
+      'סטודיו ועיצוב לכל ניוזלטר ו-SMS',
+      'סגמנטציה, הגדלת רשימות ודוח הכנסות מדיוור',
+    ],
+  },
+];
+
+const fmt = (n: number) => n.toLocaleString('he-IL');
+
+// מה שנמצא בסריקה של האתר — עובדות, לא הערכות
+const kpis = [
+  { k: 'מוצרים באתר', v: '2,500+', d: 'לפי מפת האתר', tone: 'up' },
+  { k: 'מותגים', v: '280+', d: 'מ-K18 ועד Charlotte Tilbury', tone: 'up' },
+  { k: 'כתבות מגזין', v: '460+', d: 'תוכן שמחכה להפצה', tone: 'up' },
+  { k: 'Flashy', v: 'מותקן', d: 'הפלטפורמה כבר באתר', tone: 'up' },
+  { k: 'משלוח חינם', v: '269 ₪', d: 'סף שאפשר לעבוד איתו', tone: 'flat' },
+];
+
+const findings = [
+  {
+    n: '01',
+    title: 'Flashy כבר באתר. מה שחסר הוא מי שמפעיל אותו.',
+    body: 'קוד המעקב של Flashy מותקן בכל עמודי האתר, כלומר הפלטפורמה כבר רואה גלישות, צפיות במוצר ועגלות. אין כאן מעבר מערכת, אין הגירת רשימות ואין שבועות של הטמעה — יש מנוע מוכן שצריך לחבר אליו אסטרטגיה, אוטומציות ועיצוב. זה ההבדל בין כלי שמשלמים עליו לבין כלי שמכניס כסף.',
+  },
+  {
+    n: '02',
+    title: 'ההסכמה לדיוור כבר נאספת — בכל הרשמה',
+    body: 'בטופס ההרשמה יש סימון אישור לקבלת מבצעים במייל וב-SMS. כל לקוחה שנרשמה ואישרה היא נכס שיווקי שכבר שולם עליו. השאלה היא לא איך לבנות רשימה — אלא כמה מהרשימה הקיימת באמת עובדת: מי קיבלה מייל בחודש האחרון, מי פתחה, ומי לא שמעה מכם מאז הרכישה הראשונה.',
+  },
+  {
+    n: '03',
+    title: 'מוצרי יופי נגמרים. זה כל המודל העסקי.',
+    body: 'שמפו, סרום, מסקרה, קרם לחות — לכל מוצר יש מחזור שימוש צפוי. לקוחה שקנתה מסכת K18 תצטרך חדשה בעוד כמה חודשים, והשאלה היחידה היא אם היא תחזור לגילטי או תחפש בגוגל ותקנה אצל מתחרה. אוטומציית חידוש מלאי שנשלחת בזמן הנכון היא המכירה הזולה ביותר שקיימת: בלי עלות מדיה, ללקוחה שכבר סומכת עליכם.',
+  },
+  {
+    n: '04',
+    title: 'החיפושים הם על מותגים — ולגילטי יש את המותגים',
+    body: 'K18, Olaplex, Kerastase, Moroccanoil, Charlotte Tilbury, CeraVe, COSRX — אלה מותגים שהלקוחות מחפשות בשם, עם שם המוצר ולעתים עם המילה "מחיר". חיפוש כזה הוא כוונת קנייה טהורה. מבנה קמפיינים שמפוצל לפי מותג וקטגוריה, עם פיד מוצרים נקי, הוא מה שמאפשר לגילטי להופיע בדיוק ברגע הזה — עם התמונה, המחיר והמשלוח.',
+  },
+  {
+    n: '05',
+    title: 'המדידה דורשת בדיקה לפני שמוציאים שקל',
+    body: 'בקוד המקור של האתר מופיע תג של Universal Analytics — גרסה שגוגל הפסיקה לעבד בה נתונים ב-2023. לא זיהינו תג GA4 או תג המרה של Google Ads ישירות בקוד; ייתכן שהם מותקנים דרך Google Tag Manager שקיים באתר. זה לא ממצא שלילי — זו נקודה לבדיקה בשבוע הראשון, כי קמפיין Performance בלי מדידת המרות עם ערך הוא קמפיין שמנחש.',
+  },
+  {
+    n: '06',
+    title: 'משלוח חינם מ-269 ₪ — מנוף שעובד בשני הצדדים',
+    body: 'סף המשלוח החינמי הוא כלי להגדלת הסל, אבל רק אם מזכירים אותו ברגע הנכון. באדס — במודעות ובהרחבות. ב-Flashy — במייל נטישת עגלה שאומר "חסרים לך 40 ₪ למשלוח חינם", ובהמלצות מוצר שמשלימות את הסל בדיוק לסף. הגדלה של כמה עשרות שקלים בסל הממוצע, על פני אלפי הזמנות, היא שורה רצינית בדוח.',
+  },
+];
+
+/* ============================ מודול A — ADS ============================ */
+const engines = [
+  {
+    tag: 'מנוע 1',
+    name: 'Performance Max',
+    line: 'הקטלוג המלא, על כל שטחי הפרסום של גוגל.',
+    body: 'פיד של 2,500+ מוצרים פרוש על חיפוש, שופינג, יוטיוב, ג׳ימייל, דיספליי ו-Discover. האלגוריתם מוצא את המוצר הנכון לחיפוש הנכון — בתנאי שהוא מפוצל לקבוצות נכסים לפי קטגוריה (איפור, טיפוח, שיער, בישום) ולפי רמת מרווח, ולא נזרק כקמפיין אחד גדול.',
+  },
+  {
+    tag: 'מנוע 2',
+    name: 'Search · מותגים ומוצרים',
+    line: 'המותג המבוקש, במילים המדויקות של הקונה.',
+    body: '"K18 מסכה מחיר", "אולפלקס 3", "קרסטאז שמפו", "סרום ויטמין C". קבוצת מודעות לכל מותג מוביל, מודעות שמזכירות מחיר, משלוח חינם ומלאי — והגנה על השם "גילטי" מפני מתחרים שקונים אותו בזול.',
+  },
+  {
+    tag: 'מנוע 3',
+    name: 'Demand Gen · יוטיוב',
+    line: 'ויזואלי, לפני שהיא בכלל חיפשה.',
+    body: 'יופי הוא קטגוריה ויזואלית. Demand Gen מציג קרוסלות מוצרים וסרטונים קצרים ביוטיוב, ב-Shorts, ב-Discover ובג׳ימייל — עם הקולקציות של המשפיעניות ושל Mikaella כנכס יצירתי מוכן. זה המנוע שמייצר ביקוש חדש, ולא רק קוצר את הקיים.',
+  },
+];
+
+const campaigns = [
+  { type: 'Brand · הגנה על השם', target: '"גילטי", "guilty", "גילטי קוסמטיקס"', why: 'מי שמחפשת אתכם בשם כבר החליטה. זו התנועה הזולה והרווחית ביותר, ומתחרים קונים אותה אם אתם לא שם.', prio: 'ראשון' },
+  { type: 'Performance Max · קטלוג', target: 'כל הפיד, מפוצל לקבוצות נכסים לפי קטגוריה ומרווח', why: 'המנוע המרכזי. פיצול לפי קטגוריה הוא מה שמאפשר לשלוט בתקציב לפי רווחיות ולא לפי מה שהאלגוריתם מעדיף.', prio: 'ראשון' },
+  { type: 'Standard Shopping · מותגי ליבה', target: 'K18, Olaplex, Kerastase, Moroccanoil, Charlotte Tilbury', why: 'שליטה ידנית על המותגים עם הביקוש הגבוה ביותר — הצעות מחיר ברמת מוצר, לצד ה-PMax ולא במקומו.', prio: 'ראשון' },
+  { type: 'Search · מותג + מוצר', target: 'שם מותג + שם מוצר / "מחיר" / "קנייה"', why: 'הזנב הארוך. CPC נמוך, כוונת קנייה מקסימלית, ומודעות שמדברות בדיוק על המוצר שחיפשו.', prio: 'ראשון' },
+  { type: 'Search · קטגוריות וצרכים', target: '"קוסמטיקה קוריאנית", "טיפוח לשיער פגום", "מכחולי איפור"', why: 'החיפושים שעוד לא בחרו מותג — כאן גילטי מתחרה על הקטגוריה, עם עמודי קטגוריה ותוכן מגזין כנחיתה.', prio: 'שני' },
+  { type: 'Demand Gen · ויזואלי', target: 'יוטיוב, Shorts, Discover, ג׳ימייל', why: 'ביקוש חדש: קולקציות משפיעניות, Mikaella ומבצעים עונתיים מול קהלים בעלי עניין ביופי.', prio: 'שני' },
+  { type: 'רימרקטינג דינמי', target: 'צופות מוצר, נוטשות עגלה, לקוחות עבר', why: 'מראה ללקוחה בדיוק את המוצר שהיא ראתה — הדרך הזולה ביותר לסגור מכירה שכבר שולם עליה קליק.', prio: 'שני' },
+];
+
+const adsPhases = [
+  {
+    n: 'שבועות 1–2',
+    title: 'לבנות את המדידה ואת הפיד',
+    when: 'תשתית · אודיט',
+    items: [
+      '<strong>אודיט לחשבון Google Ads הקיים</strong> (אם יש) — מבנה, היסטוריה, מה עבד ומה נשבר.',
+      '<strong>מדידת המרות עם ערך דינמי</strong> — רכישה עם הכנסה בפועל, Enhanced Conversions, ומעבר מסודר מ-Universal Analytics ל-GA4 דרך ה-GTM הקיים.',
+      '<strong>Merchant Center</strong> — חיבור הפיד מהאתר, אימות דומיין, מדיניות משלוחים והחזרות, ותיקון מוצרים שנפסלו (GTIN, מותג, תמונות, מחירים).',
+      '<strong>העשרת הפיד</strong> — כותרות שמכילות מותג + מוצר + נפח/גוון, ותוויות מותאמות לפי מרווח, בסט-סלרס ועונתיות.',
+      '<strong>יעדי ROAS לפי קטגוריה</strong> — איפור, טיפוח, שיער ובישום הם ארבעה עסקים עם מרווח שונה, ולא יכולים לחלוק יעד אחד.',
+    ],
+  },
+  {
+    n: 'חודש 1',
+    title: 'העלאת מנועי הליבה',
+    when: 'העלאה לאוויר',
+    items: [
+      '<strong>Brand + Performance Max + Shopping למותגי ליבה</strong> — ההשקה הראשונה, עם רשימת מילים שליליות מהיום הראשון.',
+      '<strong>Search למותגים ולמוצרים המובילים</strong> — קבוצת מודעות לכל מותג, עם הרחבות מחיר, מבצע ומשלוח חינם.',
+      '<strong>קהלי רימרקטינג</strong> נאספים מהיום הראשון — כדי שיהיו מוכנים כשהמנוע הבא עולה.',
+    ],
+  },
+  {
+    n: 'חודשים 2–3',
+    title: 'הרחבה וביקוש חדש',
+    when: 'הרחבה',
+    items: [
+      '<strong>Demand Gen ויוטיוב</strong> — קרוסלות מוצר וסרטונים קצרים, עם נכסי המשפיעניות ו-Mikaella.',
+      '<strong>רימרקטינג דינמי</strong> לצופות מוצר ולנוטשות עגלה.',
+      '<strong>Search לקטגוריות ולצרכים</strong> — קוסמטיקה קוריאנית, טיפוח שיער, דרמו-קוסמטיקה.',
+      '<strong>Customer Match</strong> — העלאת רשימות לקוחות להחרגה מקמפייני רכישה ולבניית קהלים דומים.',
+    ],
+  },
+  {
+    n: 'חודש 4 והלאה',
+    title: 'ממחזור לרווח',
+    when: 'אופטימיזציה שוטפת',
+    items: [
+      '<strong>בידינג לפי ערך (tROAS)</strong> ברגע שהצטברו מספיק המרות — ולא לפני.',
+      '<strong>חלוקת תקציב לפי רווחיות</strong>, לא לפי מחזור. קטגוריה עם ROAS גבוה ומרווח נמוך שווה פחות ממה שנראה.',
+      '<strong>לוח עונתי</strong> — ולנטיין, פסח, קיץ, ראש השנה, בלאק פריידי וסייבר מאנדיי, חנוכה. כל אחד עם תקציב, נכסים ומבצע מוכנים מראש.',
+      '<strong>בדיקות נכסים שוטפות</strong> — כותרות, תמונות, סרטונים והצעות מכר.',
+    ],
+  },
+];
+
+/* =========================== מודול B — FLASHY =========================== */
+const flows = [
+  { flow: 'Welcome Series', trigger: 'הרשמה לניוזלטר / פתיחת חשבון', why: 'הרגע עם הפתיחות הגבוהות ביותר בכל מחזור החיים. 3–4 הודעות שמציגות את גילטי, את המותגים ואת המועדון — ומובילות לרכישה ראשונה.' },
+  { flow: 'נטישת עגלה', trigger: 'מוצר בעגלה, ללא רכישה', why: 'האוטומציה הרווחית ביותר בכל חנות אונליין. מייל + SMS בתזמון מדורג, עם תזכורת לסף המשלוח החינמי.' },
+  { flow: 'נטישת גלישה', trigger: 'צפייה במוצר, ללא הוספה לעגלה', why: 'הלקוחה התעניינה ולא החליטה. תזכורת עדינה עם המוצר עצמו ועם מוצרים דומים.' },
+  { flow: 'אחרי רכישה', trigger: 'הזמנה הושלמה', why: 'תודה, טיפים לשימוש במוצר, בקשת ביקורת והמלצות משלימות — הלקוחה ממשיכה לשמוע מכם גם כשהיא לא קונה.' },
+  { flow: 'חידוש מלאי', trigger: 'X ימים מרכישה, לפי מחזור המוצר', why: 'הלב של המודול. תזכורת בדיוק כשהמוצר עומד להיגמר — רכישה חוזרת בלי שקל של מדיה.' },
+  { flow: 'Win-back', trigger: 'לא רכשה 90 / 180 יום', why: 'לקוחה רדומה זולה פי כמה להחזיר מאשר לגייס חדשה. סדרה מדורגת עם הטבה עולה.' },
+  { flow: 'יום הולדת', trigger: 'תאריך לידה בפרופיל', why: 'אחוזי הפתיחה וההמרה מהגבוהים שיש. הטבה אישית שנשלחת לבד, כל שנה.' },
+  { flow: 'VIP ולקוחות מובילות', trigger: 'סף רכישה מצטבר', why: 'גישה מוקדמת למבצעים ולקולקציות, והכרה בלקוחות שמחזיקות את רוב ההכנסה.' },
+  { flow: 'חזרה למלאי / ירידת מחיר', trigger: 'מוצר שאזל חזר / ירד מחיר', why: 'הלקוחה כבר רצתה את המוצר. ההודעה נשלחת ברגע שהוא זמין שוב.' },
+];
+
+const flashyMonthly = [
+  {
+    icon: 'mail',
+    title: 'עד 4 ניוזלטרים בחודש',
+    body: 'לוח תוכן חודשי שמתואם עם המבצעים, ההשקות והעונה — כולל קופי, עיצוב ובנייה ב-Flashy, בדיקות לפני שליחה, ושליחה לסגמנט הנכון ולא לכל הרשימה.',
+  },
+  {
+    icon: 'sms',
+    title: 'עד 4 קמפייני SMS בחודש',
+    body: 'הודעות קצרות וחדות למבצעים, להשקות ולסוף עונה — עם קישור מקוצר, מעקב הכנסות וסגמנטציה שמונעת שחיקה של הרשימה.',
+  },
+  {
+    icon: 'studio',
+    title: 'סטודיו ועיצוב',
+    body: 'שפה עיצובית ממותגת לניוזלטרים ול-SMS: תבנית מאסטר, ספריית רכיבים, באנר מעוצב לכל ניוזלטר ותמונות מוצר מותאמות. נראה כמו גילטי, בכל מסך.',
+  },
+  {
+    icon: 'flow',
+    title: 'אוטומציה חדשה או משודרגת בכל חודש',
+    body: 'אחרי הקמת אוטומציות הליבה, בכל חודש נבנית אוטומציה נוספת או משודרגת קיימת — לפי מה שהנתונים מראים.',
+  },
+  {
+    icon: 'target',
+    title: 'סגמנטציה והגדלת רשימות',
+    body: 'פילוח לפי קטגוריה מועדפת, מותג, תדירות רכישה וערך לקוחה. פופאפים וטפסי הרשמה באתר שמגדילים את הרשימה בלי לפגוע בחוויה.',
+  },
+  {
+    icon: 'report',
+    title: 'דוח הכנסות חודשי',
+    body: 'כמה הכנסה הגיעה מדיוור, מכל אוטומציה ומכל קמפיין, לצד שיעורי פתיחה, הקלקה והסרה. ושיחת עבודה חודשית לסגירת הלוח הבא.',
+  },
+];
+
+const flashyPhases = [
+  {
+    n: 'שבועות 1–2',
+    title: 'אודיט, תשתית ושפה עיצובית',
+    when: 'הקמה',
+    items: [
+      '<strong>אודיט לחשבון Flashy</strong> — גודל ואיכות הרשימות, אוטומציות קיימות, היסטוריית שליחות וביצועים.',
+      '<strong>Deliverability</strong> — אימות דומיין שולח (SPF, DKIM, DMARC), ניקוי כתובות לא פעילות והגנה על המוניטין של הדומיין.',
+      '<strong>שפה עיצובית</strong> — תבנית מאסטר וספריית רכיבים לניוזלטרים, בהתאם למיתוג של גילטי.',
+      '<strong>מבנה סגמנטים</strong> — פעילות, ערך, קטגוריה מועדפת ותדירות רכישה.',
+    ],
+  },
+  {
+    n: 'חודש 1',
+    title: 'אוטומציות הכסף הראשונות',
+    when: 'העלאה לאוויר',
+    items: [
+      '<strong>נטישת עגלה, נטישת גלישה ו-Welcome</strong> — שלוש האוטומציות שמחזירות את ההשקעה הכי מהר.',
+      '<strong>לוח ניוזלטרים ו-SMS ראשון</strong> — מתואם למבצעים של החודש.',
+      '<strong>פופאפ הרשמה</strong> עם הטבה להרשמה ראשונה.',
+    ],
+  },
+  {
+    n: 'חודשים 2–3',
+    title: 'מחזור החיים המלא',
+    when: 'הרחבה',
+    items: [
+      '<strong>אחרי רכישה, חידוש מלאי ו-Win-back</strong> — האוטומציות שבונות רכישה חוזרת.',
+      '<strong>יום הולדת ו-VIP</strong> — חיבור לנתוני המועדון ולסף הרכישה המצטבר.',
+      '<strong>בדיקות A/B</strong> על שורות נושא, שעות שליחה והצעות.',
+    ],
+  },
+  {
+    n: 'חודש 4 והלאה',
+    title: 'אופטימיזציה לפי הכנסה',
+    when: 'שוטף',
+    items: [
+      '<strong>אוטומציה חדשה או משודרגת בכל חודש</strong>, לפי הנתונים.',
+      '<strong>לוח עונתי</strong> לניוזלטרים ול-SMS — כל חג וכל אירוע מכירות מוכן מראש.',
+      '<strong>שיפור מתמיד של תזמוני חידוש המלאי</strong> לפי נתוני רכישה בפועל, לכל קטגוריה.',
+    ],
+  },
+];
+
+/* ============================== סינרגיה ============================== */
+const synergy = [
+  { title: 'אדס מביא — Flashy מחזיק', body: 'לקוחה שהגיעה מגוגל ונרשמה נכנסת מיד ל-Welcome Series. עלות הגיוס מתחלקת על פני כל הרכישות הבאות שלה, ולא רק הראשונה.' },
+  { title: 'רשימות Flashy → קהלי גוגל', body: 'רשימות הלקוחות מ-Flashy מועלות ל-Customer Match: החרגת לקוחות קיימות מקמפייני רכישה, ובניית קהלים דומים ללקוחות המובילות.' },
+  { title: 'לוח שנה אחד, שני ערוצים', body: 'כל מבצע יוצא בבת אחת במודעות, בניוזלטר וב-SMS — עם אותו מסר, אותו עיצוב ואותו תאריך סיום.' },
+  { title: 'מדידה אחת', body: 'הכנסות מאדס ומדיוור נמדדות באותו דוח, כך שרואים את הערך האמיתי של לקוחה לאורך זמן — ולא רק את ההזמנה הראשונה.' },
+];
+
+/* =============================== מדדים =============================== */
+const metrics = [
+  { mod: 'ads', m: 'ROAS כולל ולפי קטגוריה', why: 'המדד הראשי באדס. נמדד בנפרד לאיפור, טיפוח, שיער ובישום.' },
+  { mod: 'ads', m: 'עלות לרכישה (CPA) — לקוחה חדשה', why: 'כמה עולה לגייס לקוחה שלא קנתה מעולם. ההבחנה בין חדשה לחוזרת היא מה שמונע מאיתנו לייפות מספרים.' },
+  { mod: 'ads', m: 'שיעור התנועה המותגית', why: 'אם רוב ההמרות מגיעות מחיפוש "גילטי", הקמפיין לא באמת מייצר לקוחות חדשים.' },
+  { mod: 'ads', m: 'מוצרים מאושרים ב-Merchant Center', why: 'התנאי הטכני לכל Shopping ו-Performance Max. מוצר פסול הוא מוצר שלא קיים.' },
+  { mod: 'flashy', m: 'הכנסה מדיוור (% מסך ההכנסות)', why: 'המדד הראשי ב-Flashy. כמה מהמחזור מגיע מאוטומציות ומקמפיינים.' },
+  { mod: 'flashy', m: 'הכנסה לנמען', why: 'מנרמל את ההכנסה לגודל הרשימה — כדי שרשימה גדלה לא תסתיר ביצועים שיורדים.' },
+  { mod: 'flashy', m: 'שיעור רכישה חוזרת', why: 'המדד שאוטומציית חידוש המלאי נבנתה בשבילו.' },
+  { mod: 'flashy', m: 'גדילת רשימה נטו ושיעור הסרה', why: 'רשימה שגדלה אבל נשחקת היא לא נכס. שיעור הסרה גבוה אומר ששולחים יותר מדי או לא לסגמנט הנכון.' },
+];
+
+/* =============================== החלטות =============================== */
+const decisions = [
+  { mod: 'ads', title: 'הרשאות Google', body: 'חשבון Google Ads (קישור ל-MCC שלנו), Google Analytics 4, Google Tag Manager ו-Merchant Center. בלעדיהן חלק מהעבודה הופכת להמלצה במקום לביצוע.' },
+  { mod: 'ads', title: 'פיד מוצרים מהאתר', body: 'האתר בנוי על פלטפורמה ייעודית (IWP). צריך לוודא שהיא מייצאת פיד מוצרים מלא — מחיר, מלאי, GTIN, מותג ותמונות — או לתאם איתה את הפקתו.' },
+  { mod: 'flashy', title: 'הרשאות Flashy', body: 'הרשאת משתמש מלאה בחשבון Flashy, וגישה להגדרות ה-DNS של הדומיין לצורך אימות השולח.' },
+  { mod: 'flashy', title: 'נכסים ומבצעים', body: 'גישה לתמונות מוצר ולנכסי מותג, ולוח מבצעים חודשי מצד גילטי — כדי שכל ניוזלטר ו-SMS ייצאו מתואמים למה שקורה באתר ובחנויות.' },
+];
+
+const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+---
+<Layout
+  title="הצעת מחיר · Google Ads + Flashy · Guilty — NINJA Digital"
+  description="הצעת מחיר מודולרית לגילטי — ניהול Google Ads Performance וניהול לקוחות ודיוור ב-Flashy."
+  noindex={true}
+  hideFloatWA={true}
+  hideNav={true}
+>
+
+<section class="proposal-hero">
+  <div class="container">
+    <span class="eyebrow">הצעת מחיר מודולרית · NINJA Digital</span>
+    <h1>שני מנועי צמיחה ל<em>גילטי</em>.<br />אתם בוחרים.</h1>
+    <p class="lede">
+      <strong>מנוע אחד מביא לקוחות חדשות. השני גורם להן לחזור.</strong>
+      Google Ads Performance הוא מנוע הרכישה — מכירות מדידות מתוך הביקוש לאיפור, טיפוח, שיער ובישום.
+      Flashy הוא מנוע החזרה — אוטומציות, ניוזלטרים ו-SMS שהופכים קונה חד-פעמית ללקוחה קבועה.
+      כל מודול עומד בפני עצמו, וכל אחד מהם מתומחר בנפרד. סמנו את מה שנכון לכם — והמחיר יתעדכן מיד.
+      ההצעה תקפה ל-30 יום מתאריך השליחה.
+    </p>
+
+    <div class="meta">
+      <div><span>לקוח</span><strong>Guilty · גילטי</strong></div>
+      <div><span>לכבוד</span><strong>ליאור שדה</strong></div>
+      <div><span>נכס</span><strong>guilty.co.il</strong></div>
+      <div><span>שירותים</span><strong>Google Ads · Flashy</strong></div>
+      <div><span>תאריך</span><strong>{today}</strong></div>
+    </div>
+  </div>
+</section>
+
+<section class="state">
+  <div class="container">
+    <span class="eyebrow">נקודת הפתיחה</span>
+    <h2>הנכסים כבר קיימים. מה שחסר הוא ההפעלה.</h2>
+    <p class="lede">
+      ההצעה נבנתה על סריקה של האתר, של מפת האתר ושל התגים המותקנים בו — לא על נתוני החשבונות,
+      שאליהם עדיין אין לנו גישה. <strong>אנחנו לא מציגים מספרים שלא ראינו.</strong>
+      האודיט של Google Ads ושל Flashy הוא הפעולה הראשונה בתוכנית, והממצאים יוצגו לכם במלואם
+      בסוף השבועיים הראשונים.
+    </p>
+
+    <div class="kpis">
+      {kpis.map((k) => (
+        <div class="kpi">
+          <div class="k">{k.k}</div>
+          <div class="v">{k.v}</div>
+          <div class={`d ${k.tone}`}>{k.d}</div>
+        </div>
+      ))}
+    </div>
+    <p class="src">מקור: סריקה של guilty.co.il ומפת האתר · אוקטובר 2026</p>
+  </div>
+</section>
+
+<section class="findings">
+  <div class="container">
+    <span class="eyebrow">מה מצאנו</span>
+    <h2>שישה דברים שקובעים את האסטרטגיה.</h2>
+    <div class="finds">
+      {findings.map((f) => (
+        <div class="find">
+          <div class="fn">{f.n}</div>
+          <div>
+            <h3>{f.title}</h3>
+            <p>{f.body}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div class="callout">
+      <h4>המשפט שמסכם את כל השאר</h4>
+      <p>
+        בקטגוריית היופי, הרכישה הראשונה כמעט אף פעם לא רווחית לבדה.
+        <strong>הרווח נמצא ברכישה השנייה, השלישית והעשירית</strong> —
+        ולכן מנוע שמביא לקוחות ומנוע שמחזיר אותן הם שני חצאים של אותה מכונה.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ בחירת מודולים ============================ -->
+<section class="picker" id="modules">
+  <div class="container">
+    <span class="eyebrow">בנו את ההצעה</span>
+    <h2>סמנו את המודולים שנכנסים.</h2>
+    <p class="lede">
+      כל מודול הוא שירות מלא בפני עצמו. אפשר לבחור אחד, ואפשר את שניהם.
+      הבחירה כאן מעדכנת את סיכום העלות ואת טופס האישור בתחתית העמוד.
+    </p>
+
+    <div class="mod-grid">
+      {MODULES.map((m) => (
+        <label class={`mod-card mod-${m.id}`} data-module-card={m.id}>
+          <input type="checkbox" class="mod-toggle" data-module-toggle={m.id} checked />
+          <span class="mod-check" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12.5 10 17.5 19 7"/></svg>
+          </span>
+          <span class="mod-tag">{m.tag}</span>
+          <span class="mod-name">{m.name}</span>
+          <span class="mod-line">{m.line}</span>
+          <ul class="mod-points">
+            {m.points.map((p) => <li>{p}</li>)}
+          </ul>
+          <span class="mod-price">
+            <strong>{fmt(m.price)} ₪</strong>
+            <small>לחודש + מע״מ</small>
+          </span>
+          <span class="mod-state" data-on="נכלל בהצעה" data-off="לא נכלל — לחצו להוספה"></span>
+        </label>
+      ))}
+    </div>
+
+    <div class="live-total" aria-live="polite">
+      <span>סה״כ חודשי לפי הבחירה</span>
+      <strong><span data-total-net>5,000</span> ₪ <small>+ מע״מ</small></strong>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ מודול A ============================ -->
+<div class="module-block mod-ads" data-module-section="ads">
+  <div class="container">
+    <div class="module-banner">
+      <span class="mb-tag">מודול A</span>
+      <h2>Google Ads · Performance</h2>
+      <p>מנוע הרכישה. {fmt(2500)} ₪ לחודש + מע״מ · תקציב מדיה מומלץ: {MEDIA} ₪ לחודש, משולם ישירות לגוגל.</p>
+      <span class="mb-off">המודול לא נכלל בבחירה הנוכחית</span>
+    </div>
+  </div>
+
+  <section class="engines">
+    <div class="container">
+      <span class="eyebrow">הליבה</span>
+      <h2>שלושה מנועי מכירה.</h2>
+      <p class="lede">
+        המודול הזה הוא <strong>מכירות בלבד</strong>: כל קמפיין מסתיים ברכישה באתר, וכל שקל
+        נמדד מול ההכנסה שהוא הביא. שלושת המנועים למטה הם הבסיס, וכל השאר קיים כדי לשרת אותם.
+      </p>
+      <div class="eng-grid">
+        {engines.map((e) => (
+          <div class="eng-card">
+            <span class="eng-tag">{e.tag}</span>
+            <h3>{e.name}</h3>
+            <p class="eng-line">{e.line}</p>
+            <p>{e.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="gaps">
+    <div class="container">
+      <span class="eyebrow">מפת הקמפיינים</span>
+      <h2>איך זה מתפרק לקמפיינים בחשבון.</h2>
+      <p class="lede">
+        שבעה קמפיינים, כל אחד עם קהל, תקציב ויעד משלו. הם נפתחים לפי הסדר שבעמודה האחרונה —
+        כי קמפיין שנפתח לפני שהמדידה שלו מוכנה שורף כסף בלי ללמד כלום.
+      </p>
+      <div class="tscroll">
+        <table>
+          <thead>
+            <tr><th>סוג קמפיין</th><th>על מה הוא רץ</th><th>למה הוא שם</th><th class="num">שלב</th></tr>
+          </thead>
+          <tbody>
+            {campaigns.map((c) => (
+              <tr>
+                <td class="kw">{c.type}</td>
+                <td class="miss">{c.target}</td>
+                <td class="miss">{c.why}</td>
+                <td class="num accent">{c.prio}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="plan">
+    <div class="container">
+      <span class="eyebrow">תוכנית עבודה · Google Ads</span>
+      <h2>בסדר הזה — לא אחרת.</h2>
+      {adsPhases.map((p) => (
+        <article class="phase">
+          <header>
+            <span class="pn">{p.n}</span>
+            <h3>{p.title}</h3>
+            <span class="when">{p.when}</span>
+          </header>
+          <ul>
+            {p.items.map((i) => <li set:html={i} />)}
+          </ul>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="media-sec">
+    <div class="container">
+      <div class="extras">
+        <div class="extras-head">
+          <span class="extras-tag">הוצאה נפרדת</span>
+          <h3>תקציב מדיה מומלץ — {MEDIA} ₪ בחודש</h3>
+        </div>
+        <p>
+          זה הכסף שמשולם לגוגל עבור הקליקים עצמם, והוא נפרד לחלוטין מדמי הניהול.
+          <strong>{MEDIA} ₪ הוא המינימום שאנחנו ממליצים עליו</strong> לקטלוג בהיקף של גילטי:
+          מתחתיו, Performance Max לא צובר מספיק המרות כדי ללמוד, והתקציב מתפזר על פני יותר מדי מוצרים.
+          אפשר להתחיל נמוך יותר — אבל זמן הלמידה יתארך בהתאם.
+        </p>
+        <ul class="extras-list">
+          <li><strong>משולם על ידכם ישירות לגוגל.</strong> אמצעי התשלום של החברה מוזן בחשבון הגוגל אדס שלה, וגוגל מחייבת אותה ישירות. הכסף לא עובר דרך NINJA Digital ואין עליו עמלה.</li>
+          <li><strong>החשבון בבעלותכם המלאה.</strong> אנחנו מקבלים הרשאת ניהול דרך ה-MCC של הסוכנות. בסיום ההתקשרות ההרשאה מוסרת, והחשבון על כל ההיסטוריה שלו נשאר אצלכם.</li>
+          <li><strong>ניתן לשינוי בכל חודש.</strong> אם קטגוריה מוכיחה רווחיות — ההמלצה תהיה להגדיל; אם לא — נצמצם. ההחלטה תמיד שלכם ומראש.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============================ מודול B ============================ -->
+<div class="module-block mod-flashy" data-module-section="flashy">
+  <div class="container">
+    <div class="module-banner">
+      <span class="mb-tag">מודול B</span>
+      <h2>Flashy · ניהול לקוחות, דיוור ואוטומציות</h2>
+      <p>מנוע החזרה. {fmt(2500)} ₪ לחודש + מע״מ · כולל סטודיו ועיצוב לניוזלטרים ול-SMS.</p>
+      <span class="mb-off">המודול לא נכלל בבחירה הנוכחית</span>
+    </div>
+  </div>
+
+  <section class="flows">
+    <div class="container">
+      <span class="eyebrow">האוטומציות</span>
+      <h2>תשע אוטומציות שעובדות 24/7.</h2>
+      <p class="lede">
+        אוטומציה נבנית פעם אחת ומוכרת כל יום. <strong>אלה ההודעות שנשלחות לבד</strong>,
+        בדיוק כשהלקוחה עשתה משהו — נרשמה, נטשה, קנתה או נעלמה. כולן נבנות, מעוצבות ומנוהלות על ידינו,
+        במייל וב-SMS לפי מה שמתאים לכל שלב.
+      </p>
+      <div class="tscroll">
+        <table>
+          <thead>
+            <tr><th>אוטומציה</th><th>מה מפעיל אותה</th><th>למה היא שם</th></tr>
+          </thead>
+          <tbody>
+            {flows.map((f) => (
+              <tr>
+                <td class="kw">{f.flow}</td>
+                <td class="miss">{f.trigger}</td>
+                <td class="miss">{f.why}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="included">
+    <div class="container">
+      <span class="eyebrow">מה נכנס בכל חודש</span>
+      <h2>דיוור, SMS וסטודיו — בחבילה אחת.</h2>
+      <div class="inc-grid">
+        {flashyMonthly.map((m) => (
+          <div class="inc-card">
+            <div class="inc-icon" aria-hidden="true">
+              {m.icon === 'mail' && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>
+              )}
+              {m.icon === 'sms' && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/><path d="M9 8h6M9 11h4"/></svg>
+              )}
+              {m.icon === 'studio' && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5c0-4-4-7.4-9-7.4z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor"/><circle cx="10" cy="7" r="1.2" fill="currentColor"/><circle cx="14.5" cy="7" r="1.2" fill="currentColor"/></svg>
+              )}
+              {m.icon === 'flow' && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="12" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.5 6h3a3 3 0 0 1 3 3v.5M8.5 18h3a3 3 0 0 0 3-3v-.5"/></svg>
+              )}
+              {m.icon === 'target' && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>
+              )}
+              {m.icon === 'report' && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
+              )}
+            </div>
+            <h3>{m.title}</h3>
+            <p>{m.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="plan">
+    <div class="container">
+      <span class="eyebrow">תוכנית עבודה · Flashy</span>
+      <h2>מהאוטומציות שמחזירות הכי מהר — למחזור החיים המלא.</h2>
+      {flashyPhases.map((p) => (
+        <article class="phase">
+          <header>
+            <span class="pn">{p.n}</span>
+            <h3>{p.title}</h3>
+            <span class="when">{p.when}</span>
+          </header>
+          <ul>
+            {p.items.map((i) => <li set:html={i} />)}
+          </ul>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="media-sec">
+    <div class="container">
+      <div class="extras">
+        <div class="extras-head">
+          <span class="extras-tag">הוצאה נפרדת</span>
+          <h3>מנוי פלטפורמת Flashy</h3>
+        </div>
+        <p>
+          דמי הניהול מכסים את העבודה שלנו. <strong>מנוי הפלטפורמה עצמה משולם על ידכם ישירות ל-Flashy</strong>,
+          לפי התוכנית שלכם — המחיר נקבע לפי גודל מועדון הלקוחות (מספר אנשי הקשר) ולפי נפח שליחת ה-SMS.
+          הוא לא עובר דרכנו ואין עליו עמלה. אם התוכנית הנוכחית לא מתאימה להיקף העבודה, נמליץ על השינוי — וההחלטה שלכם.
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============================ סינרגיה ============================ -->
+<section class="synergy" data-synergy>
+  <div class="container">
+    <span class="eyebrow">כששני המודולים עובדים יחד</span>
+    <h2>מנוע אחד מביא. השני מחזיר. יחד — מכונה.</h2>
+    <p class="lede synergy-note">
+      <span data-synergy-on>שני המודולים נבחרו — כך הם מחוברים זה לזה:</span>
+      <span data-synergy-off hidden>החיבורים האלה נפתחים כשבוחרים את שני המודולים יחד.</span>
+    </p>
+    <div class="syn-grid">
+      {synergy.map((s) => (
+        <div class="syn-card">
+          <h3>{s.title}</h3>
+          <p>{s.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="metrics">
+  <div class="container">
+    <span class="eyebrow">איך מודדים</span>
+    <h2>מדדים של הכנסה — לא של קליקים ופתיחות.</h2>
+    <p class="lede">
+      אין לנו עדיין גישה לחשבונות, ולכן אנחנו לא ממציאים נקודת פתיחה.
+      <strong>בסוף החודש הראשון כל מדד יקבל מספר, וממנו והלאה נמדד מולו כל חודש.</strong>
+      ומה שנאמר כבר עכשיו: אנחנו לא מבטיחים ROAS. אף אחד לא יכול.
+    </p>
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr><th>מדד</th><th class="num">מודול</th><th>למה הוא נבחר</th></tr>
+        </thead>
+        <tbody>
+          {metrics.map((m) => (
+            <tr data-module-row={m.mod}>
+              <td class="kw">{m.m}</td>
+              <td class="num accent">{m.mod === 'ads' ? 'Google Ads' : 'Flashy'}</td>
+              <td class="miss">{m.why}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="decisions">
+  <div class="container">
+    <span class="eyebrow">לפני שמתחילים</span>
+    <h2>מה אנחנו צריכים מכם.</h2>
+    <div class="dec-grid">
+      {decisions.map((d) => (
+        <div class="dec-card" data-module-row={d.mod}>
+          <span class="dec-mod">{d.mod === 'ads' ? 'Google Ads' : 'Flashy'}</span>
+          <h3>{d.title}</h3>
+          <p>{d.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="price" id="price">
+  <div class="container">
+    <span class="eyebrow">סיכום עלות</span>
+    <h2>דמי ניהול חודשיים. בלי הקמה, בלי התחייבות.</h2>
+    <div class="price-card">
+      {MODULES.map((m) => (
+        <div class="price-row mod-row" data-price-row={m.id}>
+          <label class="pr-toggle">
+            <input type="checkbox" data-module-toggle={m.id} checked />
+            <span>{m.tag} · {m.name}</span>
+          </label>
+          <strong>{fmt(m.price)} ₪ / חודש</strong>
+        </div>
+      ))}
+      <div class="price-row sub"><span>דמי הקמה</span><strong>ללא</strong></div>
+      <div class="price-row sub"><span>אודיט, תוכנית עבודה ודוח חודשי</span><strong>כלול</strong></div>
+      <div class="price-row sub timeline"><span>תקופת התחייבות</span><strong>ללא — חודש לחודש</strong></div>
+      <div class="price-row sub"><span>סה״כ לפני מע״מ</span><strong class="plain"><span data-total-net>5,000</span> ₪</strong></div>
+      <div class="price-row sub"><span>מע״מ ({Math.round(VAT * 100)}%)</span><strong class="plain"><span data-total-vat>900</span> ₪</strong></div>
+      <div class="price-row total">
+        <span>סה״כ חודשי, כולל מע״מ</span>
+        <strong><span data-total-gross>5,900</span> ₪</strong>
+      </div>
+      <p class="price-empty" data-empty hidden>לא נבחר אף מודול. סמנו לפחות מודול אחד כדי לאשר את ההצעה.</p>
+      <p class="price-note">
+        המחירים לפני מע״מ. <strong>חיוב חודשי בכרטיס אשראי</strong>, בתחילת כל חודש עבודה.
+        ההתקשרות היא מחודש לחודש, ללא תקופת התחייבות, וניתנת לסיום בהודעה של 30 יום מראש משני הצדדים —
+        לכל מודול בנפרד.
+        <strong>לא כלולים בסכום:</strong> תקציב המדיה לגוגל (מומלץ {MEDIA} ₪ לחודש, משולם ישירות לגוגל),
+        ומנוי פלטפורמת Flashy (לפי גודל מועדון הלקוחות, משולם ישירות ל-Flashy).
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="sign">
+  <div class="container">
+    <span class="eyebrow">אישור הצעה</span>
+    <h2>אם הבחירה, המחיר ותיאור העבודה מקובלים — חתמו כאן.</h2>
+    <p class="lede">
+      אתם מאשרים את המודולים המסומנים: <strong data-selected-names>Google Ads · Performance + Flashy</strong>.
+      אישור ההצעה ישלח התראה במייל, ואחזור אליכם לתיאום הקיק-אוף והרשאות הגישה.
+    </p>
+
+    <form id="proposal-sign" class="sign-card">
+      <div class="field-row">
+        <div class="field">
+          <label for="name">שם מלא</label>
+          <input id="name" name="name" type="text" required autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="email">אימייל</label>
+          <input id="email" name="email" type="email" required autocomplete="email" dir="ltr" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="phone">טלפון</label>
+          <input id="phone" name="phone" type="tel" autocomplete="tel" dir="ltr" />
+        </div>
+        <div class="field">
+          <label for="title">תפקיד</label>
+          <input id="title" name="title" type="text" placeholder="לדוגמה: מנכ״ל, סמנכ״ל שיווק" />
+        </div>
+      </div>
+
+      <fieldset class="confirms">
+        <label class="check">
+          <input type="checkbox" name="confirm_scope" required />
+          <span>הריני לאשר את היקף העבודה שתואר בהצעה עבור המודולים שסומנו: <strong data-selected-names>Google Ads · Performance + Flashy</strong>.</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="confirm_price" required />
+          <span>
+            הריני לאשר דמי ניהול בסך <strong><span data-total-net>5,000</span> ₪ לחודש + מע״מ</strong>
+            (<span data-total-gross>5,900</span> ₪ כולל מע״מ), בחיוב חודשי בכרטיס אשראי, בהתקשרות מחודש לחודש ללא תקופת התחייבות וללא דמי הקמה.
+            <span data-confirm="ads"> ידוע לי שתקציב המדיה לגוגל (מומלץ {MEDIA} ₪ לחודש) אינו כלול ומשולם ישירות לגוגל.</span>
+            <span data-confirm="flashy"> ידוע לי שמנוי פלטפורמת Flashy אינו כלול ומשולם ישירות ל-Flashy לפי גודל מועדון הלקוחות.</span>
+          </span>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="confirm_terms" required />
+          <span>
+            הריני להתחייב להעמיד את הרשאות הגישה הנדרשות עם תחילת העבודה:
+            <span data-confirm="ads">Google Ads, GA4, Tag Manager ו-Merchant Center</span><span data-confirm="both">, וכן </span><span data-confirm="flashy">חשבון Flashy והגדרות DNS לאימות השולח</span>.
+          </span>
+        </label>
+      </fieldset>
+
+      <div class="signature-block">
+        <label for="signature">חתימה דיגיטלית</label>
+        <p class="hint">לחצו בתוך הריבוע וציירו את שמכם כחתימה.</p>
+        <div class="sig-wrap">
+          <canvas id="signature" aria-label="אזור חתימה"></canvas>
+          <span class="sig-line" aria-hidden="true"></span>
+          <span class="sig-x" aria-hidden="true">×</span>
+        </div>
+        <div class="sig-actions">
+          <button type="button" id="sig-clear" class="btn-ghost">נקה חתימה</button>
+        </div>
+      </div>
+
+      <div class="sign-actions">
+        <button type="submit" class="btn-primary" id="sign-submit">
+          אישור ושליחה
+          <span aria-hidden="true">←</span>
+        </button>
+        <p class="legal">בלחיצה על האישור, הריני לקבל את התנאים המופיעים בהצעה זו עבור המודולים שסומנו, ולהסמיך את NINJA Digital להתחיל בעבודה.</p>
+      </div>
+    </form>
+
+    <div id="sign-success" class="sign-success" hidden>
+      <h3>התקבל. תודה.</h3>
+      <p>שרון יחזור אליכם תוך יום עסקים אחד עם רשימת ההרשאות הנדרשות ולוח זמנים לשבועיים הראשונים.</p>
+    </div>
+  </div>
+</section>
+
+<script is:inline define:vars={{ MODULES, VAT, MEDIA }}>
+(() => {
+  const nf = (n) => Math.round(n).toLocaleString('he-IL');
+  const selected = new Set(MODULES.map((m) => m.id));
+
+  function render() {
+    const chosen = MODULES.filter((m) => selected.has(m.id));
+    const net = chosen.reduce((s, m) => s + m.price, 0);
+    const vat = net * VAT;
+
+    document.querySelectorAll('[data-module-toggle]').forEach((el) => {
+      el.checked = selected.has(el.getAttribute('data-module-toggle'));
+    });
+    document.querySelectorAll('[data-module-card]').forEach((el) => {
+      el.classList.toggle('is-on', selected.has(el.getAttribute('data-module-card')));
+    });
+    document.querySelectorAll('[data-module-section]').forEach((el) => {
+      el.classList.toggle('is-off', !selected.has(el.getAttribute('data-module-section')));
+    });
+    document.querySelectorAll('[data-module-row], [data-price-row]').forEach((el) => {
+      const id = el.getAttribute('data-module-row') || el.getAttribute('data-price-row');
+      el.classList.toggle('is-off', !selected.has(id));
+    });
+    document.querySelectorAll('[data-confirm]').forEach((el) => {
+      const id = el.getAttribute('data-confirm');
+      el.hidden = id === 'both' ? selected.size < 2 : !selected.has(id);
+    });
+
+    document.querySelectorAll('[data-total-net]').forEach((el) => { el.textContent = nf(net); });
+    document.querySelectorAll('[data-total-vat]').forEach((el) => { el.textContent = nf(vat); });
+    document.querySelectorAll('[data-total-gross]').forEach((el) => { el.textContent = nf(net + vat); });
+    const names = chosen.map((m) => m.name).join(' + ') || '— לא נבחר מודול —';
+    document.querySelectorAll('[data-selected-names]').forEach((el) => { el.textContent = names; });
+
+    const both = selected.size === MODULES.length;
+    document.querySelector('[data-synergy]')?.classList.toggle('is-off', !both);
+    document.querySelector('[data-synergy-on]')?.toggleAttribute('hidden', !both);
+    document.querySelector('[data-synergy-off]')?.toggleAttribute('hidden', both);
+
+    document.querySelector('[data-empty]')?.toggleAttribute('hidden', chosen.length > 0);
+    const submit = document.getElementById('sign-submit');
+    if (submit) submit.disabled = chosen.length === 0;
+  }
+
+  document.querySelectorAll('[data-module-toggle]').forEach((el) => {
+    el.addEventListener('change', () => {
+      const id = el.getAttribute('data-module-toggle');
+      if (el.checked) selected.add(id); else selected.delete(id);
+      render();
+    });
+  });
+  render();
+
+  // ---------- חתימה ----------
+  const form = document.getElementById('proposal-sign');
+  const success = document.getElementById('sign-success');
+  const canvas = document.getElementById('signature');
+  const ctx = canvas?.getContext('2d');
+  let drawing = false;
+  let hasInk = false;
+
+  if (canvas && ctx) {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    function setupCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#1a1a1a';
+    }
+    setupCanvas();
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const data = canvas.toDataURL();
+        setupCanvas();
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, 0, 0, canvas.width / dpr, canvas.height / dpr);
+        img.src = data;
+      }, 150);
+    });
+
+    function pos(e) {
+      const r = canvas.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+    function onDown(e) {
+      drawing = true;
+      canvas.setPointerCapture?.(e.pointerId);
+      const { x, y } = pos(e);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      e.preventDefault();
+    }
+    function onMove(e) {
+      if (!drawing) return;
+      const { x, y } = pos(e);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      hasInk = true;
+      e.preventDefault();
+    }
+    function onUp(e) {
+      if (!drawing) return;
+      drawing = false;
+      canvas.releasePointerCapture?.(e.pointerId);
+    }
+    canvas.addEventListener('pointerdown', onDown);
+    canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointercancel', onUp);
+    canvas.addEventListener('pointerleave', onUp);
+
+    document.getElementById('sig-clear')?.addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasInk = false;
+    });
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const chosen = MODULES.filter((m) => selected.has(m.id));
+    if (!chosen.length) {
+      alert('יש לבחור לפחות מודול אחד.');
+      return;
+    }
+    if (!hasInk) {
+      alert('נדרשת חתימה לפני האישור.');
+      return;
+    }
+    const data = Object.fromEntries(new FormData(form).entries());
+    const signature = canvas?.toDataURL('image/png');
+    const net = chosen.reduce((s, m) => s + m.price, 0);
+    const vat = net * VAT;
+    const extras = [];
+    if (selected.has('ads')) extras.push(`תקציב מדיה לגוגל — מומלץ ${MEDIA} ₪ לחודש, משולם ישירות לגוגל`);
+    if (selected.has('flashy')) extras.push('מנוי פלטפורמת Flashy — לפי גודל מועדון הלקוחות, משולם ישירות ל-Flashy');
+
+    // סיכום שנכנס כמו שהוא ל-PDF החתום ולמייל
+    const summary = {
+      title: 'Google Ads + Flashy ל-Guilty',
+      client: 'Guilty · גילטי',
+      project: chosen.map((m) => m.name).join(' + '),
+      lede: 'הצעה מודולרית — המודולים שסומנו ואושרו על ידי החותם.',
+      items: chosen.map((m) => ({ label: `${m.tag} · ${m.name}`, detail: m.points.join(' · '), amount: `${nf(m.price)} ₪ / חודש` })),
+      totals: [
+        { label: 'סה״כ חודשי לפני מע״מ', amount: `${nf(net)} ₪` },
+        { label: `מע״מ (${Math.round(VAT * 100)}%)`, amount: `${nf(vat)} ₪` },
+      ],
+      total: { label: 'סה״כ חודשי כולל מע״מ', amount: `${nf(net + vat)} ₪` },
+      extras,
+      terms: 'חיוב חודשי בכרטיס אשראי בתחילת כל חודש עבודה. ללא דמי הקמה. התקשרות מחודש לחודש ללא תקופת התחייבות, ניתנת לסיום בהודעה של 30 יום מראש משני הצדדים, לכל מודול בנפרד.',
+      confirms: [
+        `אישור היקף העבודה עבור: ${chosen.map((m) => m.name).join(' + ')}`,
+        `אישור דמי ניהול: ${nf(net)} ₪ לחודש + מע״מ (${nf(net + vat)} ₪ כולל מע״מ)`,
+        'אישור תנאי ההתקשרות והעמדת הרשאות הגישה הנדרשות',
+      ],
+    };
+
+    try {
+      const res = await fetch('/api/proposal-sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          proposal: 'guilty-modular',
+          ...data,
+          signature,
+          modules: chosen.map((m) => m.id),
+          summary,
+          signedAt: new Date().toISOString(),
+        }),
+      });
+      if (res.ok || res.status === 202) {
+        form.style.display = 'none';
+        success.removeAttribute('hidden');
+        success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        alert('משהו השתבש. נסו שוב או שלחו לי במייל ישירות.');
+      }
+    } catch {
+      alert('משהו השתבש בחיבור. נסו שוב.');
+    }
+  });
+})();
+</script>
+
+<style>
+/* ---------- HERO ---------- */
+.proposal-hero { padding: 120px 0 70px; position: relative; z-index: 2; }
+.proposal-hero h1 { font-size: clamp(2.4rem, 5.5vw, 4.4rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; line-height: 1.08; }
+.proposal-hero h1 em { font-style: normal; color: var(--gold, #ffd166); }
+.lede { color: rgba(255,255,255,0.78); max-width: 760px; margin-top: 18px; font-size: 1.05rem; line-height: 1.7; }
+.lede strong { color: #fff; font-weight: 700; }
+.meta { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 48px; padding: 22px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+@media (min-width: 860px) { .meta { grid-template-columns: repeat(5, 1fr); } }
+.meta > div { display: flex; flex-direction: column; gap: 4px; }
+.meta span { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+.meta strong { font-size: 1.02rem; color: #fff; }
+
+section { padding: 60px 0; }
+.eyebrow { font-size: 0.78rem; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.55); display: inline-block; }
+section h2 { font-size: clamp(1.9rem, 4vw, 2.8rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; }
+
+/* ---------- KPI STRIP ---------- */
+.kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 34px; }
+@media (min-width: 900px) { .kpis { grid-template-columns: repeat(5, 1fr); } }
+.kpi { padding: 22px 18px; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(255,255,255,0.02); }
+.kpi .k { font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+.kpi .v { font-size: 1.7rem; font-weight: 800; color: #fff; line-height: 1.2; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.kpi .d { font-size: 0.8rem; margin-top: 4px; }
+.kpi .d.up { color: rgb(74, 222, 128); }
+.kpi .d.flat { color: rgba(255,255,255,0.5); }
+.src { margin-top: 16px; font-size: 0.8rem; color: rgba(255,255,255,0.42); }
+
+/* ---------- FINDINGS ---------- */
+.finds { display: grid; gap: 14px; margin-top: 34px; }
+@media (min-width: 900px) { .finds { grid-template-columns: 1fr 1fr; } }
+.find { display: grid; grid-template-columns: auto 1fr; gap: 0 18px; align-items: start; padding: 24px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.02); }
+.find .fn { font-family: 'Rubik', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--gold, #ffd166); padding-top: 3px; min-width: 2.2em; }
+.find h3 { font-size: 1.2rem; font-weight: 700; line-height: 1.35; }
+.find p { margin-top: 8px; color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.95rem; }
+
+/* ---------- CALLOUT ---------- */
+.callout { margin-top: 26px; padding: 22px 26px; border: 1px solid rgba(255,209,102,0.22); border-inline-start: 3px solid var(--gold, #ffd166); border-radius: 0 16px 16px 0; background: rgba(255,209,102,0.05); }
+.callout h4 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; color: #fff; }
+.callout p { color: rgba(255,255,255,0.78); line-height: 1.7; font-size: 0.97rem; }
+.callout strong { color: var(--gold, #ffd166); }
+
+/* ---------- MODULE PICKER ---------- */
+.mod-ads { --mc: 255, 209, 102; }
+.mod-flashy { --mc: 255, 122, 182; }
+.mod-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 34px; }
+@media (min-width: 900px) { .mod-grid { grid-template-columns: 1fr 1fr; } }
+.mod-card { position: relative; display: flex; flex-direction: column; gap: 10px; padding: 30px 28px 26px; border: 1.5px solid rgba(255,255,255,0.1); border-radius: 22px; background: rgba(255,255,255,0.02); cursor: pointer; transition: border-color 0.2s, background 0.2s, transform 0.2s, opacity 0.2s; opacity: 0.6; }
+.mod-card:hover { transform: translateY(-2px); opacity: 0.85; }
+.mod-card.is-on { opacity: 1; border-color: rgba(var(--mc), 0.55); background: linear-gradient(180deg, rgba(var(--mc), 0.1), rgba(255,255,255,0.015)); }
+.mod-toggle { position: absolute; opacity: 0; pointer-events: none; }
+.mod-card:focus-within { outline: 2px solid rgba(var(--mc), 0.8); outline-offset: 3px; }
+.mod-check { position: absolute; top: 24px; inset-inline-end: 24px; width: 32px; height: 32px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,0.25); display: grid; place-items: center; color: transparent; transition: all 0.2s; }
+.mod-check svg { width: 18px; height: 18px; }
+.mod-card.is-on .mod-check { background: rgb(var(--mc)); border-color: rgb(var(--mc)); color: #0a0a0a; }
+.mod-tag { align-self: flex-start; font-family: 'Rubik', sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: rgb(var(--mc)); border: 1px solid rgba(var(--mc), 0.4); border-radius: 999px; padding: 4px 13px; }
+.mod-name { font-size: 1.55rem; font-weight: 800; letter-spacing: -0.01em; line-height: 1.25; color: #fff; padding-inline-end: 44px; }
+.mod-line { color: rgb(var(--mc)); font-weight: 600; font-size: 0.98rem; }
+.mod-points { list-style: none; margin: 6px 0 0; padding: 14px 0 0; border-top: 1px solid rgba(255,255,255,0.08); display: grid; gap: 8px; }
+.mod-points li { position: relative; padding-inline-start: 20px; color: rgba(255,255,255,0.75); font-size: 0.93rem; line-height: 1.55; }
+.mod-points li::before { content: ''; position: absolute; inset-inline-start: 0; top: 8px; width: 7px; height: 7px; border-radius: 50%; background: rgba(var(--mc), 0.7); }
+.mod-price { display: flex; align-items: baseline; gap: 10px; margin-top: 12px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); }
+.mod-price strong { font-family: 'Rubik', sans-serif; font-size: 2.1rem; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+.mod-price small { color: rgba(255,255,255,0.55); font-size: 0.88rem; }
+.mod-state::after { content: attr(data-off); font-size: 0.8rem; letter-spacing: 0.08em; color: rgba(255,255,255,0.5); }
+.mod-card.is-on .mod-state::after { content: '✓ ' attr(data-on); color: rgb(var(--mc)); font-weight: 700; }
+
+.live-total { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 18px; padding: 18px 26px; border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; background: rgba(255,255,255,0.03); }
+.live-total > span { color: rgba(255,255,255,0.7); font-size: 0.95rem; }
+.live-total strong { font-family: 'Rubik', sans-serif; font-size: 1.7rem; color: var(--gold, #ffd166); font-variant-numeric: tabular-nums; }
+.live-total small { font-size: 0.85rem; color: rgba(255,255,255,0.55); font-weight: 500; }
+
+/* ---------- MODULE BLOCKS ---------- */
+.module-block { position: relative; padding-top: 40px; transition: opacity 0.3s, filter 0.3s; }
+.module-banner { position: relative; padding: 34px 32px; border-radius: 24px; border: 1px solid rgba(var(--mc), 0.35); background: linear-gradient(135deg, rgba(var(--mc), 0.16), rgba(var(--mc), 0.03) 60%, transparent); }
+.mb-tag { font-family: 'Rubik', sans-serif; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(var(--mc)); }
+.module-banner h2 { font-size: clamp(2rem, 4.5vw, 3.2rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 8px; line-height: 1.1; }
+.module-banner p { color: rgba(255,255,255,0.75); margin-top: 10px; font-size: 1rem; line-height: 1.6; }
+.mb-off { display: none; margin-top: 14px; font-size: 0.82rem; letter-spacing: 0.06em; color: rgba(255,255,255,0.6); border: 1px dashed rgba(255,255,255,0.3); border-radius: 999px; padding: 5px 14px; }
+.module-block.is-off { opacity: 0.38; filter: grayscale(0.8); }
+.module-block.is-off .mb-off { display: inline-block; }
+
+/* ---------- ENGINES ---------- */
+.eng-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 34px; }
+@media (min-width: 900px) { .eng-grid { grid-template-columns: repeat(3, 1fr); } }
+.eng-card { padding: 28px 26px; border: 1px solid rgba(var(--mc), 0.22); border-radius: 18px; background: linear-gradient(180deg, rgba(var(--mc), 0.07), rgba(255,255,255,0.015)); }
+.eng-tag { display: inline-block; font-family: 'Rubik', sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: rgb(var(--mc)); border: 1px solid rgba(var(--mc), 0.35); border-radius: 999px; padding: 4px 13px; margin-bottom: 16px; }
+.eng-card h3 { font-size: 1.45rem; font-weight: 800; letter-spacing: -0.01em; line-height: 1.25; }
+.eng-line { color: rgb(var(--mc)); font-size: 0.97rem; font-weight: 600; line-height: 1.5; margin-top: 8px; }
+.eng-card > p:last-child { color: rgba(255,255,255,0.72); line-height: 1.68; font-size: 0.93rem; margin-top: 12px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08); }
+
+/* ---------- TABLES ---------- */
+.tscroll { overflow-x: auto; margin-top: 30px; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.02); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 0.92rem; }
+th { text-align: start; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.45); font-weight: 600; padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.12); white-space: nowrap; }
+td { padding: 13px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: top; color: rgba(255,255,255,0.8); line-height: 1.55; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: rgba(255,255,255,0.025); }
+td.kw { font-weight: 700; color: #fff; }
+td.num, th.num { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: start; }
+td.num.accent { color: var(--gold, #ffd166); font-weight: 700; }
+.module-block td.num.accent { color: rgb(var(--mc)); }
+td.miss { color: rgba(255,255,255,0.65); font-size: 0.88rem; }
+tr.is-off { opacity: 0.35; }
+
+/* ---------- PHASES ---------- */
+.phase { margin-top: 18px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); overflow: hidden; }
+.phase > header { display: flex; align-items: baseline; gap: 16px; padding: 18px 26px; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); flex-wrap: wrap; }
+.phase .pn { font-family: 'Rubik', sans-serif; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; color: rgb(var(--mc, 255,209,102)); border: 1px solid rgba(var(--mc, 255,209,102), 0.35); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+.phase h3 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+.phase .when { margin-inline-start: auto; font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.42); }
+.phase ul { list-style: none; padding: 20px 26px; display: grid; gap: 13px; margin: 0; }
+.phase li { position: relative; padding-inline-start: 22px; color: rgba(255,255,255,0.75); line-height: 1.68; font-size: 0.96rem; }
+.phase li::before { content: ''; position: absolute; inset-inline-start: 0; top: 10px; width: 8px; height: 8px; border-radius: 50%; background: rgba(var(--mc, 255,209,102), 0.65); }
+.phase li :global(strong) { color: #fff; font-weight: 700; }
+
+/* ---------- MONTHLY INCLUDES ---------- */
+.inc-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 34px; }
+@media (min-width: 700px) { .inc-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .inc-grid { grid-template-columns: repeat(3, 1fr); } }
+.inc-card { padding: 28px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+.inc-icon { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; color: rgb(var(--mc)); background: rgba(var(--mc), 0.1); border: 1px solid rgba(var(--mc), 0.22); margin-bottom: 16px; }
+.inc-icon svg { width: 23px; height: 23px; }
+.inc-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; line-height: 1.35; }
+.inc-card p { color: rgba(255,255,255,0.7); line-height: 1.65; font-size: 0.94rem; }
+
+/* ---------- SYNERGY ---------- */
+.synergy { transition: opacity 0.3s; }
+.synergy.is-off { opacity: 0.45; }
+.syn-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 30px; }
+@media (min-width: 800px) { .syn-grid { grid-template-columns: repeat(2, 1fr); } }
+.syn-card { padding: 26px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.1); background: linear-gradient(135deg, rgba(255,209,102,0.08), rgba(255,122,182,0.08)); }
+.syn-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; color: #fff; }
+.syn-card p { color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.94rem; }
+
+/* ---------- DECISIONS ---------- */
+.dec-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 34px; }
+@media (min-width: 900px) { .dec-grid { grid-template-columns: repeat(2, 1fr); } }
+.dec-card { padding: 26px; border: 1px solid rgba(120,180,255,0.18); border-radius: 18px; background: linear-gradient(180deg, rgba(120,180,255,0.05), rgba(255,255,255,0.01)); transition: opacity 0.2s; }
+.dec-card.is-off { opacity: 0.35; }
+.dec-mod { font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+.dec-card h3 { font-size: 1.1rem; font-weight: 700; margin: 6px 0 10px; color: rgb(170, 200, 255); line-height: 1.35; }
+.dec-card p { color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.92rem; }
+
+/* ---------- EXTRAS ---------- */
+.media-sec { padding-top: 10px; }
+.extras { padding: 28px 32px; border: 1px solid rgba(255,255,255,0.1); border-radius: 22px; background: rgba(255,255,255,0.02); }
+.extras-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.extras-tag { font-family: 'Rubik', sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(170, 200, 255); border: 1px solid rgba(120,180,255,0.32); border-radius: 999px; padding: 4px 13px; white-space: nowrap; }
+.extras-head h3 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+.extras > p { color: rgba(255,255,255,0.72); line-height: 1.7; font-size: 0.96rem; }
+.extras > p strong { color: #fff; }
+.extras-list { list-style: none; padding: 18px 0 0; margin: 18px 0 0; display: grid; gap: 12px; border-top: 1px solid rgba(255,255,255,0.07); }
+.extras-list li { position: relative; padding-inline-start: 22px; color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.93rem; }
+.extras-list li::before { content: ''; position: absolute; inset-inline-start: 0; top: 9px; width: 7px; height: 7px; border-radius: 50%; background: rgba(120,180,255,0.6); }
+.extras-list strong { color: #fff; font-weight: 700; }
+
+/* ---------- PRICE ---------- */
+.price h2 { margin-bottom: 28px; }
+.price-card { border: 1px solid rgba(255,255,255,0.12); border-radius: 22px; padding: 30px 36px; background: linear-gradient(180deg, rgba(255,209,102,0.08), rgba(255,255,255,0.02)); }
+.price-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-top: 1px solid rgba(255,255,255,0.06); gap: 14px; transition: opacity 0.2s; }
+.price-row:first-of-type { border-top: none; }
+.price-row span { line-height: 1.55; }
+.price-row strong { font-weight: 700; color: #fff; font-size: 1.05rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.price-row.is-off { opacity: 0.4; }
+.price-row.is-off strong { text-decoration: line-through; }
+.pr-toggle { display: flex; align-items: center; gap: 12px; cursor: pointer; font-weight: 600; }
+.pr-toggle input { width: 20px; height: 20px; accent-color: var(--gold, #ffd166); cursor: pointer; flex-shrink: 0; }
+.price-row.sub { color: rgba(255,255,255,0.7); }
+.price-row.sub strong { color: rgb(74, 222, 128); font-size: 0.95rem; }
+.price-row.sub strong.plain { color: #fff; }
+.price-row.timeline strong { color: var(--gold, #ffd166); }
+.price-row.total { border-top: 1px solid rgba(255,209,102,0.4); padding-top: 22px; margin-top: 12px; }
+.price-row.total strong { font-size: 2rem; color: var(--gold, #ffd166); }
+.price-note { color: rgba(255,255,255,0.55); font-size: 0.85rem; margin-top: 16px; line-height: 1.7; }
+.price-note strong { color: rgba(255,255,255,0.8); }
+.price-empty { margin-top: 14px; padding: 12px 16px; border: 1px dashed rgba(255,42,60,0.5); border-radius: 10px; background: rgba(255,42,60,0.08); color: #ff9aa4; font-size: 0.9rem; }
+
+/* ---------- SIGN ---------- */
+.sign-card { margin-top: 32px; padding: 32px; border: 1px solid rgba(255,255,255,0.12); border-radius: 22px; background: rgba(255,255,255,0.03); display: grid; gap: 20px; }
+.field-row { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 768px) { .field-row { grid-template-columns: 1fr 1fr; } }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+.field input { height: 48px; padding: 0 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: #fff; font-size: 1rem; transition: border-color 0.2s; }
+.field input:focus { outline: none; border-color: var(--gold, #ffd166); }
+.confirms { display: grid; gap: 8px; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(0,0,0,0.2); }
+.check { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: start; cursor: pointer; padding: 10px 8px; border-radius: 10px; transition: background 0.15s; }
+.check:hover { background: rgba(255,255,255,0.04); }
+.check input[type=checkbox] { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--gold, #ffd166); cursor: pointer; flex-shrink: 0; }
+.check span { line-height: 1.55; color: rgba(255,255,255,0.88); font-size: 0.95rem; }
+.check strong { color: #fff; }
+
+.signature-block { display: grid; gap: 10px; padding: 18px 20px; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; background: rgba(0,0,0,0.25); }
+.signature-block label { font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.65); }
+.signature-block .hint { font-size: 0.85rem; color: rgba(255,255,255,0.55); margin: 0; }
+.sig-wrap { position: relative; width: 100%; }
+canvas#signature { display: block; width: 100%; height: 200px; background: #ffffff; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); cursor: crosshair; touch-action: none; }
+.sig-line { position: absolute; inset-inline: 24px; bottom: 38px; height: 1px; background: rgba(0,0,0,0.18); pointer-events: none; }
+.sig-x { position: absolute; inset-inline-start: 24px; bottom: 26px; font-size: 0.85rem; color: rgba(0,0,0,0.45); letter-spacing: 0.05em; pointer-events: none; font-family: 'Rubik', sans-serif; }
+.sig-actions { display: flex; justify-content: flex-end; }
+.btn-ghost { background: transparent; border: 1px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.7); padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: border-color 0.2s; }
+.btn-ghost:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
+
+.sign-actions { margin-top: 12px; display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
+.btn-primary { height: 56px; background: linear-gradient(135deg, var(--gold, #ffd166), #d4a534); color: #0a0a0a; border: none; font-size: 1.05rem; font-weight: 700; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 30px -10px rgba(255,209,102,0.3); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+.legal { color: rgba(255,255,255,0.5); font-size: 0.82rem; text-align: center; }
+
+.sign-success { margin-top: 32px; padding: 36px; border: 1px solid rgba(74,222,128,0.3); background: rgba(74,222,128,0.06); border-radius: 22px; text-align: center; }
+.sign-success h3 { font-size: 1.8rem; font-weight: 700; color: rgb(134, 239, 172); margin-bottom: 10px; }
+.sign-success p { color: rgba(255,255,255,0.85); line-height: 1.6; }
+
+@media (max-width: 720px) {
+  .proposal-hero { padding: 36px 0 50px; }
+  .proposal-hero h1 { font-size: 2.1rem; line-height: 1.15; }
+  .proposal-hero .lede { font-size: 0.98rem; }
+  .meta { gap: 12px; padding: 16px; margin-top: 24px; }
+  .meta strong { font-size: 0.92rem; }
+  section { padding: 44px 0; }
+  .mod-card { padding: 24px 20px 22px; }
+  .mod-name { font-size: 1.3rem; }
+  .module-banner { padding: 26px 20px; }
+  .extras { padding: 22px 20px; }
+  .price-card { padding: 22px 20px; }
+  .price-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .sign-card { padding: 22px 18px; }
+}
+</style>
+
+<style is:global>
+/* site.js מצפה לניווט הרגיל שהוסתר בעמוד הזה וזורק TypeError,
+ * מה ששובר את ה-IntersectionObserver שמוסיף .in — לכן כופים נראות. */
+[data-reveal] { opacity: 1 !important; transform: none !important; }
+html, body { overflow-x: clip; }
+</style>
+</Layout>
