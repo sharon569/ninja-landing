@@ -688,7 +688,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
         <div class="price-row mod-row" data-price-row={m.id}>
           <label class="pr-toggle">
             <input type="checkbox" data-module-toggle={m.id} checked />
-            <span>{m.tag} · {m.name}</span>
+            <span><bdi>{m.tag}</bdi> · <bdi>{m.name}</bdi></span>
           </label>
           <strong>{fmt(m.price)} ₪ / חודש</strong>
         </div>
@@ -945,7 +945,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
       client: 'Guilty · גילטי',
       project: chosen.map((m) => m.name).join(' + '),
       lede: 'הצעה מודולרית — המודולים שסומנו ואושרו על ידי החותם.',
-      items: chosen.map((m) => ({ label: `${m.tag} · ${m.name}`, detail: m.points.join(' · '), amount: `${nf(m.price)} ₪ / חודש` })),
+      items: chosen.map((m) => ({ label: m.name, detail: m.points.join(' · '), amount: `${nf(m.price)} ₪ / חודש` })),
       totals: [
         { label: 'סה״כ חודשי לפני מע״מ', amount: `${nf(net)} ₪` },
         { label: `מע״מ (${Math.round(VAT * 100)}%)`, amount: `${nf(vat)} ₪` },
@@ -1215,6 +1215,17 @@ canvas#signature { display: block; width: 100%; height: 200px; background: #ffff
   .price-card { padding: 22px 20px; }
   .price-row { flex-direction: column; align-items: flex-start; gap: 6px; }
   .sign-card { padding: 22px 18px; }
+
+  /* טבלאות → כרטיסים במובייל, בלי גלילה לצדדים */
+  .tscroll { overflow: visible; border: none; background: none; }
+  .tscroll table { min-width: 0; }
+  .tscroll thead { display: none; }
+  .tscroll table, .tscroll tbody, .tscroll tr, .tscroll td { display: block; width: 100%; }
+  .tscroll tr { padding: 16px 18px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(255,255,255,0.02); }
+  .tscroll tbody tr:hover { background: rgba(255,255,255,0.02); }
+  .tscroll td { padding: 3px 0; border: none; }
+  .tscroll td.kw { font-size: 1.02rem; padding-bottom: 6px; }
+  .tscroll td.num { display: inline-block; width: auto; margin-top: 8px; padding: 3px 12px; border: 1px solid currentColor; border-radius: 999px; font-size: 0.78rem; }
 }
 </style>
 
