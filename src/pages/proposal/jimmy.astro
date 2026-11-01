@@ -226,8 +226,8 @@ const decisions = [
     body: 'קובץ מוצרים מסודר ותמונות באיכות טובה הם התנאי לעמידה בלוח הזמנים. אם צריך צילום מוצרים או כתיבת תיאורים — נשמח להפנות או לתמחר בנפרד.',
   },
   {
-    title: 'מדיניות לקוחות עסקיים',
-    body: 'מחירון עסקי, מינימום הזמנה, מי מקבל תנאי שוטף+ ומי משלם בכרטיס, ותדירויות האספקה שאתם מציעים. אלה החלטות מסחריות שלכם. אנחנו מגדירים אותן במערכת כך שכל לקוח עסקי יראה בדיוק את התנאים שסגרתם איתו.',
+    title: 'איך עובדים מול לקוחות עסקיים',
+    body: 'לידים בלבד או ניהול מלא באתר — זה נסגר בשלב האפיון, ושתי האפשרויות כלולות באותו מחיר. אם תבחרו בניהול מלא: מחירון עסקי, מינימום הזמנה, מי מקבל שוטף+ ותדירויות האספקה הם החלטות מסחריות שלכם, ואנחנו מגדירים אותן במערכת.',
   },
 ];
 
@@ -312,12 +312,35 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
 <section class="b2b">
   <div class="container">
     <span class="eyebrow">לקוחות עסקיים</span>
-    <h2>בתי קפה ומשרדים: אספקה קבועה, מחיר קבוע.</h2>
+    <h2>בתי קפה ומשרדים: אתם בוחרים איך לעבוד מולם.</h2>
     <p class="lede">
       בית קפה שקונה 10 ק״ג פולים בשבוע, או משרד שצריך קפה, חלב וכוסות כל חודש, שווה יותר מעשרות לקוחות פרטיים.
-      <strong>האתר משרת אותם בערוץ נפרד, בתוך אותה חנות:</strong> הם מתחברים ורואים את המחיר שלהם,
-      את הסל הקבוע שלהם ואת אפשרויות התשלום שלהם. לקוח פרטי לא רואה כלום מכל זה.
+      <strong>את צורת העבודה מולם תחליטו אתם, בשלב האפיון.</strong> שתי הדרכים כלולות באותו מחיר,
+      ואפשר להתחיל בלידים בלבד ולעבור לניהול מלא באתר בהמשך.
     </p>
+
+    <div class="opt-grid">
+      <div class="opt-card">
+        <span class="opt-tag">אפשרות א</span>
+        <h3>לידים בלבד</h3>
+        <p>
+          עמוד ייעודי לעסקים באתר, עם טופס "קבלו הצעה לעסק". כל פנייה מגיעה אליכם במייל ובוואטסאפ, עם שם העסק,
+          סוג העסק וצריכה משוערת. <strong>את המחיר, האספקה והתשלום אתם סוגרים מול הלקוח ישירות</strong>, כמו היום.
+        </p>
+        <span class="opt-fit">מתאים אם: כל לקוח עסקי מקבל הצעה אישית, וההתנהלות נעשית בטלפון ובוואטסאפ.</span>
+      </div>
+      <div class="opt-card">
+        <span class="opt-tag">אפשרות ב</span>
+        <h3>ניהול מלא באתר</h3>
+        <p>
+          הלקוח העסקי מתחבר לאזור משלו ורואה את המחיר שסגרתם איתו, את הסל הקבוע ואת אפשרויות התשלום שלו.
+          <strong>ההזמנות החוזרות עוברות דרך האתר</strong>, ולקוח פרטי לא רואה כלום מכל זה.
+        </p>
+        <span class="opt-fit">מתאים אם: יש או יהיו הרבה לקוחות עסקיים עם הזמנות חוזרות, ואתם רוצים לחסוך את ההתנהלות הידנית.</span>
+      </div>
+    </div>
+
+    <h3 class="b2b-sub">דוגמה: מה אפשר לכלול בניהול מלא באתר</h3>
     <div class="inc-grid">
       {b2b.map((b, i) => (
         <div class="inc-card b2b-card">
@@ -330,7 +353,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
     <div class="callout">
       <h4>חיוב חוזר אוטומטי — שווה לדעת</h4>
       <p>
-        ההצעה כוללת הגדרת אספקה קבועה במחיר קבוע, והזמנה חוזרת בלחיצה. <strong>אם תרצו שהמערכת גם תחייב את הכרטיס
+        אם תבחרו בניהול מלא, ההצעה כוללת הגדרת אספקה קבועה במחיר קבוע, והזמנה חוזרת בלחיצה. <strong>אם תרצו שהמערכת גם תחייב את הכרטיס
         אוטומטית בכל מחזור, בלי שהלקוח ילחץ</strong>, צריך תוסף מנויים ייעודי ל-WooCommerce. ההתקנה וההגדרה כלולות,
         אבל הרישיון השנתי של התוסף משולם בנפרד ישירות ליצרן, וחברת הסליקה צריכה לתמוך בחיוב חוזר.
       </p>
@@ -494,7 +517,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
       <div class="price-row sub"><span>חיבור סליקה, חשבוניות ומשלוחים</span><strong>כלול</strong></div>
       <div class="price-row sub"><span>GA4, Tag Manager, פיקסל מטא ופיד Merchant Center</span><strong>כלול</strong></div>
       <div class="price-row sub"><span>תשתית SEO טכנית, מהירות ונגישות</span><strong>כלול</strong></div>
-      <div class="price-row sub"><span>אזור לקוחות עסקיים: הרשמה ואישור, מחיר קבוע ללקוח, אספקה קבועה</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>ערוץ לקוחות עסקיים: לידים בלבד או ניהול מלא באתר, לבחירתכם</span><strong>כלול</strong></div>
       <div class="price-row sub"><span>העלאת מוצרים ללא הגבלת כמות</span><strong>כלול</strong></div>
       <div class="price-row sub"><span>הדרכה מוקלטת ו-30 יום ליווי אחרי השקה</span><strong>כלול</strong></div>
       <div class="price-row sub timeline"><span>זמן ביצוע</span><strong>{WEEKS} שבועות מקבלת החומרים הסופיים</strong></div>
@@ -682,7 +705,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
       project: 'אתר איקומרס · WordPress + WooCommerce',
       lede: 'בניית חנות אונליין למותג ג׳ימי ולמותגי קפה מהעולם — פולי קפה בקלייה טרייה (תערובות וחד-זני), מכונות קפה וציוד נלווה — לפי עיצוב של מעצב הבית.',
       items: [
-        { label: 'בניית אתר איקומרס', detail: `אפיון · פיתוח לפי העיצוב · סליקה, חשבוניות ומשלוחים · מדידה ו-SEO טכני · פולים, מכונות וציוד נלווה · אזור לקוחות עסקיים עם מחיר קבוע ואספקה קבועה · העלאת מוצרים ללא הגבלה · הדרכה ו-30 יום ליווי`, amount: `${BUILD} ₪` },
+        { label: 'בניית אתר איקומרס', detail: `אפיון · פיתוח לפי העיצוב · סליקה, חשבוניות ומשלוחים · מדידה ו-SEO טכני · פולים, מכונות וציוד נלווה · ערוץ לקוחות עסקיים (לידים או ניהול מלא, לבחירת הלקוח באפיון) ·העלאת מוצרים ללא הגבלה · הדרכה ו-30 יום ליווי`, amount: `${BUILD} ₪` },
         { label: 'אחסון, תחזוקה ואבטחה', detail: 'אחסון מנוהל · SSL · גיבוי יומי · עדכונים · ניטור · תמיכה טכנית', amount: `${YEARLY} ₪ / שנה` },
       ],
       totals: [
@@ -757,6 +780,18 @@ section.overview { padding-top: 20px; padding-bottom: 30px; }
 /* ---------- B2B ---------- */
 .b2b-card { border-color: rgba(120,180,255,0.18); background: linear-gradient(180deg, rgba(120,180,255,0.05), rgba(255,255,255,0.01)); }
 .b2b-n { display: block; font-family: 'Rubik', sans-serif; font-size: 1rem; font-weight: 700; color: rgb(170, 200, 255); margin-bottom: 12px; }
+
+.opt-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 34px; }
+@media (min-width: 860px) { .opt-grid { grid-template-columns: 1fr 1fr; } }
+.opt-card { display: flex; flex-direction: column; padding: 28px 26px; border: 1px solid rgba(255,209,102,0.22); border-radius: 18px; background: linear-gradient(180deg, rgba(255,209,102,0.07), rgba(255,255,255,0.015)); }
+.opt-tag { align-self: flex-start; font-family: 'Rubik', sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; color: var(--gold, #ffd166); border: 1px solid rgba(255,209,102,0.35); border-radius: 999px; padding: 4px 13px; margin-bottom: 14px; }
+.opt-card h3 { font-size: 1.45rem; font-weight: 800; letter-spacing: -0.01em; }
+.opt-card p { color: rgba(255,255,255,0.75); line-height: 1.68; font-size: 0.95rem; margin-top: 10px; }
+.opt-card p strong { color: #fff; }
+.opt-fit { margin-top: auto; padding-top: 16px; font-size: 0.86rem; line-height: 1.6; color: rgba(255,255,255,0.55); border-top: 1px solid rgba(255,255,255,0.08); }
+.opt-card p + .opt-fit { margin-top: 16px; }
+.b2b-sub { margin-top: 44px; font-size: 1.25rem; font-weight: 700; color: rgba(255,255,255,0.85); }
+.b2b-sub + .inc-grid { margin-top: 18px; }
 
 /* ---------- PAGES ---------- */
 .finds { display: grid; gap: 14px; margin-top: 34px; }
