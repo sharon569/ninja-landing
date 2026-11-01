@@ -186,17 +186,6 @@ const phases = [
   },
 ];
 
-// חלוקת אחריות
-const roles = [
-  { item: 'אפיון, מפת אתר ומבנה קטלוג', ninja: 'כן', designer: 'משתתף', client: 'מאשר' },
-  { item: 'עיצוב המסכים', ninja: 'ליווי ובדיקה', designer: 'כן', client: 'מאשר' },
-  { item: 'פיתוח, WooCommerce וחיבורים', ninja: 'כן', designer: '—', client: '—' },
-  { item: 'נתוני מוצרים, מחירים ותמונות', ninja: 'העלאה', designer: '—', client: 'מספק' },
-  { item: 'טקסטים שיווקיים ונוסח משפטי', ninja: 'מבנה ומיקום', designer: '—', client: 'מספק' },
-  { item: 'פתיחת חשבון סליקה וחשבוניות', ninja: 'ליווי', designer: '—', client: 'פותח' },
-  { item: 'בדיקות, השקה והדרכה', ninja: 'כן', designer: '—', client: 'משתתף' },
-];
-
 // מה בתשלום השנתי
 const yearly = [
   'אחסון וורדפרס מנוהל ומהיר, מותאם ל-WooCommerce',
@@ -261,7 +250,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
       מכונות קפה וציוד נלווה, מעמוד הבית ועד החשבונית שנשלחת
       ללקוח אחרי התשלום. העיצוב נעשה על ידי מעצב הבית שלכם, ואנחנו לוקחים את כל השאר: אפיון, פיתוח,
       סליקה, חשבוניות, משלוחים, מדידה, העלאת מוצרים, השקה והדרכה.
-      ההצעה מפרטת מה נבנה, מי אחראי על מה, ומה כלול במחיר. תקפה ל-30 יום מתאריך השליחה.
+      ההצעה מפרטת מה נבנה, איך עובדים ומה כלול במחיר. תקפה ל-30 יום מתאריך השליחה.
     </p>
 
     <div class="meta">
@@ -426,31 +415,14 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
   </div>
 </section>
 
-<section class="gaps">
+<section class="designer">
   <div class="container">
-    <span class="eyebrow">עבודה מול מעצב הבית</span>
-    <h2>מי עושה מה.</h2>
-    <p class="lede">
-      פרויקט עם שלושה צדדים מצליח כשברור מראש מי אחראי על כל חלק.
-      <strong>אנחנו אחראים שהעיצוב יהפוך לחנות שעובדת</strong> — כולל לוודא, עוד לפני הפיתוח,
-      שהמעצב קיבל את כל המסכים והמצבים שחנות אמיתית צריכה.
-    </p>
-    <div class="tscroll">
-      <table>
-        <thead>
-          <tr><th>תחום</th><th>NINJA Digital</th><th>מעצב הבית</th><th>מגה פרינט</th></tr>
-        </thead>
-        <tbody>
-          {roles.map((r) => (
-            <tr>
-              <td class="kw" data-label="תחום">{r.item}</td>
-              <td class={r.ninja === 'כן' ? 'accent' : 'miss'} data-label="NINJA Digital">{r.ninja}</td>
-              <td class={r.designer === 'כן' ? 'accent' : 'miss'} data-label="מעצב הבית">{r.designer}</td>
-              <td class="miss" data-label="מגה פרינט">{r.client}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div class="callout">
+      <h4>עבודה מול מעצב הבית</h4>
+      <p>
+        אנחנו עובדים ישירות מול המעצב שלכם: מעבירים לו את כל המסכים שחנות צריכה, בודקים כל עיצוב לפני אישור,
+        <strong>ומפתחים את האתר בדיוק לפי העיצוב.</strong>
+      </p>
     </div>
   </div>
 </section>
@@ -579,7 +551,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
       <fieldset class="confirms">
         <label class="check">
           <input type="checkbox" name="confirm_scope" required />
-          <span>אני מאשר את היקף העבודה שתואר בהצעה, כולל חלוקת האחריות מול מעצב הבית והסעיפים שאינם כלולים.</span>
+          <span>אני מאשר את היקף העבודה שתואר בהצעה, כולל הסעיפים שאינם כלולים.</span>
         </label>
         <label class="check">
           <input type="checkbox" name="confirm_price" required />
@@ -715,7 +687,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
       extras: [`זמן ביצוע: ${WEEKS} שבועות ${FROM}`],
       terms: 'המחירים אינם כוללים מע״מ. 50% מקדמה עם אישור ההצעה ו-50% במסירה. עיצוב, צילום, עמלות סליקה, מערכת חשבוניות, שליחויות ודומיין אינם כלולים.',
       confirms: [
-        'אישור היקף העבודה וחלוקת האחריות מול מעצב הבית',
+        'אישור היקף העבודה כפי שתואר בהצעה',
         `אישור מחיר: ${BUILD} ₪ + מע״מ חד-פעמי, ו-${YEARLY} ₪ + מע״מ לשנה`,
         'אישור תנאי התשלום והתחייבות לספק נתוני מוצרים וגישות',
       ],
