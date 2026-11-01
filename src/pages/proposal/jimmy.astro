@@ -1,0 +1,768 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+/* ---------------------------------------------------------------------------
+ * מחיר — נקבע מול שרון: 8,000 ₪ חד-פעמי לבנייה + 1,200 ₪ לשנה. לפני מע״מ.
+ * העלאת מוצרים — ללא הגבלת כמות, כלול במחיר.
+ * WEEKS — זמן ביצוע מרגע קבלת כל החומרים והתכנים הסופיים (עיצוב, מוצרים, טקסטים).
+ * ------------------------------------------------------------------------- */
+const BUILD = '8,000';
+const YEARLY = '1,200';
+const WEEKS = '5-6';
+const FROM = 'מרגע קבלת כל החומרים והתכנים הסופיים';
+
+const CLIENT = 'מגה פרינט ברקן בע״מ';
+const CLIENT_ID = '511208152';
+const CLIENT_ADDR = 'העינבר 17, אזור תעשייה ברקן';
+
+const stats = [
+  { v: '14', k: 'תבניות עמוד' },
+  { v: '∞', k: 'העלאת מוצרים ללא הגבלה' },
+  { v: '6', k: 'שלבי עבודה' },
+  { v: WEEKS, k: 'שבועות לביצוע' },
+  { v: '30', k: 'ימי ליווי אחרי השקה' },
+];
+
+// מה שנבנה — עמוד אחרי עמוד
+const pages = [
+  { n: '01', title: 'עמוד הבית', body: 'באנר ראשי, מוצרים נבחרים, כניסה לפי מותג ולפי סוג קפה, הסיפור של ג׳ימי, והוכחה חברתית. בנוי כך שאפשר להחליף מבצעים ובאנרים בלי מפתח.' },
+  { n: '02', title: 'חנות וקטגוריות עם סינון', body: 'סינון לפי מותג, ארץ מקור, דרגת קלייה, סוג (פולים / טחון / קפסולות) ומשקל. מיון לפי מחיר ופופולריות, טעינה מהירה גם עם קטלוג גדול.' },
+  { n: '03', title: 'עמודי מותג', body: 'ג׳ימי ומותגי הקפה מהעולם — כל מותג מקבל עמוד משלו עם לוגו, תיאור וכל המוצרים שלו. עמודים כאלה הם גם נכס SEO: מי שמחפש מותג בשם מגיע ישר אליו.' },
+  { n: '04', title: 'עמוד מוצר', body: 'גלריה, וריאציות (משקל, דרגת טחינה), פרופיל טעם, מלאי, מוצרים משלימים ו"קנו יחד". כפתור הוספה לעגלה שנשאר זמין גם בגלילה במובייל.' },
+  { n: '05', title: 'עגלה וקופה', body: 'מיני-עגלה צפה, קופה קצרה בעמוד אחד, קופוני הנחה, סף משלוח חינם, ובחירה בין משלוח לאיסוף עצמי. כל שדה מיותר בקופה עולה במכירות — ולכן אין כאלה.' },
+  { n: '06', title: 'אזור אישי', body: 'היסטוריית הזמנות, כתובות שמורות ו"הזמנה חוזרת" בלחיצה אחת. בקפה זה קריטי: הלקוח שקנה פעם אחת חוזר אחרי חודש לאותה שקית בדיוק.' },
+  { n: '07', title: 'חיפוש חכם', body: 'חיפוש עם השלמה אוטומטית ותמונות מוצר כבר תוך כדי הקלדה, כולל זיהוי שמות מותגים באנגלית ובעברית.' },
+  { n: '08', title: 'אודות ג׳ימי', body: 'הסיפור של המותג, הבחירה במותגים מהעולם, ומה מבדיל את ג׳ימי. עמוד שבונה אמון לפני הקנייה הראשונה.' },
+  { n: '09', title: 'בלוג / מגזין קפה', body: 'תשתית לתוכן: מדריכי חליטה, השוואות, היכרות עם ארצות מקור. מוכן לקידום אורגני מהיום הראשון, גם אם התוכן נכתב בהמשך.' },
+  { n: '10', title: 'צור קשר ושאלות נפוצות', body: 'טופס פנייה, כפתור וואטסאפ, פרטי העסק, ועמוד שאלות נפוצות על משלוחים, החזרות, טריות וטחינה — שמוריד עומס משירות הלקוחות.' },
+  { n: '11', title: 'עמודים משפטיים', body: 'תקנון אתר, מדיניות פרטיות, משלוחים והחזרות והצהרת נגישות — במבנה ובמיקום הנכונים. נוסח משפטי סופי באחריות הלקוח.' },
+  { n: '12', title: 'מיילים ועמודי מערכת', body: 'מיילי WooCommerce ממותגים (אישור הזמנה, משלוח, איפוס סיסמה), עמוד תודה אחרי רכישה ועמוד 404 שמחזיר לחנות.' },
+];
+
+// מה נכנס מתחת למכסה המנוע
+const systems = [
+  {
+    icon: 'card',
+    title: 'סליקה ותשלומים',
+    body: 'חיבור חברת סליקה ישראלית אחת לבחירתכם (Cardcom, Tranzila, Grow וכדומה), כולל כרטיסי אשראי, תשלומים, ו-Bit / Apple Pay / Google Pay — בכפוף למה שחברת הסליקה מספקת.',
+  },
+  {
+    icon: 'invoice',
+    title: 'חשבוניות אוטומטיות',
+    body: 'חיבור למערכת חשבוניות אחת (חשבונית ירוקה, iCount, EZcount וכדומה). כל הזמנה שמשולמת מפיקה חשבונית מס/קבלה ושולחת אותה ללקוח — בלי הקלדה ידנית.',
+  },
+  {
+    icon: 'truck',
+    title: 'משלוחים ואיסוף',
+    body: 'אזורי משלוח, מחיר לפי אזור או לפי סכום, משלוח חינם מעל סף, ואיסוף עצמי מברקן. אם לחברת השליחויות שתבחרו יש תוסף WooCommerce מוכן — החיבור כלול.',
+  },
+  {
+    icon: 'chart',
+    title: 'מדידה מוכנה לפרסום',
+    body: 'GA4 עם אירועי מסחר מלאים (צפייה, עגלה, קופה, רכישה עם ערך), Google Tag Manager, פיקסל מטא, ופיד מוצרים ל-Google Merchant Center. ביום שתרצו לפרסם — הכל כבר מודד.',
+  },
+  {
+    icon: 'search',
+    title: 'תשתית SEO טכנית',
+    body: 'מבנה URL נקי, כותרות ותיאורים לכל עמוד, Schema של מוצר ומותג, sitemap, breadcrumbs, וחיבור ל-Google Search Console. בלי זה כל קידום עתידי מתחיל בתיקונים.',
+  },
+  {
+    icon: 'bolt',
+    title: 'מהירות, נגישות ואבטחה',
+    body: 'אופטימיזציית תמונות ו-caching, התאמה מלאה למובייל, בנייה לפי הנחיות תקן הנגישות הישראלי 5568, SSL, הגנה מפני ספאם ובוטים, וגיבוי לפני כל שינוי.',
+  },
+];
+
+// שלבי העבודה
+const phases = [
+  {
+    n: 'שבוע 1',
+    title: 'אפיון — לפני פיקסל אחד',
+    when: 'אפיון',
+    items: [
+      '<strong>מפת אתר ומבנה קטלוג.</strong> קטגוריות, מותגים, מאפייני מוצר (ארץ מקור, קלייה, טחינה, משקל) ווריאציות. החלטות שקשה לשנות אחרי שהמוצרים כבר עלו — ולכן הן ראשונות.',
+      '<strong>רשימת מסכים ומצבים למעצב.</strong> אנחנו מעבירים למעצב הבית את כל התבניות והמצבים ש-WooCommerce דורש — עגלה ריקה, מוצר אזל, שגיאת תשלום, מובייל — כדי שלא יתגלו חורים באמצע הפיתוח.',
+      '<strong>בחירת ספקים.</strong> סליקה, חשבוניות ושליחויות נסגרים בשלב הזה, כי לכל אחד מהם יש תהליך פתיחה משלו שלוקח זמן.',
+    ],
+  },
+  {
+    n: 'במקביל',
+    title: 'עיצוב — אצל מעצב הבית',
+    when: 'עיצוב',
+    items: [
+      '<strong>המעצב מעצב, אנחנו מלווים.</strong> פגישת היכרות, ובדיקה של כל מסך לפני שהוא מאושר: שזה ניתן לפיתוח, שזה עובד במובייל, ושזה לא שובר את הקופה.',
+      '<strong>מסירה מסודרת.</strong> קבצים ב-Figma (או כלי מקביל), פונטים ברישיון ווב, ונכסים גרפיים בפורמט מוכן לאתר.',
+    ],
+  },
+  {
+    n: `שבועות 2-${WEEKS.split('-')[1] ?? '6'}`,
+    title: 'פיתוח, תוכן ומוצרים',
+    when: 'פיתוח',
+    items: [
+      '<strong>פיתוח לפי העיצוב</strong> על סביבת בדיקה סגורה, עם קישור שאפשר לעקוב אחריו לאורך כל הדרך.',
+      '<strong>הקמת WooCommerce:</strong> מוצרים, וריאציות, מותגים, משלוחים, מסים (מע״מ), קופונים ומיילים.',
+      '<strong>העלאת כל המוצרים — ללא הגבלת כמות</strong> מתוך קובץ שתספקו (שם, תיאור, מחיר, משקל, תמונות). בנוסף, הדרכה כך שתוכלו להוסיף מוצרים חדשים גם לבד.',
+      '<strong>חיבור סליקה, חשבוניות ומדידה</strong> והרצת הזמנות בדיקה אמיתיות מקצה לקצה.',
+    ],
+  },
+  {
+    n: 'השקה',
+    title: 'בדיקות, עלייה לאוויר והדרכה',
+    when: 'השקה',
+    items: [
+      '<strong>QA מלא:</strong> מובייל, דסקטופ, דפדפנים, מהירות, נגישות, וכל מסלול רכישה — כולל תשלום שנכשל וביטול הזמנה.',
+      '<strong>עלייה לדומיין</strong> עם SSL, הפניות 301 אם יש אתר קיים, והגשת sitemap לגוגל.',
+      '<strong>הדרכה מוקלטת</strong> על ניהול הזמנות, מוצרים, מלאי, קופונים ובאנרים.',
+      '<strong>30 יום של ליווי צמוד</strong> אחרי ההשקה לכל תקלה או שאלה, ללא תוספת תשלום.',
+    ],
+  },
+];
+
+// חלוקת אחריות
+const roles = [
+  { item: 'אפיון, מפת אתר ומבנה קטלוג', ninja: 'כן', designer: 'משתתף', client: 'מאשר' },
+  { item: 'עיצוב המסכים', ninja: 'ליווי ובדיקה', designer: 'כן', client: 'מאשר' },
+  { item: 'פיתוח, WooCommerce וחיבורים', ninja: 'כן', designer: '—', client: '—' },
+  { item: 'נתוני מוצרים, מחירים ותמונות', ninja: 'העלאה', designer: '—', client: 'מספק' },
+  { item: 'טקסטים שיווקיים ונוסח משפטי', ninja: 'מבנה ומיקום', designer: '—', client: 'מספק' },
+  { item: 'פתיחת חשבון סליקה וחשבוניות', ninja: 'ליווי', designer: '—', client: 'פותח' },
+  { item: 'בדיקות, השקה והדרכה', ninja: 'כן', designer: '—', client: 'משתתף' },
+];
+
+// מה בתשלום השנתי
+const yearly = [
+  'אחסון וורדפרס מנוהל ומהיר, מותאם ל-WooCommerce',
+  'תעודת SSL וחידוש אוטומטי',
+  'גיבוי יומי עם אפשרות שחזור',
+  'עדכוני וורדפרס, WooCommerce ותוספים — אחרי בדיקה, לא אוטומטית בעיוורון',
+  'ניטור זמינות ואבטחה',
+  'תמיכה טכנית בתקלות באתר',
+];
+
+// החלטות שהן של הלקוח
+const decisions = [
+  {
+    title: 'חברת סליקה וחשבוניות',
+    body: 'החשבונות נפתחים על שם החברה ועמלות הסליקה משולמות על ידכם ישירות לספק. נמליץ על ספק שמתאים להיקף המכירות הצפוי, אבל ההתקשרות היא שלכם — כך שהכסף מהמכירות עובר ישירות אליכם.',
+  },
+  {
+    title: 'דומיין ובעלות',
+    body: 'הדומיין רשום על שם החברה. האתר, התוכן והנתונים בבעלותכם המלאה — ואם בשלב כלשהו תרצו לעבור לספק אחר, נעביר הכל מסודר.',
+  },
+  {
+    title: 'חברת שליחויות',
+    body: 'צריך לבחור חברת שליחויות לפני הפיתוח. חיבור דרך תוסף מוכן כלול בהצעה; פיתוח חיבור API ייעודי לחברה בלי תוסף מתומחר בנפרד.',
+  },
+  {
+    title: 'נתוני מוצרים',
+    body: 'קובץ מוצרים מסודר ותמונות באיכות טובה הם התנאי לעמידה בלוח הזמנים. אם צריך צילום מוצרים או כתיבת תיאורים — נשמח להפנות או לתמחר בנפרד.',
+  },
+];
+
+// מה לא כלול — שקיפות מראש
+const notIncluded = [
+  'עיצוב גרפי (באחריות מעצב הבית)',
+  'צילום מוצרים וכתיבת תיאורי מוצר',
+  'עמלות סליקה, מנוי מערכת החשבוניות ודמי שליחויות',
+  'רכישת דומיין ותיבות דואר',
+  'תוספים בתשלום שתבחרו להוסיף בהמשך (למשל מנויים חוזרים)',
+  'גרסה בשפה נוספת',
+  'קידום ממומן או אורגני שוטף',
+];
+
+const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+---
+<Layout
+  title="הצעת מחיר · אתר איקומרס ג׳ימי · מגה פרינט ברקן בע״מ — NINJA Digital"
+  description="הצעת מחיר לבניית אתר איקומרס בוורדפרס ו-WooCommerce למותג ג׳ימי ולמותגי קפה מהעולם."
+  noindex={true}
+  hideFloatWA={true}
+  hideNav={true}
+>
+
+<section class="proposal-hero">
+  <div class="container">
+    <span class="eyebrow">הצעת מחיר · NINJA Digital</span>
+    <h1>חנות אונליין ל<em>ג׳ימי</em> ולמותגי הקפה מהעולם.</h1>
+    <p class="lede">
+      <strong>אתר איקומרס מלא על וורדפרס ו-WooCommerce</strong> — מעמוד הבית ועד החשבונית שנשלחת
+      ללקוח אחרי התשלום. העיצוב נעשה על ידי מעצב הבית שלכם, ואנחנו לוקחים את כל השאר: אפיון, פיתוח,
+      סליקה, חשבוניות, משלוחים, מדידה, העלאת מוצרים, השקה והדרכה.
+      ההצעה מפרטת מה נבנה, מי אחראי על מה, ומה כלול במחיר. תקפה ל-30 יום מתאריך השליחה.
+    </p>
+
+    <div class="meta">
+      <div><span>לקוח</span><strong>{CLIENT}</strong></div>
+      <div><span>ח.פ</span><strong>{CLIENT_ID}</strong></div>
+      <div><span>כתובת</span><strong>{CLIENT_ADDR}</strong></div>
+      <div><span>פרויקט</span><strong>אתר איקומרס · WooCommerce</strong></div>
+      <div><span>תאריך</span><strong>{today}</strong></div>
+    </div>
+  </div>
+</section>
+
+<section class="overview">
+  <div class="container">
+    <span class="eyebrow">במבט אחד</span>
+    <h2>חנות שמוכנה למכור מהיום הראשון.</h2>
+    <div class="stats">
+      {stats.map((s) => (
+        <div class="stat"><strong>{s.v}</strong><span>{s.k}</span></div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="findings">
+  <div class="container">
+    <span class="eyebrow">מה נבנה</span>
+    <h2>עמוד אחרי עמוד.</h2>
+    <p class="lede">
+      כל התבניות נבנות לפי העיצוב של מעצב הבית, ברספונסיביות מלאה ובעברית מלאה (RTL).
+      הניהול כולו נעשה מממשק וורדפרס — מוצרים, מחירים, באנרים ומבצעים מתעדכנים בלי מפתח.
+    </p>
+    <div class="finds">
+      {pages.map((p) => (
+        <div class="find">
+          <div class="fn">{p.n}</div>
+          <div>
+            <h3>{p.title}</h3>
+            <p>{p.body}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div class="callout">
+      <h4>למה זה בנוי ככה</h4>
+      <p>
+        קפה הוא מוצר שקונים שוב ושוב. <strong>הלקוח הכי רווחי הוא לא מי שקנה פעם אחת — אלא מי שחוזר כל חודש לאותה שקית.</strong>
+        לכן ההחלטות באתר נמדדות בשני מבחנים: כמה קל לקנות בפעם הראשונה, וכמה קל לחזור ולקנות שוב.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="included">
+  <div class="container">
+    <span class="eyebrow">מתחת למכסה המנוע</span>
+    <h2>שישה דברים שאתר יפה לבד לא עושה.</h2>
+    <div class="inc-grid">
+      {systems.map((m) => (
+        <div class="inc-card">
+          <div class="inc-icon" aria-hidden="true">
+            {m.icon === 'card' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6 15h4"/></svg>
+            )}
+            {m.icon === 'invoice' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"/><path d="M9 8h6M9 12h6"/></svg>
+            )}
+            {m.icon === 'truck' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 6h12v10H2zM14 10h4l3 3v3h-7"/><circle cx="6" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/></svg>
+            )}
+            {m.icon === 'chart' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+            )}
+            {m.icon === 'search' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.35-4.35"/></svg>
+            )}
+            {m.icon === 'bolt' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg>
+            )}
+          </div>
+          <h3>{m.title}</h3>
+          <p>{m.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="gaps">
+  <div class="container">
+    <span class="eyebrow">עבודה מול מעצב הבית</span>
+    <h2>מי עושה מה.</h2>
+    <p class="lede">
+      פרויקט עם שלושה צדדים מצליח כשברור מראש מי אחראי על כל חלק.
+      <strong>אנחנו אחראים שהעיצוב יהפוך לחנות שעובדת</strong> — כולל לוודא, עוד לפני הפיתוח,
+      שהמעצב קיבל את כל המסכים והמצבים שחנות אמיתית צריכה.
+    </p>
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr><th>תחום</th><th>NINJA Digital</th><th>מעצב הבית</th><th>מגה פרינט</th></tr>
+        </thead>
+        <tbody>
+          {roles.map((r) => (
+            <tr>
+              <td class="kw" data-label="תחום">{r.item}</td>
+              <td class={r.ninja === 'כן' ? 'accent' : 'miss'} data-label="NINJA Digital">{r.ninja}</td>
+              <td class={r.designer === 'כן' ? 'accent' : 'miss'} data-label="מעצב הבית">{r.designer}</td>
+              <td class="miss" data-label="מגה פרינט">{r.client}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="plan">
+  <div class="container">
+    <span class="eyebrow">תוכנית עבודה</span>
+    <h2>מאפיון להשקה.</h2>
+    <p class="lede">
+      זמן הביצוע הוא <strong>{WEEKS} שבועות {FROM}</strong> — קבצי העיצוב, קובץ המוצרים והתמונות, והטקסטים.
+      האפיון מתחיל מיד עם אישור ההצעה, כך שהמעצב יוכל להתחיל לעבוד עם תמונה מלאה של מה שצריך.
+    </p>
+
+    {phases.map((p) => (
+      <article class="phase">
+        <header>
+          <span class="pn">{p.n}</span>
+          <h3>{p.title}</h3>
+          <span class="when">{p.when}</span>
+        </header>
+        <ul>
+          {p.items.map((i) => <li set:html={i} />)}
+        </ul>
+      </article>
+    ))}
+  </div>
+</section>
+
+<section class="decisions">
+  <div class="container">
+    <span class="eyebrow">לפני שמתחילים</span>
+    <h2>ארבע החלטות שהן שלכם.</h2>
+    <div class="dec-grid">
+      {decisions.map((d) => (
+        <div class="dec-card">
+          <h3>{d.title}</h3>
+          <p>{d.body}</p>
+        </div>
+      ))}
+    </div>
+
+    <div class="extras">
+      <div class="extras-head">
+        <span class="extras-tag">שקיפות</span>
+        <h3>מה לא כלול בהצעה</h3>
+      </div>
+      <ul class="extras-list">
+        {notIncluded.map((n) => <li>{n}</li>)}
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="price">
+  <div class="container">
+    <span class="eyebrow">סיכום עלות</span>
+    <h2>מחיר אחד לבנייה. מחיר אחד לשנה.</h2>
+    <div class="price-card">
+      <div class="price-row">
+        <span>בניית אתר איקומרס בוורדפרס ו-WooCommerce — אפיון, פיתוח לפי העיצוב והשקה</span>
+        <strong>{BUILD} ₪</strong>
+      </div>
+      <div class="price-row sub"><span>אפיון, מפת אתר וליווי מעצב הבית</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>חיבור סליקה, חשבוניות ומשלוחים</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>GA4, Tag Manager, פיקסל מטא ופיד Merchant Center</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>תשתית SEO טכנית, מהירות ונגישות</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>העלאת מוצרים ללא הגבלת כמות</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>הדרכה מוקלטת ו-30 יום ליווי אחרי השקה</span><strong>כלול</strong></div>
+      <div class="price-row sub timeline"><span>זמן ביצוע</span><strong>{WEEKS} שבועות מקבלת החומרים הסופיים</strong></div>
+      <div class="price-row total">
+        <span>סה״כ חד-פעמי, לפני מע״מ</span>
+        <strong>{BUILD} ₪</strong>
+      </div>
+      <p class="price-note">
+        המחירים אינם כוללים מע״מ, שיתווסף כחוק. <strong>תנאי תשלום: 50% מקדמה עם אישור ההצעה ו-50% במסירה</strong>,
+        בהעברה בנקאית או בכרטיס אשראי. שינויים מהותיים בהיקף אחרי אישור העיצוב (תבניות נוספות, חיבורים
+        ייעודיים) יתומחרו מראש ובכתב — שום דבר לא נגבה בלי אישור שלכם.
+      </p>
+    </div>
+
+    <div class="hosting-card">
+      <div>
+        <span class="extras-tag">תשלום שנתי</span>
+        <h3>אחסון, תחזוקה ואבטחה</h3>
+        <ul class="extras-list">
+          {yearly.map((y) => <li>{y}</li>)}
+        </ul>
+      </div>
+      <div class="hosting-price">
+        <strong>{YEARLY}</strong>
+        <span>₪ + מע״מ / שנה</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sign">
+  <div class="container">
+    <span class="eyebrow">אישור הצעה</span>
+    <h2>אם המחיר ותיאור העבודה מקובלים, חתמו כאן.</h2>
+    <p class="lede">אישור ההצעה ישלח התראה במייל ואחזור אליכם לתיאום פגישת האפיון ופגישת ההיכרות עם המעצב.</p>
+
+    <form id="proposal-sign" class="sign-card">
+      <div class="field-row">
+        <div class="field">
+          <label for="name">שם מלא</label>
+          <input id="name" name="name" type="text" required autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="email">אימייל</label>
+          <input id="email" name="email" type="email" required autocomplete="email" dir="ltr" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="phone">טלפון</label>
+          <input id="phone" name="phone" type="tel" autocomplete="tel" dir="ltr" />
+        </div>
+        <div class="field">
+          <label for="title">תפקיד</label>
+          <input id="title" name="title" type="text" placeholder="לדוגמה: מנכ״ל, בעלים" />
+        </div>
+      </div>
+
+      <fieldset class="confirms">
+        <label class="check">
+          <input type="checkbox" name="confirm_scope" required />
+          <span>אני מאשר את היקף העבודה שתואר בהצעה, כולל חלוקת האחריות מול מעצב הבית והסעיפים שאינם כלולים.</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="confirm_price" required />
+          <span>אני מאשר את המחיר: {BUILD} ₪ + מע״מ חד-פעמי עבור בניית האתר, ו-{YEARLY} ₪ + מע״מ לשנה עבור אחסון, תחזוקה ואבטחה.</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="confirm_terms" required />
+          <span>אני מאשר שעם תחילת העבודה תיגבה מקדמה של 50% ויתרת התשלום במסירה, ומתחייב לספק את נתוני המוצרים, התמונות וגישה לספקי הסליקה והחשבוניות.</span>
+        </label>
+      </fieldset>
+
+      <div class="signature-block">
+        <label for="signature">חתימה דיגיטלית</label>
+        <p class="hint">לחצו בתוך הריבוע וציירו את שמכם כחתימה.</p>
+        <div class="sig-wrap">
+          <canvas id="signature" aria-label="אזור חתימה"></canvas>
+          <span class="sig-line" aria-hidden="true"></span>
+          <span class="sig-x" aria-hidden="true">×</span>
+        </div>
+        <div class="sig-actions">
+          <button type="button" id="sig-clear" class="btn-ghost">נקה חתימה</button>
+        </div>
+      </div>
+
+      <div class="sign-actions">
+        <button type="submit" class="btn-primary">
+          אישור ושליחה
+          <span aria-hidden="true">←</span>
+        </button>
+        <p class="legal">בלחיצה על האישור, אני מקבל את התנאים המופיעים בהצעה זו ומסמיך את NINJA Digital להתחיל בעבודה.</p>
+      </div>
+    </form>
+
+    <div id="sign-success" class="sign-success" hidden>
+      <h3>התקבל. תודה.</h3>
+      <p>שרון יחזור אליכם תוך יום עסקים אחד עם פרטי המקדמה ומועד לפגישת האפיון.</p>
+    </div>
+  </div>
+</section>
+
+<script is:inline define:vars={{ BUILD, YEARLY, WEEKS, FROM, CLIENT, CLIENT_ID }}>
+(() => {
+  const form = document.getElementById('proposal-sign');
+  const success = document.getElementById('sign-success');
+  const canvas = /** @type {HTMLCanvasElement} */(document.getElementById('signature'));
+  const ctx = canvas?.getContext('2d');
+  let drawing = false;
+  let hasInk = false;
+
+  if (canvas && ctx) {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    function setupCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#1a1a1a';
+    }
+    setupCanvas();
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const data = canvas.toDataURL();
+        setupCanvas();
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, 0, 0, canvas.width / dpr, canvas.height / dpr);
+        img.src = data;
+      }, 150);
+    });
+
+    function pos(e) {
+      const r = canvas.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+    canvas.addEventListener('pointerdown', (e) => {
+      drawing = true;
+      canvas.setPointerCapture?.(e.pointerId);
+      const { x, y } = pos(e);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      e.preventDefault();
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (!drawing) return;
+      const { x, y } = pos(e);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      hasInk = true;
+      e.preventDefault();
+    });
+    const onUp = (e) => {
+      if (!drawing) return;
+      drawing = false;
+      canvas.releasePointerCapture?.(e.pointerId);
+    };
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointercancel', onUp);
+    canvas.addEventListener('pointerleave', onUp);
+
+    document.getElementById('sig-clear')?.addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasInk = false;
+    });
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!hasInk) {
+      alert('נדרשת חתימה לפני האישור.');
+      return;
+    }
+    const data = Object.fromEntries(new FormData(form).entries());
+    const signature = canvas?.toDataURL('image/png');
+
+    // סיכום שנכנס כמו שהוא ל-PDF החתום ולמייל
+    const summary = {
+      title: 'אתר איקומרס ל-ג׳ימי',
+      client: `${CLIENT} · ח.פ ${CLIENT_ID}`,
+      project: 'אתר איקומרס · WordPress + WooCommerce',
+      lede: 'בניית חנות אונליין למותג ג׳ימי ולמותגי קפה מהעולם, לפי עיצוב של מעצב הבית.',
+      items: [
+        { label: 'בניית אתר איקומרס', detail: `אפיון · פיתוח לפי העיצוב · סליקה, חשבוניות ומשלוחים · מדידה ו-SEO טכני · העלאת מוצרים ללא הגבלה ·הדרכה ו-30 יום ליווי`, amount: `${BUILD} ₪` },
+        { label: 'אחסון, תחזוקה ואבטחה', detail: 'אחסון מנוהל · SSL · גיבוי יומי · עדכונים · ניטור · תמיכה טכנית', amount: `${YEARLY} ₪ / שנה` },
+      ],
+      totals: [
+        { label: 'תשלום שנתי לפני מע״מ', amount: `${YEARLY} ₪` },
+      ],
+      total: { label: 'סה״כ חד-פעמי לפני מע״מ', amount: `${BUILD} ₪` },
+      extras: [`זמן ביצוע: ${WEEKS} שבועות ${FROM}`],
+      terms: 'המחירים אינם כוללים מע״מ. 50% מקדמה עם אישור ההצעה ו-50% במסירה. עיצוב, צילום, עמלות סליקה, מערכת חשבוניות, שליחויות ודומיין אינם כלולים.',
+      confirms: [
+        'אישור היקף העבודה וחלוקת האחריות מול מעצב הבית',
+        `אישור מחיר: ${BUILD} ₪ + מע״מ חד-פעמי, ו-${YEARLY} ₪ + מע״מ לשנה`,
+        'אישור תנאי התשלום והתחייבות לספק נתוני מוצרים וגישות',
+      ],
+    };
+
+    try {
+      const res = await fetch('/api/proposal-sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proposal: 'jimmy-woocommerce', ...data, signature, summary, signedAt: new Date().toISOString() }),
+      });
+      if (res.ok || res.status === 202) {
+        form.style.display = 'none';
+        success.removeAttribute('hidden');
+        success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        alert('משהו השתבש. נסו שוב או שלחו לי במייל ישירות.');
+      }
+    } catch {
+      alert('משהו השתבש בחיבור. נסו שוב.');
+    }
+  });
+})();
+</script>
+
+<style>
+/* ---------- HERO ---------- */
+.proposal-hero { padding: 120px 0 70px; position: relative; z-index: 2; }
+.proposal-hero h1 { font-size: clamp(2.4rem, 5.5vw, 4.4rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; line-height: 1.05; }
+.proposal-hero h1 em { font-style: normal; color: var(--gold, #ffd166); }
+.lede { color: rgba(255,255,255,0.78); max-width: 760px; margin-top: 18px; font-size: 1.05rem; line-height: 1.7; }
+.lede strong { color: #fff; font-weight: 700; }
+.meta { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 48px; padding: 22px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+@media (min-width: 860px) { .meta { grid-template-columns: 1.1fr 0.8fr 1.4fr 1.3fr 0.8fr; } }
+.meta > div { display: flex; flex-direction: column; gap: 4px; }
+.meta span { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+.meta strong { font-size: 1.02rem; color: #fff; }
+
+section { padding: 60px 0; }
+.eyebrow { font-size: 0.78rem; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.55); display: inline-block; }
+section h2 { font-size: clamp(1.9rem, 4vw, 2.8rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; }
+
+/* ---------- STATS ---------- */
+section.overview { padding-top: 20px; padding-bottom: 30px; }
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 30px; }
+@media (min-width: 768px) { .stats { grid-template-columns: repeat(5, 1fr); } }
+.stat { padding: 22px 14px; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(255,255,255,0.02); text-align: center; }
+.stat strong { display: block; font-size: 2rem; color: var(--gold, #ffd166); font-weight: 800; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 0.8rem; color: rgba(255,255,255,0.6); }
+
+/* ---------- PAGES ---------- */
+.finds { display: grid; gap: 14px; margin-top: 34px; }
+@media (min-width: 900px) { .finds { grid-template-columns: 1fr 1fr; } }
+.find { display: grid; grid-template-columns: auto 1fr; gap: 0 18px; align-items: start; padding: 24px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.02); }
+.find .fn { font-family: 'Rubik', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--gold, #ffd166); padding-top: 3px; min-width: 2.2em; }
+.find h3 { font-size: 1.2rem; font-weight: 700; line-height: 1.35; }
+.find p { margin-top: 8px; color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.95rem; }
+
+/* ---------- CALLOUT ---------- */
+.callout { margin-top: 26px; padding: 22px 26px; border: 1px solid rgba(255,209,102,0.22); border-inline-start: 3px solid var(--gold, #ffd166); border-radius: 0 16px 16px 0; background: rgba(255,209,102,0.05); }
+.callout h4 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; color: #fff; }
+.callout p { color: rgba(255,255,255,0.78); line-height: 1.7; font-size: 0.97rem; }
+.callout strong { color: var(--gold, #ffd166); }
+
+/* ---------- SYSTEMS ---------- */
+.inc-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 34px; }
+@media (min-width: 720px) { .inc-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .inc-grid { grid-template-columns: repeat(3, 1fr); } }
+.inc-card { padding: 28px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+.inc-icon { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; color: var(--gold, #ffd166); background: rgba(255,209,102,0.1); border: 1px solid rgba(255,209,102,0.2); margin-bottom: 16px; }
+.inc-icon svg { width: 23px; height: 23px; }
+.inc-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; line-height: 1.35; }
+.inc-card p { color: rgba(255,255,255,0.7); line-height: 1.65; font-size: 0.94rem; }
+
+/* ---------- TABLE ---------- */
+.tscroll { margin-top: 30px; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.02); overflow: hidden; }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+th { text-align: start; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.45); font-weight: 600; padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.12); white-space: nowrap; }
+td { padding: 13px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: top; color: rgba(255,255,255,0.8); line-height: 1.55; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: rgba(255,255,255,0.025); }
+td.kw { font-weight: 700; color: #fff; }
+td.accent { color: var(--gold, #ffd166); font-weight: 700; }
+td.miss { color: rgba(255,255,255,0.65); font-size: 0.88rem; }
+@media (max-width: 720px) {
+  table, tbody, tr, td { display: block; width: 100%; }
+  thead { display: none; }
+  tbody tr { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  tbody tr:last-child { border-bottom: none; }
+  td { padding: 4px 0; border: none; display: flex; justify-content: space-between; gap: 12px; }
+  td.kw { font-size: 1rem; margin-bottom: 6px; }
+  td.kw::before { display: none; }
+  td::before { content: attr(data-label); font-size: 0.75rem; color: rgba(255,255,255,0.42); font-weight: 400; }
+}
+
+/* ---------- PHASES ---------- */
+.phase { margin-top: 18px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); overflow: hidden; }
+.phase > header { display: flex; align-items: baseline; gap: 16px; padding: 18px 26px; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); flex-wrap: wrap; }
+.phase .pn { font-family: 'Rubik', sans-serif; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--gold, #ffd166); border: 1px solid rgba(255,209,102,0.35); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+.phase h3 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+.phase .when { margin-inline-start: auto; font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.42); }
+.phase ul { list-style: none; padding: 20px 26px; display: grid; gap: 13px; margin: 0; }
+.phase li { position: relative; padding-inline-start: 22px; color: rgba(255,255,255,0.75); line-height: 1.68; font-size: 0.96rem; }
+.phase li::before { content: ''; position: absolute; inset-inline-start: 0; top: 10px; width: 8px; height: 8px; border-radius: 50%; background: rgba(255,209,102,0.65); }
+.phase li :global(strong) { color: #fff; font-weight: 700; }
+
+/* ---------- DECISIONS ---------- */
+.dec-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 34px; }
+@media (min-width: 900px) { .dec-grid { grid-template-columns: repeat(2, 1fr); } }
+.dec-card { padding: 26px; border: 1px solid rgba(120,180,255,0.18); border-radius: 18px; background: linear-gradient(180deg, rgba(120,180,255,0.05), rgba(255,255,255,0.01)); }
+.dec-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; color: rgb(170, 200, 255); line-height: 1.35; }
+.dec-card p { color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.92rem; }
+
+/* ---------- EXTRAS / NOT INCLUDED ---------- */
+.extras { margin-top: 20px; padding: 28px 32px; border: 1px solid rgba(255,255,255,0.1); border-radius: 22px; background: rgba(255,255,255,0.02); }
+.extras-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.extras-tag { display: inline-block; font-family: 'Rubik', sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(170, 200, 255); border: 1px solid rgba(120,180,255,0.32); border-radius: 999px; padding: 4px 13px; white-space: nowrap; }
+.extras-head h3 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+.extras-list { list-style: none; padding: 18px 0 0; margin: 18px 0 0; display: grid; gap: 10px; border-top: 1px solid rgba(255,255,255,0.07); }
+@media (min-width: 860px) { .extras .extras-list { grid-template-columns: 1fr 1fr; } }
+.extras-list li { position: relative; padding-inline-start: 22px; color: rgba(255,255,255,0.72); line-height: 1.6; font-size: 0.93rem; }
+.extras-list li::before { content: ''; position: absolute; inset-inline-start: 0; top: 9px; width: 7px; height: 7px; border-radius: 50%; background: rgba(120,180,255,0.6); }
+
+/* ---------- PRICE ---------- */
+.price h2 { margin-bottom: 28px; }
+.price-card { border: 1px solid rgba(255,255,255,0.12); border-radius: 22px; padding: 30px 36px; background: linear-gradient(180deg, rgba(255,209,102,0.08), rgba(255,255,255,0.02)); }
+.price-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-top: 1px solid rgba(255,255,255,0.06); gap: 14px; }
+.price-row:first-of-type { border-top: none; }
+.price-row span { line-height: 1.55; }
+.price-row strong { font-weight: 700; color: #fff; font-size: 1.05rem; white-space: nowrap; unicode-bidi: plaintext; }
+.price-row.sub { color: rgba(255,255,255,0.7); }
+.price-row.sub strong { color: rgb(74, 222, 128); font-size: 0.95rem; }
+.price-row.timeline strong { color: var(--gold, #ffd166); font-size: 0.95rem; }
+.price-row.total { border-top: 1px solid rgba(255,209,102,0.4); padding-top: 22px; margin-top: 12px; }
+.price-row.total strong { font-size: 2rem; color: var(--gold, #ffd166); }
+.price-note { color: rgba(255,255,255,0.55); font-size: 0.85rem; margin-top: 16px; line-height: 1.7; }
+.price-note strong { color: rgba(255,255,255,0.8); }
+
+.hosting-card { margin-top: 20px; display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 30px 36px; border: 1px solid rgba(120,180,255,0.2); border-radius: 22px; background: linear-gradient(180deg, rgba(120,180,255,0.05), rgba(255,255,255,0.01)); flex-wrap: wrap; }
+.hosting-card h3 { font-size: 1.4rem; font-weight: 700; margin: 12px 0 0; }
+.hosting-card .extras-list { border-top: none; padding-top: 0; margin-top: 16px; }
+.hosting-price { display: flex; align-items: baseline; gap: 8px; color: var(--gold, #ffd166); }
+.hosting-price strong { font-size: 3rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.hosting-price span { font-size: 0.95rem; }
+
+/* ---------- SIGN ---------- */
+.sign-card { margin-top: 32px; padding: 32px; border: 1px solid rgba(255,255,255,0.12); border-radius: 22px; background: rgba(255,255,255,0.03); display: grid; gap: 20px; }
+.field-row { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 768px) { .field-row { grid-template-columns: 1fr 1fr; } }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+.field input { height: 48px; padding: 0 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: #fff; font-size: 1rem; transition: border-color 0.2s; }
+.field input:focus { outline: none; border-color: var(--gold, #ffd166); }
+.confirms { display: grid; gap: 8px; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(0,0,0,0.2); }
+.check { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: start; cursor: pointer; padding: 10px 8px; border-radius: 10px; transition: background 0.15s; }
+.check:hover { background: rgba(255,255,255,0.04); }
+.check input[type=checkbox] { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--gold, #ffd166); cursor: pointer; flex-shrink: 0; }
+.check span { line-height: 1.55; color: rgba(255,255,255,0.88); font-size: 0.95rem; }
+
+.signature-block { display: grid; gap: 10px; padding: 18px 20px; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; background: rgba(0,0,0,0.25); }
+.signature-block label { font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.65); }
+.signature-block .hint { font-size: 0.85rem; color: rgba(255,255,255,0.55); margin: 0; }
+.sig-wrap { position: relative; width: 100%; }
+canvas#signature { display: block; width: 100%; height: 200px; background: #ffffff; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); cursor: crosshair; touch-action: none; }
+.sig-line { position: absolute; inset-inline: 24px; bottom: 38px; height: 1px; background: rgba(0,0,0,0.18); pointer-events: none; }
+.sig-x { position: absolute; inset-inline-start: 24px; bottom: 26px; font-size: 0.85rem; color: rgba(0,0,0,0.45); letter-spacing: 0.05em; pointer-events: none; font-family: 'Rubik', sans-serif; }
+.sig-actions { display: flex; justify-content: flex-end; }
+.btn-ghost { background: transparent; border: 1px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.7); padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: border-color 0.2s; }
+.btn-ghost:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
+
+.sign-actions { margin-top: 12px; display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
+.btn-primary { height: 56px; background: linear-gradient(135deg, var(--gold, #ffd166), #d4a534); color: #0a0a0a; border: none; font-size: 1.05rem; font-weight: 700; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.2s, box-shadow 0.2s; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 30px -10px rgba(255,209,102,0.3); }
+.legal { color: rgba(255,255,255,0.5); font-size: 0.82rem; text-align: center; }
+
+.sign-success { margin-top: 32px; padding: 36px; border: 1px solid rgba(74,222,128,0.3); background: rgba(74,222,128,0.06); border-radius: 22px; text-align: center; }
+.sign-success h3 { font-size: 1.8rem; font-weight: 700; color: rgb(134, 239, 172); margin-bottom: 10px; }
+.sign-success p { color: rgba(255,255,255,0.85); line-height: 1.6; }
+
+@media (max-width: 720px) {
+  .proposal-hero { padding: 36px 0 50px; }
+  .proposal-hero h1 { font-size: 2.1rem; line-height: 1.15; }
+  .proposal-hero .lede { font-size: 0.98rem; }
+  .meta { gap: 12px; padding: 16px; margin-top: 24px; }
+  .meta strong { font-size: 0.92rem; }
+  section { padding: 44px 0; }
+  .price-card, .hosting-card, .extras { padding: 22px 20px; }
+  .price-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .sign-card { padding: 22px 18px; }
+}
+</style>
+
+<style is:global>
+/* site.js מצפה לניווט הרגיל שהוסתר בעמוד הזה וזורק TypeError,
+ * מה ששובר את ה-IntersectionObserver שמוסיף .in — לכן כופים נראות. */
+[data-reveal] { opacity: 1 !important; transform: none !important; }
+html, body { overflow-x: clip; }
+</style>
+</Layout>
