@@ -8,7 +8,7 @@ import Layout from '../../layouts/Layout.astro';
  * ------------------------------------------------------------------------- */
 const BUILD = '8,000';
 const YEARLY = '1,200';
-const WEEKS = '5-6';
+const WEEKS = 'שבועיים';
 const FROM = 'מרגע קבלת כל החומרים והתכנים הסופיים';
 
 const CLIENT = 'מגה פרינט ברקן בע״מ';
@@ -20,7 +20,7 @@ const stats = [
   { v: 'B2B', k: 'ערוץ לקוחות עסקיים' },
   { v: '∞', k: 'העלאת מוצרים ללא הגבלה' },
   { v: '6', k: 'שלבי עבודה' },
-  { v: WEEKS, k: 'שבועות לביצוע' },
+  { v: '2', k: 'שבועות לביצוע' },
   { v: '30', k: 'ימי ליווי אחרי השקה' },
 ];
 
@@ -144,7 +144,7 @@ const systems = [
 // שלבי העבודה
 const phases = [
   {
-    n: 'שבוע 1',
+    n: 'מיד עם האישור',
     title: 'אפיון — לפני פיקסל אחד',
     when: 'אפיון',
     items: [
@@ -163,7 +163,7 @@ const phases = [
     ],
   },
   {
-    n: `שבועות 2-${WEEKS.split('-')[1] ?? '6'}`,
+    n: `שבועיים`,
     title: 'פיתוח, תוכן ומוצרים',
     when: 'פיתוח',
     items: [
@@ -432,7 +432,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
     <span class="eyebrow">תוכנית עבודה</span>
     <h2>מאפיון להשקה.</h2>
     <p class="lede">
-      זמן הביצוע הוא <strong>{WEEKS} שבועות {FROM}</strong> — קבצי העיצוב, קובץ המוצרים והתמונות, והטקסטים.
+      זמן הביצוע הוא <strong>{WEEKS} {FROM}</strong> — קבצי העיצוב, קובץ המוצרים והתמונות, והטקסטים.
       האפיון מתחיל מיד עם אישור ההצעה, כך שהמעצב יוכל להתחיל לעבוד עם תמונה מלאה של מה שצריך.
     </p>
 
@@ -492,7 +492,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
       <div class="price-row sub"><span>ערוץ לקוחות עסקיים: לידים בלבד או ניהול מלא באתר, לבחירתכם</span><strong>כלול</strong></div>
       <div class="price-row sub"><span>העלאת מוצרים ללא הגבלת כמות</span><strong>כלול</strong></div>
       <div class="price-row sub"><span>הדרכה מוקלטת ו-30 יום ליווי אחרי השקה</span><strong>כלול</strong></div>
-      <div class="price-row sub timeline"><span>זמן ביצוע</span><strong>{WEEKS} שבועות מקבלת החומרים הסופיים</strong></div>
+      <div class="price-row sub timeline"><span>זמן ביצוע</span><strong>{WEEKS} מקבלת החומרים הסופיים</strong></div>
       <div class="price-row total">
         <span>סה״כ חד-פעמי, לפני מע״מ</span>
         <strong>{BUILD} ₪</strong>
@@ -684,7 +684,7 @@ const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2
         { label: 'תשלום שנתי לפני מע״מ', amount: `${YEARLY} ₪` },
       ],
       total: { label: 'סה״כ חד-פעמי לפני מע״מ', amount: `${BUILD} ₪` },
-      extras: [`זמן ביצוע: ${WEEKS} שבועות ${FROM}`],
+      extras: [`זמן ביצוע: ${WEEKS} ${FROM}`],
       terms: 'המחירים אינם כוללים מע״מ. 50% מקדמה עם אישור ההצעה ו-50% במסירה. עיצוב, צילום, עמלות סליקה, מערכת חשבוניות, שליחויות ודומיין אינם כלולים.',
       confirms: [
         'אישור היקף העבודה כפי שתואר בהצעה',
