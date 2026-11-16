@@ -1,0 +1,750 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+/* ---------------------------------------------------------------------------
+ * מחיר — נקבע מול שרון: 8,000 ₪ חד-פעמי לבנייה + 1,200 ₪ לשנה לאחסון. לפני מע״מ.
+ * WEEKS — התחייבות לסיום. FROM — מאיזו נקודה נספרים השבועיים.
+ * ------------------------------------------------------------------------- */
+const BUILD = '8,000';
+const YEARLY = '1,200';
+const WEEKS = 'שבועיים';
+const FROM = 'מרגע אישור ההצעה וקבלת הגישות והחומרים';
+
+const CLIENT = 'כן לחיות';
+const CLIENT_ID = '043438076';
+const CONTACT = 'אלי';
+const SITE = 'kenlahayot.com';
+
+const stats = [
+  { v: '6', k: 'עולמות מוצר' },
+  { v: '200+', k: 'תתי-קטגוריות לסידור מחדש' },
+  { v: 'WooCommerce', k: 'חנות מלאה על וורדפרס' },
+  { v: '4', k: 'שלבי עבודה' },
+  { v: '2', k: 'שבועות — בהתחייבות' },
+  { v: '1,200 ₪', k: 'אחסון שנתי, לפני מע״מ' },
+];
+
+// מה שעלה בסריקה של האתר הקיים — רק מה שנראה בפועל
+const findings = [
+  {
+    n: '01',
+    title: 'טקסטים באנגלית שנשארו מהתבנית',
+    body: 'בראש האתר מופיעים "Free Shipping On All Orders Over $100", "Need Help?", "My account" ו-"Wishlist". לקוח ישראלי שנכנס לחנות בעברית פוגש קודם כול אנגלית — וזה נראה כמו אתר שלא הושלם.',
+  },
+  {
+    n: '02',
+    title: 'דולר בבאנר, שקל בעגלה',
+    body: 'הבאנר מבטיח משלוח חינם מעל 100 דולר, בזמן שהעגלה והמחירים בשקלים. מעבר לבלבול, זו הבטחת משלוח שלא ברור אם היא בכלל המדיניות שלכם.',
+  },
+  {
+    n: '03',
+    title: 'קישור מבצעים שמוביל לסביבת בדיקה',
+    body: 'הכפתור "Today\'s Deal" בתפריט מפנה לכתובת test.kenlahayot.com — תת-דומיין של סביבת בדיקה, ולא לחנות עצמה. גולש שלוחץ על המבצעים יוצא מהאתר הראשי.',
+  },
+  {
+    n: '04',
+    title: 'מעל 200 תתי-קטגוריות בתפריט אחד',
+    body: 'רשימת "כל הקטגוריות" ארוכה מאוד. קטלוג עמוק הוא יתרון, אבל כשהוא מוצג כרשימה אחת קשה למצוא בו מוצר — במיוחד במובייל. באתר החדש הוא מתארגן לפי בעל החיים, ובתוכו לפי סוג המוצר.',
+  },
+];
+
+// מה שנבנה — עמוד אחרי עמוד
+const pages = [
+  { n: '01', title: 'עמוד הבית', body: 'כניסה ברורה לפי בעל חיים — כלבים, חתולים, מכרסמים, ציפורים, דגים — ולציוד המשלים. מבצעים, מוצרים נבחרים ובאנרים שמתחלפים מממשק הניהול, בלי מפתח.' },
+  { n: '02', title: 'קטגוריות עם סינון', body: 'כל עולם מוצר מקבל עמוד משלו, עם סינון לפי סוג מוצר, מותג, משקל או גודל אריזה וטווח מחיר. כך קטלוג גדול נשאר קל לניווט.' },
+  { n: '03', title: 'עמוד מוצר', body: 'תמונות, מחיר, בחירת משקל או גודל, מלאי, תיאור ומוצרים משלימים. כפתור ההוספה לעגלה נשאר זמין בגלילה במובייל.' },
+  { n: '04', title: 'עגלה וקופה', body: 'מיני-עגלה, קופה קצרה בעמוד אחד, קופוני הנחה, סף משלוח חינם בשקלים לפי המדיניות שלכם, ובחירה בין משלוח לאיסוף עצמי.' },
+  { n: '05', title: 'אזור אישי והזמנה חוזרת', body: 'היסטוריית הזמנות, כתובות שמורות ו"הזמנה חוזרת" בלחיצה אחת. מזון וחול נקנים שוב ושוב — ולכן החזרה לאותה הזמנה צריכה להיות הדבר הכי קל באתר.' },
+  { n: '06', title: 'חיפוש', body: 'חיפוש עם השלמה אוטומטית ותמונות מוצר כבר תוך כדי הקלדה, כולל שמות מותגים בעברית ובאנגלית.' },
+  { n: '07', title: 'אודות, צור קשר ושאלות נפוצות', body: 'פרטי החנות, טלפון, כפתור וואטסאפ, טופס פנייה, ושאלות נפוצות על משלוחים והחזרות.' },
+  { n: '08', title: 'עמודים משפטיים ומיילים', body: 'תקנון, מדיניות פרטיות, משלוחים והחזרות והצהרת נגישות במבנה הנכון (נוסח משפטי סופי באחריותכם), ומיילי הזמנה ממותגים בעברית.' },
+];
+
+// מה נכנס מתחת למכסה המנוע
+const systems = [
+  {
+    icon: 'card',
+    title: 'סליקה ותשלומים',
+    body: 'חיבור חברת סליקה ישראלית אחת — זו שאתם עובדים איתה היום או אחת לבחירתכם — כולל כרטיסי אשראי ותשלומים, ו-Bit / Apple Pay / Google Pay בכפוף למה שחברת הסליקה מספקת.',
+  },
+  {
+    icon: 'invoice',
+    title: 'חשבוניות אוטומטיות',
+    body: 'חיבור למערכת חשבוניות אחת (חשבונית ירוקה, iCount, EZcount וכדומה), כך שכל הזמנה ששולמה מפיקה מסמך ונשלחת ללקוח בלי הקלדה ידנית.',
+  },
+  {
+    icon: 'truck',
+    title: 'משלוחים ואיסוף',
+    body: 'אזורי משלוח, מחיר לפי אזור או לפי סכום, משלוח חינם מעל סף ואיסוף עצמי מהחנות. אם לחברת השליחויות שלכם יש תוסף WooCommerce מוכן — החיבור כלול.',
+  },
+  {
+    icon: 'search',
+    title: 'שמירה על מה שגוגל כבר מכיר',
+    body: 'האתר הקיים כבר מופיע בגוגל. כתובות שמשתנות מקבלות הפניות 301, כדי שעמודים שמדורגים היום לא יאבדו את המיקום שלהם. בנוסף: כותרות ותיאורים, Schema של מוצר, sitemap וחיבור ל-Search Console.',
+  },
+  {
+    icon: 'chart',
+    title: 'מדידה',
+    body: 'GA4 עם אירועי מסחר (צפייה, עגלה, קופה, רכישה עם ערך), Google Tag Manager ופיקסל מטא. ביום שתרצו לפרסם — הכול כבר מודד.',
+  },
+  {
+    icon: 'bolt',
+    title: 'מהירות, מובייל ונגישות',
+    body: 'אופטימיזציית תמונות ו-caching, התאמה מלאה למובייל, ובנייה לפי הנחיות תקן הנגישות הישראלי 5568.',
+  },
+];
+
+// שלבי העבודה — בתוך השבועיים
+const phases = [
+  {
+    n: 'ימים 1–2',
+    title: 'אפיון ומבנה קטלוג',
+    when: 'אפיון',
+    items: [
+      '<strong>סידור הקטלוג מחדש.</strong> מעל 200 תתי-הקטגוריות מתארגנות לעץ ברור: בעל חיים, ובתוכו סוג מוצר. זו ההחלטה שהכי קשה לשנות אחר כך — ולכן היא ראשונה.',
+      '<strong>מיפוי האתר הקיים.</strong> אילו מוצרים, תמונות ועמודים עוברים לאתר החדש, ואילו כתובות צריכות הפניה.',
+      '<strong>סגירת ספקים.</strong> סליקה, חשבוניות ושליחויות — עם מי עובדים, ומה פרטי החיבור.',
+    ],
+  },
+  {
+    n: 'ימים 3–6',
+    title: 'עיצוב והקמה',
+    when: 'עיצוב',
+    items: [
+      '<strong>עיצוב לפי המותג שלכם</strong> — לוגו, צבעים ושפה שמתאימה לחנות חיות: עמוד בית, קטגוריה, מוצר, עגלה וקופה, במובייל ובדסקטופ.',
+      '<strong>סבב תיקונים אחד על העיצוב</strong> לפני שממשיכים לפיתוח, כדי לעמוד בלוח הזמנים.',
+      '<strong>הקמת וורדפרס ו-WooCommerce</strong> על סביבת בדיקה סגורה, עם קישור שאפשר לעקוב אחריו.',
+    ],
+  },
+  {
+    n: 'ימים 7–11',
+    title: 'פיתוח, מוצרים וחיבורים',
+    when: 'פיתוח',
+    items: [
+      '<strong>בניית כל העמודים</strong> בעברית מלאה (RTL) — בלי שאריות אנגלית מתבנית.',
+      '<strong>העברת המוצרים, הקטגוריות והתמונות</strong> מהאתר הקיים לאתר החדש, לתוך המבנה המסודר.',
+      '<strong>חיבור סליקה, חשבוניות, משלוחים ומדידה</strong>, והרצת הזמנות בדיקה מקצה לקצה.',
+    ],
+  },
+  {
+    n: 'ימים 12–14',
+    title: 'בדיקות, עלייה לאוויר והדרכה',
+    when: 'השקה',
+    items: [
+      '<strong>בדיקות מלאות:</strong> מובייל, דסקטופ, דפדפנים, מהירות, וכל מסלול רכישה — כולל תשלום שנכשל.',
+      '<strong>עלייה לדומיין</strong> {SITE} עם SSL, הפניות 301 מהכתובות הישנות והגשת sitemap לגוגל.',
+      '<strong>הדרכה</strong> על ניהול הזמנות, מוצרים, מלאי, קופונים ובאנרים — כך שתוכלו לעדכן את האתר לבד.',
+    ],
+  },
+].map((p) => ({ ...p, items: p.items.map((i) => i.replace('{SITE}', SITE)) }));
+
+// מה בתשלום השנתי
+const yearly = [
+  'אחסון על שרתים ברמה הגבוהה ביותר',
+  'אבטחת האתר',
+  'גיבוי יומי',
+  'תעודת SSL',
+];
+
+// החלטות שהן של הלקוח
+const decisions = [
+  {
+    title: 'גישות לאתר הקיים',
+    body: 'גישת ניהול לאתר הנוכחי ולחשבון האחסון שלו, וגישה לניהול הדומיין. בלי אלה אי אפשר להעביר את המוצרים ולהעלות את האתר החדש לכתובת הקיימת.',
+  },
+  {
+    title: 'חברת סליקה וחשבוניות',
+    body: 'החשבונות על שם העסק, ועמלות הסליקה משולמות על ידכם ישירות לספק. הכסף מהמכירות עובר ישירות אליכם ולא דרכנו.',
+  },
+  {
+    title: 'מדיניות משלוחים',
+    body: 'אזורי חלוקה, מחירים, סף למשלוח חינם ואיסוף עצמי — בשקלים, לפי מה שנכון לעסק. זה מה שיחליף את הבאנר הנוכחי.',
+  },
+  {
+    title: 'חומרים ואישורים בזמן',
+    body: 'לוגו, תמונות וטקסטים, ואדם אחד שמאשר את העיצוב תוך יום עסקים. ההתחייבות לשבועיים נשענת על זה — עיכוב באישור או בחומרים דוחה את מועד הסיום בהתאם.',
+  },
+];
+
+// מה לא כלול — שקיפות מראש
+const notIncluded = [
+  'צילום מוצרים וכתיבת תיאורי מוצר חדשים',
+  'עמלות סליקה, מנוי מערכת החשבוניות ודמי שליחויות',
+  'חידוש דומיין ותיבות דואר',
+  'רישיונות שנתיים לתוספים בתשלום, אם תבחרו בהם',
+  'פיתוח חיבור ייעודי לספק שאין לו תוסף WooCommerce מוכן',
+  'גרסה בשפה נוספת',
+  'קידום ממומן או אורגני שוטף',
+];
+
+const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+---
+<Layout
+  title="הצעת מחיר · בניית אתר וורדפרס · כן לחיות — NINJA Digital"
+  description="הצעת מחיר לבניית אתר חנות בוורדפרס ו-WooCommerce לכן לחיות — חנות מזון וציוד לבעלי חיים."
+  noindex={true}
+  hideFloatWA={true}
+  hideNav={true}
+>
+
+<section class="proposal-hero">
+  <div class="container">
+    <span class="eyebrow">הצעת מחיר · NINJA Digital</span>
+    <h1>אתר חדש ל<em>כן לחיות</em> — בתוך שבועיים.</h1>
+    <p class="lede">
+      <strong>בניית חנות אונליין בוורדפרס ו-WooCommerce</strong> לחנות המזון והציוד לבעלי חיים:
+      עיצוב, פיתוח, העברת הקטלוג מהאתר הקיים, סליקה, חשבוניות, משלוחים, השקה והדרכה.
+      ההצעה מפרטת מה נבנה, באיזה סדר ומה כלול במחיר. תקפה ל-30 יום מתאריך השליחה.
+    </p>
+
+    <div class="meta">
+      <div><span>לקוח</span><strong>{CLIENT}</strong></div>
+      <div><span>ע.מ</span><strong>{CLIENT_ID}</strong></div>
+      <div><span>איש קשר</span><strong>{CONTACT}</strong></div>
+      <div><span>אתר</span><strong>{SITE}</strong></div>
+      <div><span>תאריך</span><strong>{today}</strong></div>
+    </div>
+  </div>
+</section>
+
+<section class="overview">
+  <div class="container">
+    <span class="eyebrow">במבט אחד</span>
+    <h2>חנות מסודרת, בעברית מלאה, שמוכנה למכור.</h2>
+    <div class="stats">
+      {stats.map((s) => (
+        <div class="stat"><strong>{s.v}</strong><span>{s.k}</span></div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="findings">
+  <div class="container">
+    <span class="eyebrow">נקודת הפתיחה</span>
+    <h2>ארבעה דברים שראינו באתר הקיים.</h2>
+    <p class="lede">
+      עברנו על {SITE} כפי שגולש רואה אותו. <strong>הקטלוג רחב ומכסה את כל עולמות המוצר</strong> —
+      כלבים, חתולים, מכרסמים, ציפורים, דגים וציוד משלים. מה שחסר הוא המעטפת: סדר, שפה ואמינות.
+      אלה ארבעת הדברים שהאתר החדש מתקן.
+    </p>
+    <div class="finds">
+      {findings.map((f) => (
+        <div class="find">
+          <div class="fn">{f.n}</div>
+          <div>
+            <h3>{f.title}</h3>
+            <p>{f.body}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+    <p class="src">מקור: סריקה של {SITE} · נובמבר 2026 · עמוד הבית ועמוד קטגוריית הכלבים</p>
+  </div>
+</section>
+
+<section class="pages">
+  <div class="container">
+    <span class="eyebrow">מה נבנה</span>
+    <h2>עמוד אחרי עמוד.</h2>
+    <p class="lede">
+      כל העמודים נבנים ברספונסיביות מלאה ובעברית מלאה (RTL).
+      הניהול כולו נעשה מממשק וורדפרס — מוצרים, מחירים, מלאי, באנרים ומבצעים מתעדכנים בלי מפתח.
+    </p>
+    <div class="finds">
+      {pages.map((p) => (
+        <div class="find">
+          <div class="fn">{p.n}</div>
+          <div>
+            <h3>{p.title}</h3>
+            <p>{p.body}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div class="callout">
+      <h4>למה זה בנוי ככה</h4>
+      <p>
+        שק מזון נגמר, והלקוח צריך אותו שוב. <strong>בחנות חיות הלקוח הרווחי הוא זה שחוזר</strong> —
+        ולכן האתר נמדד בשני מבחנים: כמה קל למצוא מוצר בקטלוג גדול, וכמה קל להזמין אותו שוב.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="included">
+  <div class="container">
+    <span class="eyebrow">מתחת למכסה המנוע</span>
+    <h2>שישה דברים שאתר יפה לבד לא עושה.</h2>
+    <div class="inc-grid">
+      {systems.map((m) => (
+        <div class="inc-card">
+          <div class="inc-icon" aria-hidden="true">
+            {m.icon === 'card' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6 15h4"/></svg>
+            )}
+            {m.icon === 'invoice' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"/><path d="M9 8h6M9 12h6"/></svg>
+            )}
+            {m.icon === 'truck' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 6h12v10H2zM14 10h4l3 3v3h-7"/><circle cx="6" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/></svg>
+            )}
+            {m.icon === 'chart' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+            )}
+            {m.icon === 'search' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.35-4.35"/></svg>
+            )}
+            {m.icon === 'bolt' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg>
+            )}
+          </div>
+          <h3>{m.title}</h3>
+          <p>{m.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="plan">
+  <div class="container">
+    <span class="eyebrow">תוכנית עבודה</span>
+    <h2>שבועיים, בהתחייבות.</h2>
+    <p class="lede">
+      אנחנו מתחייבים לסיים את האתר בתוך <strong>{WEEKS} {FROM}</strong>.
+      כדי שזה יקרה, העבודה מחולקת לארבעה שלבים קצרים — וכל אחד מהם נשען על אישור מהיר מצדכם.
+    </p>
+
+    {phases.map((p) => (
+      <article class="phase">
+        <header>
+          <span class="pn">{p.n}</span>
+          <h3>{p.title}</h3>
+          <span class="when">{p.when}</span>
+        </header>
+        <ul>
+          {p.items.map((i) => <li set:html={i} />)}
+        </ul>
+      </article>
+    ))}
+  </div>
+</section>
+
+<section class="decisions">
+  <div class="container">
+    <span class="eyebrow">לפני שמתחילים</span>
+    <h2>ארבעה דברים שאנחנו צריכים מכם.</h2>
+    <div class="dec-grid">
+      {decisions.map((d) => (
+        <div class="dec-card">
+          <h3>{d.title}</h3>
+          <p>{d.body}</p>
+        </div>
+      ))}
+    </div>
+
+    <div class="extras">
+      <div class="extras-head">
+        <span class="extras-tag">שקיפות</span>
+        <h3>מה לא כלול בהצעה</h3>
+      </div>
+      <ul class="extras-list">
+        {notIncluded.map((n) => <li>{n}</li>)}
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="price">
+  <div class="container">
+    <span class="eyebrow">סיכום עלות</span>
+    <h2>מחיר אחד לבנייה. מחיר אחד לשנה.</h2>
+    <div class="price-card">
+      <div class="price-row">
+        <span>בניית אתר חנות בוורדפרס ו-WooCommerce — אפיון, עיצוב, פיתוח והשקה</span>
+        <strong>{BUILD} ₪</strong>
+      </div>
+      <div class="price-row sub"><span>אפיון וסידור הקטלוג מחדש</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>עיצוב מותאם למובייל ולדסקטופ</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>העברת המוצרים, הקטגוריות והתמונות מהאתר הקיים</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>חיבור סליקה, חשבוניות ומשלוחים</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>הפניות 301, תשתית SEO טכנית ומדידה</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>הדרכה על ניהול האתר</span><strong>כלול</strong></div>
+      <div class="price-row sub timeline"><span>זמן ביצוע</span><strong>{WEEKS} — בהתחייבות</strong></div>
+      <div class="price-row total">
+        <span>סה״כ חד-פעמי, לפני מע״מ</span>
+        <strong>{BUILD} ₪</strong>
+      </div>
+      <p class="price-note">
+        המחירים אינם כוללים מע״מ, שיתווסף כחוק. <strong>תנאי תשלום: 50% מקדמה עם אישור ההצעה ו-50% במסירה</strong>,
+        בהעברה בנקאית או בכרטיס אשראי. ההתחייבות לשבועיים נספרת {FROM};
+        שינויים מהותיים בהיקף אחרי אישור העיצוב יתומחרו מראש ובכתב.
+      </p>
+    </div>
+
+    <div class="hosting-card">
+      <div>
+        <span class="extras-tag">תשלום שנתי</span>
+        <h3>אחסון, אבטחה וגיבוי</h3>
+        <ul class="extras-list">
+          {yearly.map((y) => <li>{y}</li>)}
+        </ul>
+      </div>
+      <div class="hosting-price">
+        <strong>{YEARLY}</strong>
+        <span>₪ + מע״מ / שנה</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sign">
+  <div class="container">
+    <span class="eyebrow">אישור הצעה</span>
+    <h2>אם המחיר ותיאור העבודה מקובלים, חתמו כאן.</h2>
+    <p class="lede">אישור ההצעה ישלח התראה במייל ואחזור אליכם עם פרטי המקדמה ורשימת הגישות הנדרשות.</p>
+
+    <form id="proposal-sign" class="sign-card">
+      <div class="field-row">
+        <div class="field">
+          <label for="name">שם מלא</label>
+          <input id="name" name="name" type="text" required autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="email">אימייל</label>
+          <input id="email" name="email" type="email" required autocomplete="email" dir="ltr" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="phone">טלפון</label>
+          <input id="phone" name="phone" type="tel" autocomplete="tel" dir="ltr" />
+        </div>
+        <div class="field">
+          <label for="title">תפקיד</label>
+          <input id="title" name="title" type="text" placeholder="לדוגמה: בעלים, מנהל החנות" />
+        </div>
+      </div>
+
+      <fieldset class="confirms">
+        <label class="check">
+          <input type="checkbox" name="confirm_scope" required />
+          <span>אני מאשר את היקף העבודה שתואר בהצעה, כולל הסעיפים שאינם כלולים.</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="confirm_price" required />
+          <span>אני מאשר את המחיר: {BUILD} ₪ + מע״מ חד-פעמי עבור בניית האתר, ו-{YEARLY} ₪ + מע״מ לשנה עבור אחסון, אבטחה וגיבוי יומי.</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="confirm_terms" required />
+          <span>אני מאשר שעם תחילת העבודה תיגבה מקדמה של 50% ויתרת התשלום במסירה, ומתחייב לספק את הגישות לאתר הקיים ולדומיין, את החומרים ואת האישורים בזמן — שעליהם נשענת ההתחייבות לשבועיים.</span>
+        </label>
+      </fieldset>
+
+      <div class="signature-block">
+        <label for="signature">חתימה דיגיטלית</label>
+        <p class="hint">לחצו בתוך הריבוע וציירו את שמכם כחתימה.</p>
+        <div class="sig-wrap">
+          <canvas id="signature" aria-label="אזור חתימה"></canvas>
+          <span class="sig-line" aria-hidden="true"></span>
+          <span class="sig-x" aria-hidden="true">×</span>
+        </div>
+        <div class="sig-actions">
+          <button type="button" id="sig-clear" class="btn-ghost">נקה חתימה</button>
+        </div>
+      </div>
+
+      <div class="sign-actions">
+        <button type="submit" class="btn-primary">
+          אישור ושליחה
+          <span aria-hidden="true">←</span>
+        </button>
+        <p class="legal">בלחיצה על האישור, אני מקבל את התנאים המופיעים בהצעה זו ומסמיך את NINJA Digital להתחיל בעבודה.</p>
+      </div>
+    </form>
+
+    <div id="sign-success" class="sign-success" hidden>
+      <h3>התקבל. תודה.</h3>
+      <p>שרון יחזור אליכם תוך יום עסקים אחד עם פרטי המקדמה ורשימת הגישות הנדרשות.</p>
+    </div>
+  </div>
+</section>
+
+<script is:inline define:vars={{ BUILD, YEARLY, WEEKS, FROM, CLIENT, CLIENT_ID }}>
+(() => {
+  const form = document.getElementById('proposal-sign');
+  const success = document.getElementById('sign-success');
+  const canvas = /** @type {HTMLCanvasElement} */(document.getElementById('signature'));
+  const ctx = canvas?.getContext('2d');
+  let drawing = false;
+  let hasInk = false;
+
+  if (canvas && ctx) {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    function setupCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#1a1a1a';
+    }
+    setupCanvas();
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const data = canvas.toDataURL();
+        setupCanvas();
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, 0, 0, canvas.width / dpr, canvas.height / dpr);
+        img.src = data;
+      }, 150);
+    });
+
+    function pos(e) {
+      const r = canvas.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+    function onDown(e) {
+      drawing = true;
+      canvas.setPointerCapture?.(e.pointerId);
+      const { x, y } = pos(e);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      e.preventDefault();
+    }
+    function onMove(e) {
+      if (!drawing) return;
+      const { x, y } = pos(e);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      hasInk = true;
+      e.preventDefault();
+    }
+    function onUp(e) {
+      if (!drawing) return;
+      drawing = false;
+      canvas.releasePointerCapture?.(e.pointerId);
+    }
+    canvas.addEventListener('pointerdown', onDown);
+    canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointercancel', onUp);
+    canvas.addEventListener('pointerleave', onUp);
+
+    document.getElementById('sig-clear')?.addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasInk = false;
+    });
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!hasInk) {
+      alert('נדרשת חתימה לפני האישור.');
+      return;
+    }
+    const data = Object.fromEntries(new FormData(form).entries());
+    const signature = canvas?.toDataURL('image/png');
+
+    // סיכום שנכנס כמו שהוא ל-PDF החתום ולמייל
+    const summary = {
+      title: 'אתר חנות ל-כן לחיות',
+      client: `${CLIENT} · ע.מ ${CLIENT_ID}`,
+      project: 'בניית אתר · WordPress + WooCommerce',
+      lede: 'בניית חנות אונליין בוורדפרס ו-WooCommerce לחנות מזון וציוד לבעלי חיים, כולל העברת הקטלוג מהאתר הקיים.',
+      items: [
+        { label: 'בניית אתר חנות', detail: 'אפיון וסידור הקטלוג · עיצוב · פיתוח · העברת מוצרים, קטגוריות ותמונות מהאתר הקיים · סליקה, חשבוניות ומשלוחים · הפניות 301, SEO טכני ומדידה · הדרכה', amount: `${BUILD} ₪` },
+        { label: 'אחסון, אבטחה וגיבוי', detail: 'שרתים ברמה הגבוהה ביותר · אבטחה · גיבוי יומי · SSL', amount: `${YEARLY} ₪ / שנה` },
+      ],
+      totals: [
+        { label: 'תשלום שנתי לפני מע״מ', amount: `${YEARLY} ₪` },
+      ],
+      total: { label: 'סה״כ חד-פעמי לפני מע״מ', amount: `${BUILD} ₪` },
+      extras: [`זמן ביצוע: ${WEEKS} בהתחייבות, ${FROM}`],
+      terms: 'המחירים אינם כוללים מע״מ. 50% מקדמה עם אישור ההצעה ו-50% במסירה. צילום, כתיבת תיאורי מוצר, עמלות סליקה, מערכת חשבוניות, שליחויות, דומיין ורישיונות תוספים אינם כלולים.',
+      confirms: [
+        'אישור היקף העבודה כפי שתואר בהצעה',
+        `אישור מחיר: ${BUILD} ₪ + מע״מ חד-פעמי, ו-${YEARLY} ₪ + מע״מ לשנה`,
+        'אישור תנאי התשלום והתחייבות לספק גישות, חומרים ואישורים בזמן',
+      ],
+    };
+
+    try {
+      const res = await fetch('/api/proposal-sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proposal: 'kenlahayot-woocommerce', ...data, signature, summary, signedAt: new Date().toISOString() }),
+      });
+      if (res.ok || res.status === 202) {
+        form.style.display = 'none';
+        success.removeAttribute('hidden');
+        success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        alert('משהו השתבש. נסו שוב או שלחו לי במייל ישירות.');
+      }
+    } catch {
+      alert('משהו השתבש בחיבור. נסו שוב.');
+    }
+  });
+})();
+</script>
+
+<style>
+/* ---------- HERO ---------- */
+.proposal-hero { padding: 120px 0 70px; position: relative; z-index: 2; }
+.proposal-hero h1 { font-size: clamp(2.4rem, 5.5vw, 4.4rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; line-height: 1.05; }
+.proposal-hero h1 em { font-style: normal; color: var(--gold, #ffd166); }
+.lede { color: rgba(255,255,255,0.78); max-width: 760px; margin-top: 18px; font-size: 1.05rem; line-height: 1.7; }
+.lede strong { color: #fff; font-weight: 700; }
+.meta { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 48px; padding: 22px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+@media (min-width: 860px) { .meta { grid-template-columns: repeat(5, 1fr); } }
+.meta > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.meta span { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+.meta strong { font-size: 1.02rem; color: #fff; overflow-wrap: anywhere; }
+
+section { padding: 60px 0; }
+.eyebrow { font-size: 0.78rem; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.55); display: inline-block; }
+section h2 { font-size: clamp(1.9rem, 4vw, 2.8rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; }
+
+/* ---------- STATS ---------- */
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 34px; }
+@media (min-width: 720px) { .stats { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1000px) { .stats { grid-template-columns: repeat(6, 1fr); } }
+.stat { display: flex; flex-direction: column; gap: 6px; padding: 22px 18px; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(255,255,255,0.02); min-width: 0; }
+.stat strong { font-size: 1.5rem; font-weight: 800; color: var(--gold, #ffd166); line-height: 1.2; overflow-wrap: anywhere; }
+.stat span { font-size: 0.82rem; color: rgba(255,255,255,0.6); line-height: 1.45; }
+
+/* ---------- FINDINGS / PAGES ---------- */
+.finds { display: grid; gap: 14px; margin-top: 34px; }
+@media (min-width: 900px) { .finds { grid-template-columns: 1fr 1fr; } }
+.find { display: grid; grid-template-columns: auto 1fr; gap: 0 18px; align-items: start; padding: 24px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.02); }
+.find .fn { font-family: 'Rubik', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--gold, #ffd166); padding-top: 3px; min-width: 2.2em; }
+.find h3 { font-size: 1.2rem; font-weight: 700; line-height: 1.35; }
+.find p { margin-top: 8px; color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.95rem; }
+.src { margin-top: 16px; font-size: 0.8rem; color: rgba(255,255,255,0.42); }
+
+/* ---------- CALLOUT ---------- */
+.callout { margin-top: 26px; padding: 22px 26px; border: 1px solid rgba(255,209,102,0.22); border-inline-start: 3px solid var(--gold, #ffd166); border-radius: 0 16px 16px 0; background: rgba(255,209,102,0.05); }
+.callout h4 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; color: #fff; }
+.callout p { color: rgba(255,255,255,0.78); line-height: 1.7; font-size: 0.97rem; }
+.callout strong { color: var(--gold, #ffd166); }
+
+/* ---------- SYSTEMS ---------- */
+.inc-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 34px; }
+@media (min-width: 720px) { .inc-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .inc-grid { grid-template-columns: repeat(3, 1fr); } }
+.inc-card { padding: 28px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+.inc-icon { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; color: var(--gold, #ffd166); background: rgba(255,209,102,0.1); border: 1px solid rgba(255,209,102,0.2); margin-bottom: 16px; }
+.inc-icon svg { width: 23px; height: 23px; }
+.inc-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; line-height: 1.35; }
+.inc-card p { color: rgba(255,255,255,0.7); line-height: 1.65; font-size: 0.94rem; }
+
+/* ---------- PHASES ---------- */
+.phase { margin-top: 18px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); overflow: hidden; }
+.phase > header { display: flex; align-items: baseline; gap: 16px; padding: 18px 26px; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); flex-wrap: wrap; }
+.phase .pn { font-family: 'Rubik', sans-serif; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--gold, #ffd166); border: 1px solid rgba(255,209,102,0.35); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+.phase h3 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+.phase .when { margin-inline-start: auto; font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.42); }
+.phase ul { list-style: none; padding: 20px 26px; display: grid; gap: 13px; margin: 0; }
+.phase li { position: relative; padding-inline-start: 22px; color: rgba(255,255,255,0.75); line-height: 1.68; font-size: 0.96rem; }
+.phase li::before { content: ''; position: absolute; inset-inline-start: 0; top: 10px; width: 8px; height: 8px; border-radius: 50%; background: rgba(255,209,102,0.65); }
+.phase li :global(strong) { color: #fff; font-weight: 700; }
+
+/* ---------- DECISIONS ---------- */
+.dec-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 34px; }
+@media (min-width: 900px) { .dec-grid { grid-template-columns: repeat(2, 1fr); } }
+.dec-card { padding: 26px; border: 1px solid rgba(120,180,255,0.18); border-radius: 18px; background: linear-gradient(180deg, rgba(120,180,255,0.05), rgba(255,255,255,0.01)); }
+.dec-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; color: rgb(170, 200, 255); line-height: 1.35; }
+.dec-card p { color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.92rem; }
+
+/* ---------- EXTRAS / NOT INCLUDED ---------- */
+.extras { margin-top: 20px; padding: 28px 32px; border: 1px solid rgba(255,255,255,0.1); border-radius: 22px; background: rgba(255,255,255,0.02); }
+.extras-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.extras-tag { display: inline-block; font-family: 'Rubik', sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(170, 200, 255); border: 1px solid rgba(120,180,255,0.32); border-radius: 999px; padding: 4px 13px; white-space: nowrap; }
+.extras-head h3 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+.extras-list { list-style: none; padding: 18px 0 0; margin: 18px 0 0; display: grid; gap: 10px; border-top: 1px solid rgba(255,255,255,0.07); }
+.extras-list li { position: relative; padding-inline-start: 22px; color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.93rem; }
+.extras-list li::before { content: ''; position: absolute; inset-inline-start: 0; top: 9px; width: 7px; height: 7px; border-radius: 50%; background: rgba(120,180,255,0.6); }
+
+/* ---------- PRICE ---------- */
+.price h2 { margin-bottom: 28px; }
+.price-card { border: 1px solid rgba(255,255,255,0.12); border-radius: 22px; padding: 30px 36px; background: linear-gradient(180deg, rgba(255,209,102,0.08), rgba(255,255,255,0.02)); }
+.price-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-top: 1px solid rgba(255,255,255,0.06); gap: 14px; }
+.price-row:first-of-type { border-top: none; }
+.price-row span { line-height: 1.55; }
+.price-row strong { font-weight: 700; color: #fff; font-size: 1.05rem; white-space: nowrap; unicode-bidi: plaintext; }
+.price-row.sub { color: rgba(255,255,255,0.7); }
+.price-row.sub strong { color: rgb(74, 222, 128); font-size: 0.95rem; }
+.price-row.timeline strong { color: var(--gold, #ffd166); font-size: 0.95rem; }
+.price-row.total { border-top: 1px solid rgba(255,209,102,0.4); padding-top: 22px; margin-top: 12px; }
+.price-row.total strong { font-size: 2rem; color: var(--gold, #ffd166); }
+.price-note { color: rgba(255,255,255,0.55); font-size: 0.85rem; margin-top: 16px; line-height: 1.7; }
+.price-note strong { color: rgba(255,255,255,0.8); }
+
+.hosting-card { margin-top: 20px; display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 30px 36px; border: 1px solid rgba(120,180,255,0.2); border-radius: 22px; background: linear-gradient(180deg, rgba(120,180,255,0.05), rgba(255,255,255,0.01)); flex-wrap: wrap; }
+.hosting-card h3 { font-size: 1.4rem; font-weight: 700; margin: 12px 0 0; }
+.hosting-card .extras-list { border-top: none; padding-top: 0; margin-top: 16px; }
+.hosting-price { display: flex; align-items: baseline; gap: 8px; color: var(--gold, #ffd166); }
+.hosting-price strong { font-size: 3rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.hosting-price span { font-size: 0.95rem; }
+
+/* ---------- SIGN ---------- */
+.sign-card { margin-top: 32px; padding: 32px; border: 1px solid rgba(255,255,255,0.12); border-radius: 22px; background: rgba(255,255,255,0.03); display: grid; gap: 20px; }
+.field-row { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 768px) { .field-row { grid-template-columns: 1fr 1fr; } }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+.field input { height: 48px; padding: 0 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: #fff; font-size: 1rem; transition: border-color 0.2s; }
+.field input:focus { outline: none; border-color: var(--gold, #ffd166); }
+.confirms { display: grid; gap: 8px; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(0,0,0,0.2); }
+.check { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: start; cursor: pointer; padding: 10px 8px; border-radius: 10px; transition: background 0.15s; }
+.check:hover { background: rgba(255,255,255,0.04); }
+.check input[type=checkbox] { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--gold, #ffd166); cursor: pointer; flex-shrink: 0; }
+.check span { line-height: 1.55; color: rgba(255,255,255,0.88); font-size: 0.95rem; }
+
+.signature-block { display: grid; gap: 10px; padding: 18px 20px; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; background: rgba(0,0,0,0.25); }
+.signature-block label { font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.65); }
+.signature-block .hint { font-size: 0.85rem; color: rgba(255,255,255,0.55); margin: 0; }
+.sig-wrap { position: relative; width: 100%; }
+canvas#signature { display: block; width: 100%; height: 200px; background: #ffffff; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); cursor: crosshair; touch-action: none; }
+.sig-line { position: absolute; inset-inline: 24px; bottom: 38px; height: 1px; background: rgba(0,0,0,0.18); pointer-events: none; }
+.sig-x { position: absolute; inset-inline-start: 24px; bottom: 26px; font-size: 0.85rem; color: rgba(0,0,0,0.45); letter-spacing: 0.05em; pointer-events: none; font-family: 'Rubik', sans-serif; }
+.sig-actions { display: flex; justify-content: flex-end; }
+.btn-ghost { background: transparent; border: 1px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.7); padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: border-color 0.2s; }
+.btn-ghost:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
+
+.sign-actions { margin-top: 12px; display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
+.btn-primary { height: 56px; background: linear-gradient(135deg, var(--gold, #ffd166), #d4a534); color: #0a0a0a; border: none; font-size: 1.05rem; font-weight: 700; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.2s, box-shadow 0.2s; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 30px -10px rgba(255,209,102,0.3); }
+.legal { color: rgba(255,255,255,0.5); font-size: 0.82rem; text-align: center; }
+
+.sign-success { margin-top: 32px; padding: 36px; border: 1px solid rgba(74,222,128,0.3); background: rgba(74,222,128,0.06); border-radius: 22px; text-align: center; }
+.sign-success h3 { font-size: 1.8rem; font-weight: 700; color: rgb(134, 239, 172); margin-bottom: 10px; }
+.sign-success p { color: rgba(255,255,255,0.85); line-height: 1.6; }
+
+@media (max-width: 720px) {
+  .proposal-hero { padding: 36px 0 50px; }
+  .proposal-hero h1 { font-size: 2.1rem; line-height: 1.15; }
+  .proposal-hero .lede { font-size: 0.98rem; }
+  .meta { gap: 12px; padding: 16px; margin-top: 24px; }
+  .meta strong { font-size: 0.92rem; }
+  section { padding: 44px 0; }
+  .price-card, .hosting-card, .extras { padding: 22px 20px; }
+  .price-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .sign-card { padding: 22px 18px; }
+}
+</style>
+
+<style is:global>
+/* site.js מצפה לניווט הרגיל שהוסתר בעמוד הזה וזורק TypeError,
+ * מה ששובר את ה-IntersectionObserver שמוסיף .in — לכן כופים נראות. */
+[data-reveal] { opacity: 1 !important; transform: none !important; }
+html, body { overflow-x: clip; }
+</style>
+</Layout>
