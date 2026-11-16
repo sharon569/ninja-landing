@@ -1,0 +1,746 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+/* ---------------------------------------------------------------------------
+ * מחיר — נקבע מול שרון, בדולר ארה״ב:
+ * MONTHLY — דמי ניהול חודשיים לקמפיינים בפייסבוק ובאינסטגרם.
+ * VIDEO   — תוספת לחבילת סרטונים (VIDEO_QTY סרטונים), מחויבת לפי חבילה שהוזמנה.
+ * תקציב המדיה לא כלול ומשולם ישירות ל-Meta.
+ * ------------------------------------------------------------------------- */
+const MONTHLY = '450';
+const VIDEO = '500';
+const VIDEO_QTY = '3–4';
+
+const CLIENT = 'Seal Design & Build Inc.';
+const SITE = 'sealdesignandbuild.com';
+
+// מה שנמצא בסריקה של האתר — עובדות, לא הערכות
+const kpis = [
+  { k: 'אזור שירות', v: 'San Diego County', d: 'מ-Oceanside עד Chula Vista', tone: 'flat' },
+  { k: 'ערים באתר', v: '18', d: 'בעמוד Hardscape & Landscape', tone: 'up' },
+  { k: 'איסוף לידים', v: 'Free Estimate', d: 'טופס + חיוג בלחיצה', tone: 'up' },
+  { k: 'נכסים ב-Meta', v: 'FB + IG', d: 'עמוד ופרופיל קיימים', tone: 'up' },
+  { k: 'הוכחה חזותית', v: 'לפני / אחרי', d: 'גלריית פרויקטים באתר', tone: 'up' },
+];
+
+// שלושת הנושאים שעלו בפגישה — כל אחד מקבל קמפיין משלו
+const topics = [
+  {
+    tag: 'נושא 1',
+    name: 'Backyard',
+    line: 'חצר אחורית שלמה — הפרויקט הגדול.',
+    body: 'הנושא הרחב מבין השלושה, וזה שנמכר הכי טוב בתמונה: חצר לפני, חצר אחרי. הקמפיין פונה לבעלי בתים שרוצים חצר שאפשר לחיות בה, ומוביל לבקשת הצעת מחיר. מי שמתחיל כאן הוא לרוב גם לקוח פוטנציאלי לריצוף ולקירוי.',
+  },
+  {
+    tag: 'נושא 2',
+    name: 'Patio Cover',
+    line: 'קירוי פטיו ופרגולות.',
+    body: 'מוצר מוגדר, עם החלטה ברורה. באתר מופיעים כמה סוגים — solid, lattice, gable, עץ ו-louvered — וכל אחד מהם הוא מודעה בפני עצמה. הקמפיין מציג את הסוגים בפרויקטים אמיתיים ומזמין לקבל הצעה.',
+  },
+  {
+    tag: 'נושא 3',
+    name: 'Pavers',
+    line: 'ריצוף אבנים — שבילי גישה, חניות ופטיו.',
+    body: 'עבודה שהשינוי בה נראה מיד, ולכן מתאימה במיוחד לסרטוני לפני/אחרי קצרים. הקמפיין מכוון לבעלי בתים עם חניה, שביל או פטיו שדורשים חידוש.',
+  },
+];
+
+// מבנה הקמפיינים בחשבון
+const campaigns = [
+  {
+    type: 'לידים · Backyard',
+    target: 'בעלי בתים ב-San Diego County',
+    why: 'הקמפיין הרחב. מביא את הפניות לפרויקטים הגדולים ומזין את שני האחרים.',
+    prio: 'ראשון',
+  },
+  {
+    type: 'לידים · Patio Cover',
+    target: 'בעלי בתים באזור השירות, עם מודעות לפי סוג קירוי',
+    why: 'מוצר ממוקד עם החלטה קצרה יחסית. נמדד בנפרד כדי לדעת מה עולה ליד בקטגוריה הזו.',
+    prio: 'ראשון',
+  },
+  {
+    type: 'לידים · Pavers',
+    target: 'בעלי בתים באזור השירות, מודעות לפני/אחרי',
+    why: 'נושא חזותי שמייצר מעורבות גבוהה. נמדד בנפרד מאותה סיבה.',
+    prio: 'ראשון',
+  },
+  {
+    type: 'רימרקטינג',
+    target: 'מבקרים באתר, צופי סרטונים, ומי שפתח טופס ולא שלח',
+    why: 'שיפוץ חצר לא נסגר בחשיפה אחת. הקמפיין הזה חוזר למי שכבר התעניין.',
+    prio: 'שני',
+  },
+];
+
+// תוכנית עבודה — לפי סדר תלות
+const phases = [
+  {
+    n: 'שלב 1',
+    title: 'תשתית ומדידה',
+    when: 'לפני העלייה לאוויר',
+    items: [
+      '<strong>גישה וחיבור נכסים.</strong> חשבון המודעות, עמוד הפייסבוק ופרופיל האינסטגרם מחוברים ל-Business Manager, ואנחנו מקבלים הרשאת ניהול — הבעלות נשארת אצלכם.',
+      '<strong>בדיקת Meta Pixel ואירועי המרה.</strong> בסריקה מבחוץ לא יכולנו לאמת אם יש פיקסל פעיל באתר. זו הבדיקה הראשונה: שליחת טופס Free Estimate ולחיצה על חיוג צריכות להירשם כהמרות — אחרת אין לפי מה לייעל.',
+      '<strong>מסלול הליד.</strong> מחליטים יחד היכן הליד נאסף — טופס מובנה בתוך פייסבוק ואינסטגרם, טופס באתר, או שניהם — ולאן הוא מגיע בזמן אמת: מייל, טלפון או CRM.',
+      '<strong>בדיקת מה שרץ עד היום.</strong> אם יש בחשבון היסטוריית קמפיינים, עוברים עליה: מה עבד, מה לא, ואילו קהלים כבר קיימים.',
+    ],
+  },
+  {
+    n: 'שלב 2',
+    title: 'בניית הקמפיינים',
+    when: 'העלאה לאוויר',
+    items: [
+      '<strong>שלושה קמפיינים לפי נושא</strong> — Backyard, Patio Cover ו-Pavers — כל אחד עם תקציב ומדידה משלו.',
+      '<strong>טירגוט גיאוגרפי</strong> לפי אזורי השירות שלכם ב-San Diego County, עם אפשרות למקד ערים שבהן אתם מעדיפים לעבוד.',
+      '<strong>כתיבת מודעות באנגלית</strong> — כותרות, טקסטים וקריאה לפעולה — בכמה גרסאות לכל נושא.',
+      '<strong>קריאייטיב מהחומרים שלכם.</strong> תמונות לפני/אחרי ופרויקטים שהושלמו, מותאמים לפורמטים של פיד, Stories ו-Reels.',
+      '<strong>טופס ליד עם שאלות סינון</strong> — סוג הפרויקט, עיר ולוח זמנים — כדי שהפניות שמגיעות יהיו רלוונטיות.',
+    ],
+  },
+  {
+    n: 'שלב 3',
+    title: 'אופטימיזציה שוטפת',
+    when: 'כל חודש',
+    items: [
+      '<strong>מעקב אחרי עלות לליד</strong> לכל נושא בנפרד, והעברת תקציב למה שמביא פניות טובות יותר.',
+      '<strong>רענון מודעות.</strong> מודעה נשחקת אחרי שהקהל ראה אותה מספיק פעמים — מחליפים קריאייטיב וטקסטים באופן שוטף.',
+      '<strong>רימרקטינג</strong> למבקרים באתר ולצופי סרטונים, ברגע שהצטבר קהל מספיק.',
+      '<strong>משוב על איכות הלידים.</strong> אתם מדווחים אילו פניות הפכו לפגישה ולעסקה, ואנחנו מכוונים את הקמפיינים לפי זה — לא רק לפי כמות.',
+    ],
+  },
+];
+
+// מה קורה בכל חודש
+const monthly = [
+  {
+    icon: 'wrench',
+    title: 'ניהול בפועל של החשבון',
+    body: 'קמפיינים, קהלים, תקציבים, מודעות וטפסי לידים — הכול נבנה ומתוחזק על ידינו בתוך חשבון המודעות שלכם.',
+  },
+  {
+    icon: 'radar',
+    title: 'מעקב שוטף',
+    body: 'בדיקה שוטפת של ההוצאה, של עלות הליד ושל מודעות שנדחו או נשחקו — כדי שהתקציב לא ירוץ על מה שלא עובד.',
+  },
+  {
+    icon: 'report',
+    title: 'דוח חודשי',
+    body: 'כמה הוצא, כמה לידים הגיעו, מה עלות הליד בכל נושא, ומה מתוכנן לחודש הבא.',
+  },
+];
+
+// מה צריך מהלקוח
+const decisions = [
+  {
+    title: 'הרשאות גישה',
+    body: 'הרשאת ניהול לחשבון המודעות, לעמוד הפייסבוק ולפרופיל האינסטגרם דרך Business Manager, וגישה לאתר ה-WordPress לצורך בדיקה והתקנה של הפיקסל.',
+  },
+  {
+    title: 'תקציב מדיה ואמצעי תשלום',
+    body: 'תקציב המדיה משולם על ידכם ישירות ל-Meta, מאמצעי תשלום שמוזן בחשבון המודעות שלכם. גובה התקציב נקבע יחד לפני העלייה לאוויר — הוא לא חלק מדמי הניהול.',
+  },
+  {
+    title: 'חומרים חזותיים',
+    body: 'תמונות וסרטונים מפרויקטים שהושלמו — במיוחד לפני/אחרי — בשלושת הנושאים. ככל שהחומרים טובים ואמיתיים יותר, המודעות עובדות טוב יותר.',
+  },
+  {
+    title: 'מענה מהיר ללידים',
+    body: 'ליד שלא מקבל טלפון תוך זמן קצר מתקרר. צריך אדם אחד מטעמכם שמקבל את הפניות וחוזר אליהן, ומעדכן אותנו אילו מהן היו רלוונטיות.',
+  },
+];
+
+const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+---
+<Layout
+  title="הצעת מחיר · קמפיינים בפייסבוק ובאינסטגרם · Seal Design & Build — NINJA Digital"
+  description="הצעת מחיר לניהול קמפיינים ממומנים בפייסבוק ובאינסטגרם ל-Seal Design & Build — לידים ל-Backyard, Patio Cover ו-Pavers."
+  noindex={true}
+  hideFloatWA={true}
+  hideNav={true}
+>
+
+<section class="proposal-hero">
+  <div class="container">
+    <span class="eyebrow">הצעת מחיר · NINJA Digital</span>
+    <h1>לידים מפייסבוק ומאינסטגרם ל-<em>Seal Design &amp; Build</em>.</h1>
+    <p class="lede">
+      <strong>ניהול קמפיינים ממומנים בפייסבוק ובאינסטגרם, עם מטרה אחת: לידים.</strong>
+      שלושה נושאים שעלו בפגישה — Backyard, Patio Cover ו-Pavers — כל אחד כקמפיין נפרד,
+      שנמדד לפי פניות ולא לפי לייקים.
+      ההצעה מפרטת מה בונים, באיזה סדר, מה נדרש מכם ובכמה. תקפה ל-30 יום מתאריך השליחה.
+    </p>
+
+    <div class="meta">
+      <div><span>לקוח</span><strong>{CLIENT}</strong></div>
+      <div><span>אתר</span><strong>{SITE}</strong></div>
+      <div><span>אזור</span><strong>San Diego, CA</strong></div>
+      <div><span>שירות</span><strong>Facebook · Instagram Ads</strong></div>
+      <div><span>תאריך</span><strong>{today}</strong></div>
+    </div>
+  </div>
+</section>
+
+<section class="state">
+  <div class="container">
+    <span class="eyebrow">נקודת הפתיחה</span>
+    <h2>מה כבר קיים, ומה עוד צריך לבדוק.</h2>
+    <p class="lede">
+      הנתונים כאן מבוססים על סריקה של האתר בלבד — לא על חשבון המודעות, שאליו עדיין אין לנו גישה.
+      <strong>לכן אין בהצעה הזו הבטחה למספר לידים או לעלות לליד.</strong>
+      את המספרים האלה נדע אחרי החודש הראשון של הרצה, ומהם והלאה נמדד מולם.
+    </p>
+
+    <div class="kpis">
+      {kpis.map((k) => (
+        <div class="kpi">
+          <div class="k">{k.k}</div>
+          <div class="v">{k.v}</div>
+          <div class={`d ${k.tone}`}>{k.d}</div>
+        </div>
+      ))}
+    </div>
+    <p class="src">מקור: סריקה של {SITE} · נובמבר 2026 · עמוד הבית, About, Contact ו-Hardscape &amp; Landscape</p>
+  </div>
+</section>
+
+<section class="engines">
+  <div class="container">
+    <span class="eyebrow">הנושאים לקידום</span>
+    <h2>שלושה נושאים. שלושה קמפיינים.</h2>
+    <p class="lede">
+      האתר מציע מגוון רחב של שירותים, משיפוץ מטבחים ועד ADU.
+      <strong>ההצעה הזו מתמקדת בשלושת הנושאים שעלו בפגישה</strong> — כולם מתחום ה-Hardscape &amp; Landscape,
+      וכולם נמכרים קודם כול בתמונה. ההפרדה לקמפיינים היא מה שמאפשר לדעת כמה עולה ליד בכל נושא.
+    </p>
+
+    <div class="eng-grid">
+      {topics.map((e) => (
+        <div class="eng-card">
+          <span class="eng-tag">{e.tag}</span>
+          <h3>{e.name}</h3>
+          <p class="eng-line">{e.line}</p>
+          <p>{e.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="gaps">
+  <div class="container">
+    <span class="eyebrow">מבנה הקמפיינים</span>
+    <h2>איך זה נראה בחשבון המודעות.</h2>
+    <p class="lede">
+      שלושה קמפייני לידים שעולים יחד, וקמפיין רימרקטינג שמצטרף כשהצטבר קהל.
+      <strong>כל שורה כאן מסתיימת בפנייה של בעל בית שמבקש הצעת מחיר.</strong>
+    </p>
+
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr>
+            <th>קמפיין</th>
+            <th>למי הוא פונה</th>
+            <th>למה הוא שם</th>
+            <th class="num">שלב</th>
+          </tr>
+        </thead>
+        <tbody>
+          {campaigns.map((c) => (
+            <tr>
+              <td class="kw">{c.type}</td>
+              <td class="miss">{c.target}</td>
+              <td class="miss">{c.why}</td>
+              <td class="num accent">{c.prio}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="plan">
+  <div class="container">
+    <span class="eyebrow">תוכנית עבודה</span>
+    <h2>שלושה שלבים, בסדר הזה.</h2>
+    <p class="lede">
+      <strong>קודם מדידה, אחר כך מודעות.</strong>
+      קמפיין לידים שרץ בלי מעקב תקין אחרי פניות אי אפשר לשפר — ולכן בדיקת הפיקסל ומסלול הליד
+      קודמת לעלייה לאוויר.
+    </p>
+
+    {phases.map((p) => (
+      <article class="phase">
+        <header>
+          <span class="pn">{p.n}</span>
+          <h3>{p.title}</h3>
+          <span class="when">{p.when}</span>
+        </header>
+        <ul>
+          {p.items.map((i) => <li set:html={i} />)}
+        </ul>
+      </article>
+    ))}
+  </div>
+</section>
+
+<section class="included">
+  <div class="container">
+    <span class="eyebrow">מה נכנס בכל חודש</span>
+    <h2>שלושה דברים שקורים תמיד.</h2>
+    <div class="inc-grid">
+      {monthly.map((m) => (
+        <div class="inc-card">
+          <div class="inc-icon" aria-hidden="true">
+            {m.icon === 'wrench' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14.7 6.3a4 4 0 0 1-5 5L4 17v3h3l5.7-5.7a4 4 0 0 1 5-5l2.3-2.3-3-3-2.3 2.3z"/></svg>
+            )}
+            {m.icon === 'radar' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><path d="M12 12 19 7"/></svg>
+            )}
+            {m.icon === 'report' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
+            )}
+          </div>
+          <h3>{m.title}</h3>
+          <p>{m.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="decisions">
+  <div class="container">
+    <span class="eyebrow">לפני שמתחילים</span>
+    <h2>ארבעה דברים שאנחנו צריכים מכם.</h2>
+    <div class="dec-grid">
+      {decisions.map((d) => (
+        <div class="dec-card">
+          <h3>{d.title}</h3>
+          <p>{d.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="price">
+  <div class="container">
+    <span class="eyebrow">סיכום עלות</span>
+    <h2>דמי ניהול חודשיים, ותוספת לסרטונים.</h2>
+    <div class="price-card">
+      <div class="price-row">
+        <span>ניהול קמפיינים בפייסבוק ובאינסטגרם — מטרה: לידים</span>
+        <strong>${MONTHLY} / חודש</strong>
+      </div>
+      <div class="price-row sub"><span>בדיקת פיקסל, אירועי המרה ומסלול הליד</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>בניית שלושה קמפיינים — Backyard, Patio Cover, Pavers</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>כתיבת מודעות באנגלית וטפסי לידים</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>התאמת תמונות קיימות לפורמטים של מודעות</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>אופטימיזציה שוטפת ודוח חודשי</span><strong>כלול</strong></div>
+      <div class="price-row total">
+        <span>סה״כ חודשי</span>
+        <strong>${MONTHLY}</strong>
+      </div>
+      <p class="price-note">
+        המחירים בדולר ארה״ב. תשלום חודשי, בתחילת כל חודש עבודה.
+        <strong>תקציב המדיה אינו כלול בסכום זה</strong> ומחויב ישירות על ידי Meta בחשבון המודעות שלכם.
+      </p>
+    </div>
+
+    <div class="hosting-card">
+      <div>
+        <span class="extras-tag">תשלום נוסף</span>
+        <h3>חבילת סרטונים — {VIDEO_QTY} סרטונים</h3>
+        <ul class="extras-list">
+          <li>{VIDEO_QTY} סרטוני מודעה קצרים לפייסבוק ולאינסטגרם, בפורמט אנכי ל-Reels ול-Stories.</li>
+          <li>עריכה מחומרי הגלם והצילומים של הפרויקטים שלכם — כולל כותרות, כתוביות וקריאה לפעולה.</li>
+          <li>מחויבת לפי חבילה שהוזמנה, בנפרד מדמי הניהול החודשיים.</li>
+        </ul>
+      </div>
+      <div class="hosting-price"><strong>${VIDEO}</strong><span>לחבילה</span></div>
+    </div>
+
+    <div class="extras">
+      <div class="extras-head">
+        <span class="extras-tag">לא כלול</span>
+        <h3>מה משולם בנפרד</h3>
+      </div>
+      <ul class="extras-list">
+        <li><strong>תקציב המדיה.</strong> הכסף שמשולם ל-Meta עבור הפרסום עצמו. הוא לא עובר דרכנו ואין עליו עמלה.</li>
+        <li><strong>החשבון בבעלותכם.</strong> אנחנו מקבלים הרשאת ניהול בלבד. בסיום ההתקשרות חשבון המודעות, הקהלים וההיסטוריה נשארים אצלכם.</li>
+        <li><strong>צילום בשטח.</strong> הסרטונים והמודעות נבנים מחומרים שאתם מספקים. צילום פרויקטים אינו חלק מההצעה.</li>
+        <li><strong>פיתוח באתר.</strong> מעבר להתקנה ולבדיקה של הפיקסל, שינויים באתר או בניית עמודי נחיתה אינם כלולים ומתומחרים בנפרד.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="sign">
+  <div class="container">
+    <span class="eyebrow">אישור הצעה</span>
+    <h2>אם המחיר ותיאור העבודה מקובלים, חתמו כאן.</h2>
+    <p class="lede">אישור ההצעה ישלח התראה במייל ואחזור אליכם לתיאום הקיק-אוף והרשאות הגישה.</p>
+
+    <form id="proposal-sign" class="sign-card">
+      <div class="field-row">
+        <div class="field">
+          <label for="name">שם מלא</label>
+          <input id="name" name="name" type="text" required autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="email">אימייל</label>
+          <input id="email" name="email" type="email" required autocomplete="email" dir="ltr" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="phone">טלפון</label>
+          <input id="phone" name="phone" type="tel" autocomplete="tel" dir="ltr" />
+        </div>
+        <div class="field">
+          <label for="title">תפקיד</label>
+          <input id="title" name="title" type="text" placeholder="לדוגמה: בעלים, מנכ״ל" />
+        </div>
+      </div>
+
+      <fieldset class="confirms">
+        <label class="check">
+          <input type="checkbox" name="confirm_scope" required />
+          <span>אני מאשר את היקף העבודה שתואר בהצעה: ניהול קמפיינים ממומנים בפייסבוק ובאינסטגרם למטרת לידים, בנושאים Backyard, Patio Cover ו-Pavers.</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="confirm_price" required />
+          <span>אני מאשר את דמי הניהול: ${MONTHLY} לחודש, בתשלום חודשי. ידוע לי שתקציב המדיה אינו כלול בסכום זה ומשולם על ידי {CLIENT} ישירות ל-Meta.</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="confirm_terms" required />
+          <span>אני מתחייב להעמיד את הרשאות הגישה הנדרשות (חשבון המודעות, עמוד הפייסבוק, פרופיל האינסטגרם והאתר) ואת החומרים החזותיים עם תחילת העבודה.</span>
+        </label>
+        <label class="check optional">
+          <input type="checkbox" name="add_videos" id="add_videos" />
+          <span><strong>אופציונלי:</strong> אני מזמין גם חבילת סרטונים — {VIDEO_QTY} סרטונים ב-${VIDEO}, בתשלום נוסף.</span>
+        </label>
+      </fieldset>
+
+      <div class="signature-block">
+        <label for="signature">חתימה דיגיטלית</label>
+        <p class="hint">לחצו בתוך הריבוע וציירו את שמכם כחתימה.</p>
+        <div class="sig-wrap">
+          <canvas id="signature" aria-label="אזור חתימה"></canvas>
+          <span class="sig-line" aria-hidden="true"></span>
+          <span class="sig-x" aria-hidden="true">×</span>
+        </div>
+        <div class="sig-actions">
+          <button type="button" id="sig-clear" class="btn-ghost">נקה חתימה</button>
+        </div>
+      </div>
+
+      <div class="sign-actions">
+        <button type="submit" class="btn-primary">
+          אישור ושליחה
+          <span aria-hidden="true">←</span>
+        </button>
+        <p class="legal">בלחיצה על האישור, אני מקבל את התנאים המופיעים בהצעה זו ומסמיך את NINJA Digital להתחיל בעבודה.</p>
+      </div>
+    </form>
+
+    <div id="sign-success" class="sign-success" hidden>
+      <h3>התקבל. תודה.</h3>
+      <p>שרון יחזור אליכם תוך יום עסקים אחד עם רשימת ההרשאות הנדרשות ותיאום תחילת העבודה.</p>
+    </div>
+  </div>
+</section>
+<script is:inline define:vars={{ MONTHLY, VIDEO, VIDEO_QTY, CLIENT, SITE }}>
+(() => {
+  const form = document.getElementById('proposal-sign');
+  const success = document.getElementById('sign-success');
+  const canvas = /** @type {HTMLCanvasElement} */(document.getElementById('signature'));
+  const ctx = canvas?.getContext('2d');
+  let drawing = false;
+  let hasInk = false;
+
+  if (canvas && ctx) {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    function setupCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#1a1a1a';
+    }
+    setupCanvas();
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const data = canvas.toDataURL();
+        setupCanvas();
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, 0, 0, canvas.width / dpr, canvas.height / dpr);
+        img.src = data;
+      }, 150);
+    });
+
+    function pos(e) {
+      const r = canvas.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+    function onDown(e) {
+      drawing = true;
+      canvas.setPointerCapture?.(e.pointerId);
+      const { x, y } = pos(e);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      e.preventDefault();
+    }
+    function onMove(e) {
+      if (!drawing) return;
+      const { x, y } = pos(e);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      hasInk = true;
+      e.preventDefault();
+    }
+    function onUp(e) {
+      if (!drawing) return;
+      drawing = false;
+      canvas.releasePointerCapture?.(e.pointerId);
+    }
+    canvas.addEventListener('pointerdown', onDown);
+    canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointercancel', onUp);
+    canvas.addEventListener('pointerleave', onUp);
+
+    document.getElementById('sig-clear')?.addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasInk = false;
+    });
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!hasInk) {
+      alert('נדרשת חתימה לפני האישור.');
+      return;
+    }
+    const data = Object.fromEntries(new FormData(form).entries());
+    const signature = canvas?.toDataURL('image/png');
+    const withVideos = data.add_videos === 'on';
+
+    // סיכום שנכנס כמו שהוא ל-PDF החתום ולמייל
+    const items = [
+      { label: 'ניהול קמפיינים בפייסבוק ובאינסטגרם — לידים', detail: 'בדיקת פיקסל ומסלול ליד · שלושה קמפיינים: Backyard, Patio Cover, Pavers · כתיבת מודעות וטפסי לידים · אופטימיזציה שוטפת · דוח חודשי', amount: `$${MONTHLY} / חודש` },
+    ];
+    if (withVideos) {
+      items.push({ label: `חבילת סרטונים — ${VIDEO_QTY} סרטונים`, detail: 'סרטוני מודעה קצרים ל-Reels ול-Stories, בעריכה מחומרי הלקוח', amount: `$${VIDEO} לחבילה` });
+    }
+    const summary = {
+      title: 'קמפיינים בפייסבוק ובאינסטגרם ל-Seal Design & Build',
+      client: `${CLIENT} · ${SITE}`,
+      project: 'Facebook · Instagram Ads · ניהול חודשי',
+      lede: 'ניהול קמפיינים ממומנים בפייסבוק ובאינסטגרם למטרת לידים, בשלושה נושאים: Backyard, Patio Cover ו-Pavers.',
+      items,
+      totals: withVideos ? [{ label: 'חבילת סרטונים, תשלום נוסף', amount: `$${VIDEO}` }] : [],
+      total: { label: 'סה״כ חודשי', amount: `$${MONTHLY}` },
+      extras: [withVideos ? `הוזמנה חבילת סרטונים (${VIDEO_QTY} סרטונים)` : 'חבילת סרטונים לא הוזמנה בשלב זה'],
+      terms: 'המחירים בדולר ארה״ב. תשלום חודשי בתחילת כל חודש עבודה. תקציב המדיה אינו כלול ומשולם ישירות ל-Meta. צילום בשטח ופיתוח באתר אינם כלולים.',
+      confirms: [
+        'אישור היקף העבודה כפי שתואר בהצעה',
+        `אישור מחיר: $${MONTHLY} לחודש${withVideos ? `, ועוד $${VIDEO} לחבילת סרטונים` : ''}`,
+        'התחייבות להעמיד הרשאות גישה וחומרים חזותיים',
+      ],
+    };
+
+    try {
+      const res = await fetch('/api/proposal-sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proposal: 'seal-meta', ...data, signature, summary, modules: withVideos ? ['videos'] : [], signedAt: new Date().toISOString() }),
+      });
+      if (res.ok || res.status === 202) {
+        form.style.display = 'none';
+        success.removeAttribute('hidden');
+        success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        alert('משהו השתבש. נסו שוב או שלחו לי במייל ישירות.');
+      }
+    } catch {
+      alert('משהו השתבש בחיבור. נסו שוב.');
+    }
+  });
+})();
+</script>
+
+<style>
+/* ---------- HERO ---------- */
+.proposal-hero { padding: 120px 0 70px; position: relative; z-index: 2; }
+.proposal-hero h1 { font-size: clamp(2.4rem, 5.5vw, 4.4rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; line-height: 1.05; }
+.proposal-hero h1 em { font-style: normal; color: var(--gold, #ffd166); }
+.lede { color: rgba(255,255,255,0.78); max-width: 760px; margin-top: 18px; font-size: 1.05rem; line-height: 1.7; }
+.lede strong { color: #fff; font-weight: 700; }
+.meta { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 48px; padding: 22px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+@media (min-width: 860px) { .meta { grid-template-columns: repeat(5, 1fr); } }
+.meta > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.meta span { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+.meta strong { font-size: 1.02rem; color: #fff; overflow-wrap: anywhere; }
+
+section { padding: 60px 0; }
+.eyebrow { font-size: 0.78rem; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.55); display: inline-block; }
+section h2 { font-size: clamp(1.9rem, 4vw, 2.8rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; }
+
+/* ---------- KPI STRIP ---------- */
+.kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 34px; }
+@media (min-width: 900px) { .kpis { grid-template-columns: repeat(5, 1fr); } }
+.kpi { padding: 22px 18px; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(255,255,255,0.02); min-width: 0; }
+.kpi .k { font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+.kpi .v { font-size: 1.35rem; font-weight: 800; color: #fff; line-height: 1.25; margin-top: 8px; overflow-wrap: anywhere; }
+.kpi .d { font-size: 0.8rem; margin-top: 4px; }
+.kpi .d.up { color: rgb(74, 222, 128); }
+.kpi .d.flat { color: rgba(255,255,255,0.5); }
+.src { margin-top: 16px; font-size: 0.8rem; color: rgba(255,255,255,0.42); }
+
+/* ---------- TOPICS ---------- */
+.eng-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 34px; }
+@media (min-width: 900px) { .eng-grid { grid-template-columns: repeat(3, 1fr); } }
+.eng-card { padding: 28px 26px; border: 1px solid rgba(255,209,102,0.22); border-radius: 18px; background: linear-gradient(180deg, rgba(255,209,102,0.07), rgba(255,255,255,0.015)); }
+.eng-tag { display: inline-block; font-family: 'Rubik', sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold, #ffd166); border: 1px solid rgba(255,209,102,0.35); border-radius: 999px; padding: 4px 13px; margin-bottom: 16px; }
+.eng-card h3 { font-size: 1.45rem; font-weight: 800; letter-spacing: -0.01em; line-height: 1.25; }
+.eng-line { color: var(--gold, #ffd166); font-size: 0.97rem; font-weight: 600; line-height: 1.5; margin-top: 8px; }
+.eng-card > p:last-child { color: rgba(255,255,255,0.72); line-height: 1.68; font-size: 0.93rem; margin-top: 12px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08); }
+
+/* ---------- TABLES ---------- */
+.tscroll { overflow-x: auto; margin-top: 30px; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.02); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 0.92rem; }
+th { text-align: start; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.45); font-weight: 600; padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.12); white-space: nowrap; }
+td { padding: 13px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: top; color: rgba(255,255,255,0.8); line-height: 1.55; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: rgba(255,255,255,0.025); }
+td.kw { font-weight: 700; color: #fff; white-space: nowrap; }
+td.num, th.num { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: start; }
+td.num.accent { color: var(--gold, #ffd166); font-weight: 700; }
+td.miss { color: rgba(255,255,255,0.65); font-size: 0.88rem; }
+
+/* ---------- PHASES ---------- */
+.phase { margin-top: 18px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); overflow: hidden; }
+.phase > header { display: flex; align-items: baseline; gap: 16px; padding: 18px 26px; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); flex-wrap: wrap; }
+.phase .pn { font-family: 'Rubik', sans-serif; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--gold, #ffd166); border: 1px solid rgba(255,209,102,0.35); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+.phase h3 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+.phase .when { margin-inline-start: auto; font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.42); }
+.phase ul { list-style: none; padding: 20px 26px; display: grid; gap: 13px; margin: 0; }
+.phase li { position: relative; padding-inline-start: 22px; color: rgba(255,255,255,0.75); line-height: 1.68; font-size: 0.96rem; }
+.phase li::before { content: ''; position: absolute; inset-inline-start: 0; top: 10px; width: 8px; height: 8px; border-radius: 50%; background: rgba(255,209,102,0.65); }
+.phase li :global(strong) { color: #fff; font-weight: 700; }
+
+/* ---------- MONTHLY INCLUDES ---------- */
+.inc-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 34px; }
+@media (min-width: 860px) { .inc-grid { grid-template-columns: repeat(3, 1fr); } }
+.inc-card { padding: 28px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+.inc-icon { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; color: var(--gold, #ffd166); background: rgba(255,209,102,0.1); border: 1px solid rgba(255,209,102,0.2); margin-bottom: 16px; }
+.inc-icon svg { width: 23px; height: 23px; }
+.inc-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; line-height: 1.35; }
+.inc-card p { color: rgba(255,255,255,0.7); line-height: 1.65; font-size: 0.94rem; }
+
+/* ---------- DECISIONS ---------- */
+.dec-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 34px; }
+@media (min-width: 900px) { .dec-grid { grid-template-columns: repeat(2, 1fr); } }
+.dec-card { padding: 26px; border: 1px solid rgba(120,180,255,0.18); border-radius: 18px; background: linear-gradient(180deg, rgba(120,180,255,0.05), rgba(255,255,255,0.01)); }
+.dec-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; color: rgb(170, 200, 255); line-height: 1.35; }
+.dec-card p { color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.92rem; }
+
+/* ---------- PRICE ---------- */
+.price h2 { margin-bottom: 28px; }
+.price-card { border: 1px solid rgba(255,255,255,0.12); border-radius: 22px; padding: 30px 36px; background: linear-gradient(180deg, rgba(255,209,102,0.08), rgba(255,255,255,0.02)); }
+.price-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-top: 1px solid rgba(255,255,255,0.06); gap: 14px; }
+.price-row:first-of-type { border-top: none; }
+.price-row span { line-height: 1.55; }
+.price-row strong { font-weight: 700; color: #fff; font-size: 1.05rem; white-space: nowrap; }
+.price-row.sub { color: rgba(255,255,255,0.7); }
+.price-row.sub strong { color: rgb(74, 222, 128); font-size: 0.95rem; }
+.price-row.total { border-top: 1px solid rgba(255,209,102,0.4); padding-top: 22px; margin-top: 12px; }
+.price-row.total strong { font-size: 2rem; color: var(--gold, #ffd166); }
+.price-note { color: rgba(255,255,255,0.55); font-size: 0.85rem; margin-top: 16px; line-height: 1.7; }
+.price-note strong { color: rgba(255,255,255,0.8); }
+
+/* ---------- VIDEO ADD-ON ---------- */
+.hosting-card { margin-top: 20px; display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 30px 36px; border: 1px solid rgba(120,180,255,0.2); border-radius: 22px; background: linear-gradient(180deg, rgba(120,180,255,0.05), rgba(255,255,255,0.01)); flex-wrap: wrap; }
+.hosting-card > div:first-child { flex: 1 1 320px; }
+.hosting-card h3 { font-size: 1.4rem; font-weight: 700; margin: 12px 0 0; }
+.hosting-card .extras-list { border-top: none; padding-top: 0; margin-top: 16px; }
+.hosting-price { display: flex; align-items: baseline; gap: 8px; color: var(--gold, #ffd166); }
+.hosting-price strong { font-size: 3rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.hosting-price span { font-size: 0.95rem; }
+
+/* ---------- EXTRAS ---------- */
+.extras { margin-top: 20px; padding: 28px 32px; border: 1px solid rgba(255,255,255,0.1); border-radius: 22px; background: rgba(255,255,255,0.02); }
+.extras-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.extras-tag { display: inline-block; font-family: 'Rubik', sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(170, 200, 255); border: 1px solid rgba(120,180,255,0.32); border-radius: 999px; padding: 4px 13px; white-space: nowrap; }
+.extras-head h3 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+.extras-list { list-style: none; padding: 18px 0 0; margin: 18px 0 0; display: grid; gap: 12px; border-top: 1px solid rgba(255,255,255,0.07); }
+.extras-list li { position: relative; padding-inline-start: 22px; color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.93rem; }
+.extras-list li::before { content: ''; position: absolute; inset-inline-start: 0; top: 9px; width: 7px; height: 7px; border-radius: 50%; background: rgba(120,180,255,0.6); }
+.extras-list strong { color: #fff; font-weight: 700; }
+
+/* ---------- SIGN ---------- */
+.sign-card { margin-top: 32px; padding: 32px; border: 1px solid rgba(255,255,255,0.12); border-radius: 22px; background: rgba(255,255,255,0.03); display: grid; gap: 20px; }
+.field-row { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 768px) { .field-row { grid-template-columns: 1fr 1fr; } }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+.field input { height: 48px; padding: 0 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: #fff; font-size: 1rem; transition: border-color 0.2s; }
+.field input:focus { outline: none; border-color: var(--gold, #ffd166); }
+.confirms { display: grid; gap: 8px; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(0,0,0,0.2); }
+.check { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: start; cursor: pointer; padding: 10px 8px; border-radius: 10px; transition: background 0.15s; }
+.check:hover { background: rgba(255,255,255,0.04); }
+.check.optional { border-top: 1px dashed rgba(255,255,255,0.12); border-radius: 0 0 10px 10px; margin-top: 4px; padding-top: 14px; }
+.check input[type=checkbox] { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--gold, #ffd166); cursor: pointer; flex-shrink: 0; }
+.check span { line-height: 1.55; color: rgba(255,255,255,0.88); font-size: 0.95rem; }
+.check span strong { color: rgb(170, 200, 255); }
+
+.signature-block { display: grid; gap: 10px; padding: 18px 20px; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; background: rgba(0,0,0,0.25); }
+.signature-block label { font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.65); }
+.signature-block .hint { font-size: 0.85rem; color: rgba(255,255,255,0.55); margin: 0; }
+.sig-wrap { position: relative; width: 100%; }
+canvas#signature { display: block; width: 100%; height: 200px; background: #ffffff; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); cursor: crosshair; touch-action: none; }
+.sig-line { position: absolute; inset-inline: 24px; bottom: 38px; height: 1px; background: rgba(0,0,0,0.18); pointer-events: none; }
+.sig-x { position: absolute; inset-inline-start: 24px; bottom: 26px; font-size: 0.85rem; color: rgba(0,0,0,0.45); letter-spacing: 0.05em; pointer-events: none; font-family: 'Rubik', sans-serif; }
+.sig-actions { display: flex; justify-content: flex-end; }
+.btn-ghost { background: transparent; border: 1px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.7); padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: border-color 0.2s; }
+.btn-ghost:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
+
+.sign-actions { margin-top: 12px; display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
+.btn-primary { height: 56px; background: linear-gradient(135deg, var(--gold, #ffd166), #d4a534); color: #0a0a0a; border: none; font-size: 1.05rem; font-weight: 700; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.2s, box-shadow 0.2s; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 30px -10px rgba(255,209,102,0.3); }
+.legal { color: rgba(255,255,255,0.5); font-size: 0.82rem; text-align: center; }
+
+.sign-success { margin-top: 32px; padding: 36px; border: 1px solid rgba(74,222,128,0.3); background: rgba(74,222,128,0.06); border-radius: 22px; text-align: center; }
+.sign-success h3 { font-size: 1.8rem; font-weight: 700; color: rgb(134, 239, 172); margin-bottom: 10px; }
+.sign-success p { color: rgba(255,255,255,0.85); line-height: 1.6; }
+
+@media (max-width: 720px) {
+  .proposal-hero { padding: 36px 0 50px; }
+  .proposal-hero h1 { font-size: 2.1rem; line-height: 1.15; }
+  .proposal-hero .lede { font-size: 0.98rem; }
+  .meta { gap: 12px; padding: 16px; margin-top: 24px; }
+  .meta strong { font-size: 0.92rem; }
+  section { padding: 44px 0; }
+  .price-card, .hosting-card, .extras { padding: 22px 20px; }
+  .price-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .sign-card { padding: 22px 18px; }
+}
+</style>
+
+<style is:global>
+/* site.js מצפה לניווט הרגיל שהוסתר בעמוד הזה וזורק TypeError,
+ * מה ששובר את ה-IntersectionObserver שמוסיף .in — לכן כופים נראות. */
+[data-reveal] { opacity: 1 !important; transform: none !important; }
+html, body { overflow-x: clip; }
+</style>
+</Layout>
