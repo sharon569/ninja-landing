@@ -1,0 +1,697 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+/* ---------------------------------------------------------------------------
+ * מחיר — נקבע מול שרון: 2,500 ₪ + מע״מ.
+ * MONTHLY הוא דמי הניהול החודשיים, לפני מע״מ.
+ * PERIOD הוא יחידת החיוב — אם ההצעה חד-פעמית ולא חודשית, לשנות כאן ובכותרת סעיף המחיר.
+ * ------------------------------------------------------------------------- */
+const MONTHLY = '2,500';
+const PERIOD = 'חודש';
+
+const CLIENT = 'ג׳ף מדיה בע״מ';
+const CLIENT_ID = '516047347';
+
+// שלושת מרכיבי השירות — זה כל מה שההצעה מכסה
+const pillars = [
+  {
+    tag: 'מרכיב 1',
+    name: 'בניית קמפיינים',
+    line: 'דיוורים יזומים במייל וב-SMS — מבצע, השקה, חג, תוכן.',
+    body: 'כל קמפיין נבנה אצלנו מקצה לקצה, במייל וב-SMS: בחירת קהל וסגמנט, כתיבת המסר, עיצוב, בדיקות תצוגה במובייל ובדסקטופ, תזמון ושליחה. אתם מאשרים לפני שזה יוצא — ומקבלים אחר כך את המספרים.',
+  },
+  {
+    tag: 'מרכיב 2',
+    name: 'ניהול אוטומציות',
+    line: 'מסעות לקוח שרצים לבד, 24/7.',
+    body: 'אוטומציות שמופעלות מההתנהגות של הגולש והלקוח בחנות — הרשמה, נטישת עגלה, רכישה, היעלמות. אנחנו בונים אותן, מחברים אותן לנתוני WooCommerce, ועוקבים אחריהן באופן שוטף כדי לתקן ולשפר. מעבר למסעות הבסיס, גם אוטומציות קאסטום שנתפרות לעסק שלכם כלולות.',
+  },
+  {
+    tag: 'מרכיב 3',
+    name: 'עיצוב',
+    line: 'כלול במחיר — לא סעיף נפרד.',
+    body: 'תבנית מייל ממותגת לפי השפה הגרפית שלכם, ועיצוב של כל קמפיין וכל מייל באוטומציה: באנרים, בלוקים של מוצרים וכפתורים. הכול מותאם למובייל, שם נפתחים רוב המיילים.',
+  },
+];
+
+// מפת האוטומציות — מה נבנה ובאיזה סדר
+const automations = [
+  {
+    type: 'ברוכים הבאים',
+    trigger: 'הרשמה לרשימת התפוצה או למועדון',
+    why: 'הרגע שבו הנרשם הכי קשוב. סדרת פתיחה שמציגה את המותג ומובילה לרכישה ראשונה.',
+    prio: 'ראשון',
+  },
+  {
+    type: 'עגלה נטושה',
+    trigger: 'מוצר נוסף לעגלה ב-WooCommerce והרכישה לא הושלמה',
+    why: 'הלקוח כבר בחר מוצר. תזכורת מתוזמנת עם תכולת העגלה מחזירה חלק מהרכישות האלה.',
+    prio: 'ראשון',
+  },
+  {
+    type: 'אחרי רכישה',
+    trigger: 'הזמנה שהושלמה בחנות',
+    why: 'תודה, מידע שימושי על המוצר, ובקשת ביקורת — הבסיס לרכישה השנייה.',
+    prio: 'ראשון',
+  },
+  {
+    type: 'נטישת גלישה',
+    trigger: 'צפייה במוצר או בקטגוריה בלי הוספה לעגלה',
+    why: 'פנייה עדינה למי שהתעניין ולא התקדם, עם המוצרים שבהם צפה.',
+    prio: 'שני',
+  },
+  {
+    type: 'רכישה חוזרת',
+    trigger: 'פרק זמן שעבר מאז ההזמנה האחרונה, לפי סוג המוצר',
+    why: 'תזכורת בזמן שבו הגיוני לקנות שוב, עם המלצות לפי מה שנרכש.',
+    prio: 'שני',
+  },
+  {
+    type: 'החזרת לקוחות רדומים',
+    trigger: 'לקוח שלא קנה ולא פתח מיילים תקופה ארוכה',
+    why: 'ניסיון החזרה אחד מסודר — ומי שלא מגיב יוצא מהדיוור השוטף, כדי לשמור על איכות הרשימה.',
+    prio: 'שלישי',
+  },
+  {
+    type: 'אוטומציות קאסטום',
+    trigger: 'כל טריגר שהעסק שלכם צריך — קטגוריה, מוצר, סכום הזמנה, תגית, תאריך או אירוע באתר',
+    why: 'מסעות שנתפרים לתהליכים שלכם ולא קיימים כתבנית מוכנה. כלולים במחיר, ונבנים לפי סדר עדיפויות שנקבע יחד.',
+    prio: 'לפי צורך',
+  },
+];
+
+// תוכנית עבודה — לפי סדר תלות
+const phases = [
+  {
+    n: 'שלב 1',
+    title: 'חיבור ובדיקת המצב הקיים',
+    when: 'תשתית',
+    items: [
+      '<strong>חיבור פלאשי לאתר.</strong> התקנה והגדרה של תוסף פלאשי ב-WordPress / WooCommerce, ובדיקה שקטלוג המוצרים, ההזמנות, העגלות ואנשי הקשר מסתנכרנים כמו שצריך.',
+      '<strong>בדיקת מעקב.</strong> וידוא שאירועי הגלישה, ההוספה לעגלה והרכישה נרשמים — בלעדיהם האוטומציות לא מופעלות.',
+      '<strong>מיפוי מה שכבר קיים.</strong> רשימות, טפסי הרשמה, פופאפים ואוטומציות שכבר רצים בחשבון — מה נשאר, מה מתוקן ומה מוחלף.',
+      '<strong>הגדרות שליחה.</strong> אימות הדומיין השולח, כדי שהמיילים יגיעו לתיבת הדואר ולא לספאם.',
+    ],
+  },
+  {
+    n: 'שלב 2',
+    title: 'תבנית ממותגת ואוטומציות הבסיס',
+    when: 'בנייה',
+    items: [
+      '<strong>תבנית מייל ממותגת</strong> — לוגו, צבעים, פונטים ובלוקים קבועים, שכל קמפיין ואוטומציה נבנים עליה.',
+      '<strong>שלוש אוטומציות הבסיס:</strong> ברוכים הבאים, עגלה נטושה ואחרי רכישה — כולל כתיבה, עיצוב ובדיקה מקצה לקצה לפני הפעלה.',
+      '<strong>סגמנטים ראשונים</strong> — לקוחות, נרשמים שעוד לא קנו, ולקוחות חוזרים — כדי שכל קמפיין יישלח למי שהוא רלוונטי עבורו.',
+    ],
+  },
+  {
+    n: 'שלב 3',
+    title: 'קמפיינים שוטפים',
+    when: 'שוטף',
+    items: [
+      '<strong>לוח דיוור חודשי</strong> שנקבע יחד מראש — מבצעים, השקות, חגים ותוכן.',
+      '<strong>בנייה מלאה של כל קמפיין</strong> — קהל, מסר, עיצוב, בדיקות ותזמון. שום דבר לא נשלח בלי אישור שלכם.',
+      '<strong>סיכום אחרי כל שליחה</strong> — פתיחות, הקלקות, הזמנות והכנסה שיוחסה לקמפיין.',
+    ],
+  },
+  {
+    n: 'שלב 4',
+    title: 'הרחבה ושיפור',
+    when: 'אופטימיזציה',
+    items: [
+      '<strong>אוטומציות נוספות</strong> לפי סדר העדיפויות במפה — נטישת גלישה, רכישה חוזרת והחזרת לקוחות רדומים.',
+      '<strong>אוטומציות קאסטום</strong> — מסעות שנבנים במיוחד לתהליכים של העסק שלכם, לפי צרכים שעולים תוך כדי עבודה.',
+      '<strong>בדיקות A/B</strong> על שורות נושא, תזמונים והצעות — ועדכון האוטומציות לפי מה שעובד בפועל.',
+      '<strong>ניקיון רשימה שוטף</strong> — הסרת כתובות לא פעילות, כדי לשמור על שיעורי הגעה לתיבת הדואר.',
+    ],
+  },
+];
+
+// מה קורה בכל חודש
+const monthly = [
+  {
+    icon: 'wrench',
+    title: 'ביצוע בפועל — לא המלצות',
+    body: 'הקמפיינים, האוטומציות והעיצובים נבנים על ידינו בתוך חשבון הפלאשי שלכם. מה שנדרש מכם הוא אישור — לא עבודה.',
+  },
+  {
+    icon: 'radar',
+    title: 'מעקב שוטף אחרי האוטומציות',
+    body: 'אוטומציה שהפסיקה לפעול אחרי עדכון באתר לא מודיעה על זה לאף אחד. אנחנו בודקים שהסנכרון עם WooCommerce תקין ושהמסעות ממשיכים לרוץ.',
+  },
+  {
+    icon: 'report',
+    title: 'דוח חודשי',
+    body: 'מה נשלח, מה נפתח, מה הוקלק, וכמה הכנסה יוחסה לכל קמפיין ולכל אוטומציה — יחד עם התוכנית לחודש הבא.',
+  },
+];
+
+// מה צריך מהלקוח לפני שמתחילים
+const decisions = [
+  {
+    title: 'הרשאות גישה',
+    body: 'משתמש מנהל בחשבון הפלאשי, וגישת ניהול לאתר ה-WordPress לצורך התקנה והגדרה של התוסף. בלי אלה חלק מהעבודה הופכת להנחיות במקום לביצוע.',
+  },
+  {
+    title: 'חומרי מותג',
+    body: 'לוגו, צבעים, פונטים ותמונות מוצר באיכות טובה. העיצוב שלנו נבנה על השפה הגרפית הקיימת שלכם — צילום והפקה של חומרים חדשים אינם חלק מההצעה.',
+  },
+  {
+    title: 'רשימת תפוצה והסכמות',
+    body: 'דיוור שיווקי נשלח רק למי שאישר לקבל אותו, כנדרש בחוק התקשורת ("חוק הספאם"). האחריות למקור הרשימה ולהסכמות היא שלכם; אנחנו דואגים שבכל הודעה יופיעו פרטי השולח ואפשרות הסרה.',
+  },
+  {
+    title: 'איש קשר לאישורים',
+    body: 'אדם אחד מטעמכם שמאשר קמפיינים ולוח דיוור. זמן האישור הוא מה שקובע בפועל את קצב השליחות.',
+  },
+];
+
+const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+---
+<Layout
+  title="הצעת מחיר · פלאשי ל-WordPress / WooCommerce · ג׳ף מדיה בע״מ — NINJA Digital"
+  description="הצעת מחיר לניהול פלאשי באתר WordPress / WooCommerce — בניית קמפיינים, ניהול אוטומציות ועיצוב."
+  noindex={true}
+  hideFloatWA={true}
+  hideNav={true}
+>
+
+<section class="proposal-hero">
+  <div class="container">
+    <span class="eyebrow">הצעת מחיר · NINJA Digital</span>
+    <h1>פלאשי ל<em>ג׳ף מדיה</em> — קמפיינים, אוטומציות ועיצוב.</h1>
+    <p class="lede">
+      <strong>ניהול מלא של פלאשי על גבי WordPress / WooCommerce.</strong>
+      אנחנו בונים את הקמפיינים, מקימים ומנהלים את האוטומציות, ומעצבים את כל מה שנשלח —
+      במחיר חודשי אחד, כשהעיצוב כלול בו.
+      ההצעה מפרטת מה נכנס, באיזה סדר עובדים, מה נדרש מכם ובכמה.
+      תקפה ל-30 יום מתאריך השליחה.
+    </p>
+
+    <div class="meta">
+      <div><span>לקוח</span><strong>{CLIENT}</strong></div>
+      <div><span>ח.פ</span><strong>{CLIENT_ID}</strong></div>
+      <div><span>פלטפורמה</span><strong>WordPress · WooCommerce</strong></div>
+      <div><span>שירות</span><strong>פלאשי · ניהול חודשי</strong></div>
+      <div><span>תאריך</span><strong>{today}</strong></div>
+    </div>
+  </div>
+</section>
+
+<section class="engines">
+  <div class="container">
+    <span class="eyebrow">מה כלול</span>
+    <h2>שלושה מרכיבים. מחיר אחד.</h2>
+    <p class="lede">
+      פלאשי מחוברת לחנות ויודעת מי נרשם, מי צפה במה, מי נטש עגלה ומי קנה.
+      <strong>העבודה שלנו היא להפוך את המידע הזה לפניות שנשלחות בזמן הנכון לאדם הנכון</strong> —
+      חלקן יזומות (קמפיינים), חלקן אוטומטיות (מסעות לקוח), וכולן מעוצבות.
+    </p>
+
+    <div class="eng-grid">
+      {pillars.map((e) => (
+        <div class="eng-card">
+          <span class="eng-tag">{e.tag}</span>
+          <h3>{e.name}</h3>
+          <p class="eng-line">{e.line}</p>
+          <p>{e.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="gaps">
+  <div class="container">
+    <span class="eyebrow">מפת האוטומציות</span>
+    <h2>שישה מסעות בסיס — ואוטומציות קאסטום.</h2>
+    <p class="lede">
+      אלה האוטומציות שחנות WooCommerce מרוויחה מהן הכי הרבה. הן נבנות לפי הסדר שבעמודה האחרונה —
+      קודם אלה שהכי קרובות לרכישה — ואליהן מצטרפות אוטומציות קאסטום לפי הצרכים שלכם. <strong>הרשימה הסופית והסדר נסגרים יחד אחרי בדיקת החשבון</strong>,
+      לפי מה שכבר קיים בו ולפי סוג המוצרים.
+    </p>
+
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr>
+            <th>אוטומציה</th>
+            <th>מה מפעיל אותה</th>
+            <th>למה היא שם</th>
+            <th class="num">שלב</th>
+          </tr>
+        </thead>
+        <tbody>
+          {automations.map((a) => (
+            <tr>
+              <td class="kw">{a.type}</td>
+              <td class="miss">{a.trigger}</td>
+              <td class="miss">{a.why}</td>
+              <td class="num accent">{a.prio}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="plan">
+  <div class="container">
+    <span class="eyebrow">תוכנית עבודה</span>
+    <h2>ארבעה שלבים, בסדר הזה.</h2>
+    <p class="lede">
+      <strong>מתחילים מהחיבור לאתר, לא מהקמפיין הראשון.</strong>
+      אוטומציה שנשענת על נתונים שלא מסתנכרנים פשוט לא תופעל — ולכן בדיקת הסנכרון
+      עם WooCommerce קודמת לכל השאר.
+    </p>
+
+    {phases.map((p) => (
+      <article class="phase">
+        <header>
+          <span class="pn">{p.n}</span>
+          <h3>{p.title}</h3>
+          <span class="when">{p.when}</span>
+        </header>
+        <ul>
+          {p.items.map((i) => <li set:html={i} />)}
+        </ul>
+      </article>
+    ))}
+  </div>
+</section>
+
+<section class="included">
+  <div class="container">
+    <span class="eyebrow">מה נכנס בכל חודש</span>
+    <h2>שלושה דברים שקורים תמיד.</h2>
+    <div class="inc-grid">
+      {monthly.map((m) => (
+        <div class="inc-card">
+          <div class="inc-icon" aria-hidden="true">
+            {m.icon === 'wrench' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14.7 6.3a4 4 0 0 1-5 5L4 17v3h3l5.7-5.7a4 4 0 0 1 5-5l2.3-2.3-3-3-2.3 2.3z"/></svg>
+            )}
+            {m.icon === 'radar' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><path d="M12 12 19 7"/></svg>
+            )}
+            {m.icon === 'report' && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
+            )}
+          </div>
+          <h3>{m.title}</h3>
+          <p>{m.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="decisions">
+  <div class="container">
+    <span class="eyebrow">לפני שמתחילים</span>
+    <h2>ארבעה דברים שאנחנו צריכים מכם.</h2>
+    <div class="dec-grid">
+      {decisions.map((d) => (
+        <div class="dec-card">
+          <h3>{d.title}</h3>
+          <p>{d.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="price">
+  <div class="container">
+    <span class="eyebrow">סיכום עלות</span>
+    <h2>דמי ניהול חודשיים. העיצוב כלול.</h2>
+    <div class="price-card">
+      <div class="price-row">
+        <span>ניהול פלאשי — קמפיינים, אוטומציות ועיצוב</span>
+        <strong>{MONTHLY} ₪ / {PERIOD}</strong>
+      </div>
+      <div class="price-row sub"><span>חיבור פלאשי ל-WordPress / WooCommerce ובדיקת סנכרון</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>בניית קמפיינים במייל וב-SMS — קהל, כתיבה, בדיקות ותזמון</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>הקמה וניהול שוטף של אוטומציות — כולל אוטומציות קאסטום</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>עיצוב — תבנית ממותגת, קמפיינים ומיילים באוטומציות</span><strong>כלול</strong></div>
+      <div class="price-row sub"><span>דוח חודשי</span><strong>כלול</strong></div>
+      <div class="price-row sub timeline"><span>תקופת התחייבות</span><strong>ללא — חודש לחודש</strong></div>
+      <div class="price-row total">
+        <span>סה״כ ל{PERIOD}, לפני מע״מ</span>
+        <strong>{MONTHLY} ₪</strong>
+      </div>
+      <p class="price-note">
+        <strong>המחיר אינו כולל מע״מ.</strong> חיוב חודשי בהוראת קבע או בהעברה בנקאית, בתחילת כל חודש עבודה.
+        ההתקשרות היא מחודש לחודש, ללא תקופת התחייבות, וניתנת לסיום בהודעה של 30 יום מראש משני הצדדים.
+      </p>
+    </div>
+
+    <div class="extras">
+      <div class="extras-head">
+        <span class="extras-tag">לא כלול</span>
+        <h3>מה משולם בנפרד</h3>
+      </div>
+      <ul class="extras-list">
+        <li><strong>מנוי פלאשי וקרדיטים ל-SMS.</strong> בניית קמפייני ה-SMS והאוטומציות ב-SMS כלולה בדמי הניהול. עלות השליחה עצמה מכוסה בטעינת קרדיטים בחשבון הפלאשי שלכם, ודמי המנוי למערכת משולמים על ידכם ישירות לפלאשי, לפי התעריף שלהם. הכסף לא עובר דרכנו ואין עליו עמלה.</li>
+        <li><strong>החשבון בבעלותכם.</strong> אנחנו עובדים כמשתמש בחשבון הפלאשי שלכם. בסיום ההתקשרות הרשימות, התבניות והאוטומציות נשארות אצלכם במלואן.</li>
+        <li><strong>צילום והפקת חומרים.</strong> העיצוב נעשה מהחומרים הקיימים שלכם. צילום מוצרים, וידאו ואיור אינם חלק מההצעה.</li>
+        <li><strong>פיתוח באתר.</strong> מעבר להתקנה ולהגדרה של תוסף פלאשי, שינויים באתר עצמו אינם כלולים ומתומחרים בנפרד.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="sign">
+  <div class="container">
+    <span class="eyebrow">אישור הצעה</span>
+    <h2>אם המחיר ותיאור העבודה מקובלים, חתמו כאן.</h2>
+    <p class="lede">אישור ההצעה ישלח התראה במייל ואחזור אליכם לתיאום הקיק-אוף והרשאות הגישה.</p>
+
+    <form id="proposal-sign" class="sign-card">
+      <div class="field-row">
+        <div class="field">
+          <label for="name">שם מלא</label>
+          <input id="name" name="name" type="text" required autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="email">אימייל</label>
+          <input id="email" name="email" type="email" required autocomplete="email" dir="ltr" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="phone">טלפון</label>
+          <input id="phone" name="phone" type="tel" autocomplete="tel" dir="ltr" />
+        </div>
+        <div class="field">
+          <label for="title">תפקיד</label>
+          <input id="title" name="title" type="text" placeholder="לדוגמה: מנכ״ל, בעלים" />
+        </div>
+      </div>
+
+      <fieldset class="confirms">
+        <label class="check">
+          <input type="checkbox" name="confirm_scope" required />
+          <span>אני מאשר את היקף העבודה שתואר בהצעה: בניית קמפיינים במייל וב-SMS, ניהול אוטומציות (כולל אוטומציות קאסטום) ועיצוב בפלאשי, על גבי WordPress / WooCommerce.</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="confirm_price" required />
+          <span>אני מאשר את דמי הניהול: {MONTHLY} ₪ + מע״מ ל{PERIOD}, בהתקשרות מחודש לחודש ללא תקופת התחייבות. ידוע לי שמנוי פלאשי אינו כלול בסכום זה, ושעלות שליחת ה-SMS מכוסה בטעינת קרדיטים בחשבון הפלאשי — שניהם משולמים על ידי {CLIENT} ישירות לפלאשי.</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="confirm_terms" required />
+          <span>אני מתחייב להעמיד את הרשאות הגישה הנדרשות (חשבון פלאשי וניהול אתר ה-WordPress) ואת חומרי המותג עם תחילת העבודה, ומאשר שרשימת התפוצה נאספה בהסכמה כנדרש בחוק.</span>
+        </label>
+      </fieldset>
+
+      <div class="signature-block">
+        <label for="signature">חתימה דיגיטלית</label>
+        <p class="hint">לחצו בתוך הריבוע וציירו את שמכם כחתימה.</p>
+        <div class="sig-wrap">
+          <canvas id="signature" aria-label="אזור חתימה"></canvas>
+          <span class="sig-line" aria-hidden="true"></span>
+          <span class="sig-x" aria-hidden="true">×</span>
+        </div>
+        <div class="sig-actions">
+          <button type="button" id="sig-clear" class="btn-ghost">נקה חתימה</button>
+        </div>
+      </div>
+
+      <div class="sign-actions">
+        <button type="submit" class="btn-primary">
+          אישור ושליחה
+          <span aria-hidden="true">←</span>
+        </button>
+        <p class="legal">בלחיצה על האישור, אני מקבל את התנאים המופיעים בהצעה זו ומסמיך את NINJA Digital להתחיל בעבודה.</p>
+      </div>
+    </form>
+
+    <div id="sign-success" class="sign-success" hidden>
+      <h3>התקבל. תודה.</h3>
+      <p>שרון יחזור אליכם תוך יום עסקים אחד עם רשימת ההרשאות הנדרשות ותיאום תחילת העבודה.</p>
+    </div>
+  </div>
+</section>
+<script is:inline define:vars={{ MONTHLY, PERIOD, CLIENT, CLIENT_ID }}>
+(() => {
+  const form = document.getElementById('proposal-sign');
+  const success = document.getElementById('sign-success');
+  const canvas = /** @type {HTMLCanvasElement} */(document.getElementById('signature'));
+  const ctx = canvas?.getContext('2d');
+  let drawing = false;
+  let hasInk = false;
+
+  if (canvas && ctx) {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    function setupCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#1a1a1a';
+    }
+    setupCanvas();
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const data = canvas.toDataURL();
+        setupCanvas();
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, 0, 0, canvas.width / dpr, canvas.height / dpr);
+        img.src = data;
+      }, 150);
+    });
+
+    function pos(e) {
+      const r = canvas.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+    function onDown(e) {
+      drawing = true;
+      canvas.setPointerCapture?.(e.pointerId);
+      const { x, y } = pos(e);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      e.preventDefault();
+    }
+    function onMove(e) {
+      if (!drawing) return;
+      const { x, y } = pos(e);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      hasInk = true;
+      e.preventDefault();
+    }
+    function onUp(e) {
+      if (!drawing) return;
+      drawing = false;
+      canvas.releasePointerCapture?.(e.pointerId);
+    }
+    canvas.addEventListener('pointerdown', onDown);
+    canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointercancel', onUp);
+    canvas.addEventListener('pointerleave', onUp);
+
+    document.getElementById('sig-clear')?.addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasInk = false;
+    });
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!hasInk) {
+      alert('נדרשת חתימה לפני האישור.');
+      return;
+    }
+    const data = Object.fromEntries(new FormData(form).entries());
+    const signature = canvas?.toDataURL('image/png');
+
+    // סיכום שנכנס כמו שהוא ל-PDF החתום ולמייל
+    const summary = {
+      title: 'ניהול פלאשי ל-ג׳ף מדיה',
+      client: `${CLIENT} · ח.פ ${CLIENT_ID}`,
+      project: 'פלאשי · WordPress / WooCommerce · ניהול חודשי',
+      lede: 'ניהול מלא של פלאשי על גבי WordPress / WooCommerce: בניית קמפיינים, הקמה וניהול של אוטומציות, ועיצוב של כל מה שנשלח.',
+      items: [
+        { label: 'ניהול פלאשי — קמפיינים, אוטומציות ועיצוב', detail: 'חיבור ל-WordPress / WooCommerce ובדיקת סנכרון · בניית קמפיינים במייל וב-SMS · הקמה וניהול אוטומציות, כולל אוטומציות קאסטום · עיצוב תבנית, קמפיינים ומיילים · דוח חודשי', amount: `${MONTHLY} ₪ / ${PERIOD}` },
+      ],
+      total: { label: `סה״כ ל${PERIOD} לפני מע״מ`, amount: `${MONTHLY} ₪` },
+      extras: ['התקשרות מחודש לחודש, ללא תקופת התחייבות'],
+      terms: 'המחיר אינו כולל מע״מ. חיוב חודשי בתחילת כל חודש עבודה. סיום בהודעה של 30 יום מראש. מנוי פלאשי, צילום והפקת חומרים ופיתוח באתר אינם כלולים. עלות שליחת SMS מכוסה בטעינת קרדיטים בחשבון הפלאשי של הלקוח.',
+      confirms: [
+        'אישור היקף העבודה כפי שתואר בהצעה',
+        `אישור מחיר: ${MONTHLY} ₪ + מע״מ ל${PERIOD}`,
+        'התחייבות להעמיד הרשאות גישה וחומרי מותג, ואישור שרשימת התפוצה נאספה בהסכמה',
+      ],
+    };
+
+    try {
+      const res = await fetch('/api/proposal-sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proposal: 'jeff-flashy', ...data, signature, summary, signedAt: new Date().toISOString() }),
+      });
+      if (res.ok || res.status === 202) {
+        form.style.display = 'none';
+        success.removeAttribute('hidden');
+        success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        alert('משהו השתבש. נסו שוב או שלחו לי במייל ישירות.');
+      }
+    } catch {
+      alert('משהו השתבש בחיבור. נסו שוב.');
+    }
+  });
+})();
+</script>
+
+<style>
+/* ---------- HERO ---------- */
+.proposal-hero { padding: 120px 0 70px; position: relative; z-index: 2; }
+.proposal-hero h1 { font-size: clamp(2.4rem, 5.5vw, 4.4rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; line-height: 1.05; }
+.proposal-hero h1 em { font-style: normal; color: var(--gold, #ffd166); }
+.lede { color: rgba(255,255,255,0.78); max-width: 760px; margin-top: 18px; font-size: 1.05rem; line-height: 1.7; }
+.lede strong { color: #fff; font-weight: 700; }
+.meta { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 48px; padding: 22px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+@media (min-width: 860px) { .meta { grid-template-columns: repeat(5, 1fr); } }
+.meta > div { display: flex; flex-direction: column; gap: 4px; }
+.meta span { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+.meta strong { font-size: 1.02rem; color: #fff; }
+
+section { padding: 60px 0; }
+.eyebrow { font-size: 0.78rem; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.55); display: inline-block; }
+section h2 { font-size: clamp(1.9rem, 4vw, 2.8rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; }
+
+/* ---------- PILLARS ---------- */
+.eng-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 34px; }
+@media (min-width: 900px) { .eng-grid { grid-template-columns: repeat(3, 1fr); } }
+.eng-card { padding: 28px 26px; border: 1px solid rgba(255,209,102,0.22); border-radius: 18px; background: linear-gradient(180deg, rgba(255,209,102,0.07), rgba(255,255,255,0.015)); }
+.eng-tag { display: inline-block; font-family: 'Rubik', sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold, #ffd166); border: 1px solid rgba(255,209,102,0.35); border-radius: 999px; padding: 4px 13px; margin-bottom: 16px; }
+.eng-card h3 { font-size: 1.45rem; font-weight: 800; letter-spacing: -0.01em; line-height: 1.25; }
+.eng-line { color: var(--gold, #ffd166); font-size: 0.97rem; font-weight: 600; line-height: 1.5; margin-top: 8px; }
+.eng-card > p:last-child { color: rgba(255,255,255,0.72); line-height: 1.68; font-size: 0.93rem; margin-top: 12px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08); }
+
+/* ---------- TABLES ---------- */
+.tscroll { overflow-x: auto; margin-top: 30px; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.02); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 0.92rem; }
+th { text-align: start; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.45); font-weight: 600; padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.12); white-space: nowrap; }
+td { padding: 13px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: top; color: rgba(255,255,255,0.8); line-height: 1.55; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: rgba(255,255,255,0.025); }
+td.kw { font-weight: 700; color: #fff; white-space: nowrap; }
+td.num, th.num { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: start; }
+td.num.accent { color: var(--gold, #ffd166); font-weight: 700; }
+td.miss { color: rgba(255,255,255,0.65); font-size: 0.88rem; }
+
+/* ---------- PHASES ---------- */
+.phase { margin-top: 18px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); overflow: hidden; }
+.phase > header { display: flex; align-items: baseline; gap: 16px; padding: 18px 26px; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); flex-wrap: wrap; }
+.phase .pn { font-family: 'Rubik', sans-serif; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--gold, #ffd166); border: 1px solid rgba(255,209,102,0.35); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+.phase h3 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+.phase .when { margin-inline-start: auto; font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.42); }
+.phase ul { list-style: none; padding: 20px 26px; display: grid; gap: 13px; margin: 0; }
+.phase li { position: relative; padding-inline-start: 22px; color: rgba(255,255,255,0.75); line-height: 1.68; font-size: 0.96rem; }
+.phase li::before { content: ''; position: absolute; inset-inline-start: 0; top: 10px; width: 8px; height: 8px; border-radius: 50%; background: rgba(255,209,102,0.65); }
+.phase li :global(strong) { color: #fff; font-weight: 700; }
+
+/* ---------- MONTHLY INCLUDES ---------- */
+.inc-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 34px; }
+@media (min-width: 860px) { .inc-grid { grid-template-columns: repeat(3, 1fr); } }
+.inc-card { padding: 28px 26px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.02); }
+.inc-icon { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; color: var(--gold, #ffd166); background: rgba(255,209,102,0.1); border: 1px solid rgba(255,209,102,0.2); margin-bottom: 16px; }
+.inc-icon svg { width: 23px; height: 23px; }
+.inc-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; line-height: 1.35; }
+.inc-card p { color: rgba(255,255,255,0.7); line-height: 1.65; font-size: 0.94rem; }
+
+/* ---------- DECISIONS ---------- */
+.dec-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 34px; }
+@media (min-width: 900px) { .dec-grid { grid-template-columns: repeat(2, 1fr); } }
+.dec-card { padding: 26px; border: 1px solid rgba(120,180,255,0.18); border-radius: 18px; background: linear-gradient(180deg, rgba(120,180,255,0.05), rgba(255,255,255,0.01)); }
+.dec-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; color: rgb(170, 200, 255); line-height: 1.35; }
+.dec-card p { color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.92rem; }
+
+/* ---------- PRICE ---------- */
+.price h2 { margin-bottom: 28px; }
+.price-card { border: 1px solid rgba(255,255,255,0.12); border-radius: 22px; padding: 30px 36px; background: linear-gradient(180deg, rgba(255,209,102,0.08), rgba(255,255,255,0.02)); }
+.price-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-top: 1px solid rgba(255,255,255,0.06); gap: 14px; }
+.price-row:first-of-type { border-top: none; }
+.price-row span { line-height: 1.55; }
+.price-row strong { font-weight: 700; color: #fff; font-size: 1.05rem; white-space: nowrap; unicode-bidi: plaintext; }
+.price-row.sub { color: rgba(255,255,255,0.7); }
+.price-row.sub strong { color: rgb(74, 222, 128); font-size: 0.95rem; }
+.price-row.timeline strong { color: var(--gold, #ffd166); font-size: 0.95rem; }
+.price-row.total { border-top: 1px solid rgba(255,209,102,0.4); padding-top: 22px; margin-top: 12px; }
+.price-row.total strong { font-size: 2rem; color: var(--gold, #ffd166); }
+.price-note { color: rgba(255,255,255,0.55); font-size: 0.85rem; margin-top: 16px; line-height: 1.7; }
+.price-note strong { color: rgba(255,255,255,0.8); }
+
+/* ---------- EXTRAS ---------- */
+.extras { margin-top: 20px; padding: 28px 32px; border: 1px solid rgba(255,255,255,0.1); border-radius: 22px; background: rgba(255,255,255,0.02); }
+.extras-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.extras-tag { font-family: 'Rubik', sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(170, 200, 255); border: 1px solid rgba(120,180,255,0.32); border-radius: 999px; padding: 4px 13px; white-space: nowrap; }
+.extras-head h3 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+.extras-list { list-style: none; padding: 18px 0 0; margin: 18px 0 0; display: grid; gap: 12px; border-top: 1px solid rgba(255,255,255,0.07); }
+.extras-list li { position: relative; padding-inline-start: 22px; color: rgba(255,255,255,0.72); line-height: 1.65; font-size: 0.93rem; }
+.extras-list li::before { content: ''; position: absolute; inset-inline-start: 0; top: 9px; width: 7px; height: 7px; border-radius: 50%; background: rgba(120,180,255,0.6); }
+.extras-list strong { color: #fff; font-weight: 700; }
+
+/* ---------- SIGN ---------- */
+.sign-card { margin-top: 32px; padding: 32px; border: 1px solid rgba(255,255,255,0.12); border-radius: 22px; background: rgba(255,255,255,0.03); display: grid; gap: 20px; }
+.field-row { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 768px) { .field-row { grid-template-columns: 1fr 1fr; } }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+.field input { height: 48px; padding: 0 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: #fff; font-size: 1rem; transition: border-color 0.2s; }
+.field input:focus { outline: none; border-color: var(--gold, #ffd166); }
+.confirms { display: grid; gap: 8px; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(0,0,0,0.2); }
+.check { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: start; cursor: pointer; padding: 10px 8px; border-radius: 10px; transition: background 0.15s; }
+.check:hover { background: rgba(255,255,255,0.04); }
+.check input[type=checkbox] { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--gold, #ffd166); cursor: pointer; flex-shrink: 0; }
+.check span { line-height: 1.55; color: rgba(255,255,255,0.88); font-size: 0.95rem; }
+
+.signature-block { display: grid; gap: 10px; padding: 18px 20px; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; background: rgba(0,0,0,0.25); }
+.signature-block label { font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.65); }
+.signature-block .hint { font-size: 0.85rem; color: rgba(255,255,255,0.55); margin: 0; }
+.sig-wrap { position: relative; width: 100%; }
+canvas#signature { display: block; width: 100%; height: 200px; background: #ffffff; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); cursor: crosshair; touch-action: none; }
+.sig-line { position: absolute; inset-inline: 24px; bottom: 38px; height: 1px; background: rgba(0,0,0,0.18); pointer-events: none; }
+.sig-x { position: absolute; inset-inline-start: 24px; bottom: 26px; font-size: 0.85rem; color: rgba(0,0,0,0.45); letter-spacing: 0.05em; pointer-events: none; font-family: 'Rubik', sans-serif; }
+.sig-actions { display: flex; justify-content: flex-end; }
+.btn-ghost { background: transparent; border: 1px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.7); padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: border-color 0.2s; }
+.btn-ghost:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
+
+.sign-actions { margin-top: 12px; display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
+.btn-primary { height: 56px; background: linear-gradient(135deg, var(--gold, #ffd166), #d4a534); color: #0a0a0a; border: none; font-size: 1.05rem; font-weight: 700; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.2s, box-shadow 0.2s; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 30px -10px rgba(255,209,102,0.3); }
+.legal { color: rgba(255,255,255,0.5); font-size: 0.82rem; text-align: center; }
+
+.sign-success { margin-top: 32px; padding: 36px; border: 1px solid rgba(74,222,128,0.3); background: rgba(74,222,128,0.06); border-radius: 22px; text-align: center; }
+.sign-success h3 { font-size: 1.8rem; font-weight: 700; color: rgb(134, 239, 172); margin-bottom: 10px; }
+.sign-success p { color: rgba(255,255,255,0.85); line-height: 1.6; }
+
+@media (max-width: 720px) {
+  .proposal-hero { padding: 36px 0 50px; }
+  .proposal-hero h1 { font-size: 2.1rem; line-height: 1.15; }
+  .proposal-hero .lede { font-size: 0.98rem; }
+  .meta { gap: 12px; padding: 16px; margin-top: 24px; }
+  .meta strong { font-size: 0.92rem; }
+  section { padding: 44px 0; }
+  .price-card, .extras { padding: 22px 20px; }
+  .price-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .sign-card { padding: 22px 18px; }
+}
+</style>
+
+<style is:global>
+/* site.js מצפה לניווט הרגיל שהוסתר בעמוד הזה וזורק TypeError,
+ * מה ששובר את ה-IntersectionObserver שמוסיף .in — לכן כופים נראות. */
+[data-reveal] { opacity: 1 !important; transform: none !important; }
+html, body { overflow-x: clip; }
+</style>
+</Layout>
